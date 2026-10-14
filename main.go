@@ -48,24 +48,18 @@ func initDB() {
 		log.Fatalf("[DB] Failed to connect: %v", err)
 	}
 
-	// Ensure cosmos keyspace exists
-	if err = sys.Query("CREATE KEYSPACE IF NOT EXISTS cosmos WITH replication = {'class': 'NetworkTopologyStrategy', 'datacenter1': 1}").Exec(); err != nil {
-		sys.Query("CREATE KEYSPACE IF NOT EXISTS cosmos WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}").Exec()
+	err = sys.Query("CREATE KEYSPACE IF NOT EXISTS unity WITH replication = {'class': 'NetworkTopologyStrategy', 'datacenter1': 1}").Exec()
+	if err != nil {
+		log.Fatalf("[DB] Failed to create keyspace: %v", err)
 	}
-	// Backward compatibility keyspace alias
-	sys.Query("CREATE KEYSPACE IF NOT EXISTS unity WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}").Exec()
 	sys.Close()
 
-	scyllaHost := os.Getenv("SCYLLA_HOST")
-	if scyllaHost == "" {
-		scyllaHost = "127.0.0.1"
-	}
-	kCluster := gocql.NewCluster(scyllaHost)
+	kCluster := gocql.NewCluster("127.0.0.1")
 	kCluster.Keyspace = "cosmos"
 	kCluster.Timeout = 10 * time.Second
 	scyllaSession, err = kCluster.CreateSession()
 	if err != nil {
-		log.Fatalf("[DB] Failed to connect to cosmos keyspace: %v", err)
+		log.Fatalf("[DB] Failed to connect to unity keyspace: %v", err)
 	}
 
 	scyllaSession.Query(`CREATE TABLE IF NOT EXISTS users (
@@ -122,8 +116,8 @@ func generateOTP() string {
 }
 
 func sendVerificationEmail(email, token, service string) {
-	msg := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: Verify your Cosmos %s Account\r\n\r\nYour verification code is: %s\r\n\r\nEnter this 6-digit code in the portal to verify your account.\r\n",
-		getEmailFrom(), email, strings.ToUpper(service), token)
+	msg := fmt.Sprintf("From: noreply@cosmos.linuxguy.space\r\nTo: %s\r\nSubject: Verify your Cosmos %s Account\r\n\r\nYour verification code is: %s\r\n\r\nEnter this 6-digit code in the portal to verify your account.\r\n",
+		email, strings.ToUpper(service), token)
 	cmd := exec.Command("msmtp", "-t")
 	cmd.Stdin = bytes.NewBufferString(msg)
 	if err := cmd.Run(); err != nil {
@@ -225,7 +219,7 @@ func handleSignup(w http.ResponseWriter, r *http.Request, service string) {
 	sessionID := uuid.New().String()
 	
 	// Store session+OTP in pending table — raw_password NOT stored in DB (security)
-	if err := scyllaSession.Query(`INSERT INTO cosmos.pending (service, reg_token, session_id, name, email, password_hash, username, profile_image) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+	if err := scyllaSession.Query(`INSERT INTO unity.pending (service, reg_token, session_id, name, email, password_hash, username, profile_image) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 		service, regToken, sessionID, name, email, string(hash), username, profileImageBase64).Exec(); err != nil {
 		log.Printf("[SIGNUP] DB: %v", err)
 		http.Error(w, "Database error", 500)
@@ -334,7 +328,7 @@ func handleVerify(w http.ResponseWriter, r *http.Request, service string) {
 	}
 	var sessionID, name, email, passwordHash, username, profileImage string
 	// raw_password is never stored in DB — read from in-memory map only
-	err := scyllaSession.Query(`SELECT session_id, name, email, password_hash, username, profile_image FROM cosmos.pending WHERE service = ? AND reg_token = ?`,
+	err := scyllaSession.Query(`SELECT session_id, name, email, password_hash, username, profile_image FROM unity.pending WHERE service = ? AND reg_token = ?`,
 		service, token).Scan(&sessionID, &name, &email, &passwordHash, &username, &profileImage)
 	if err != nil {
 		if r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
@@ -354,7 +348,7 @@ func handleVerify(w http.ResponseWriter, r *http.Request, service string) {
 
 	accessKey := email
 	secretKey := strings.ReplaceAll(uuid.New().String(), "-", "") + strings.ReplaceAll(uuid.New().String(), "-", "")[:8]
-	bucket := "cosmos-" + strings.ReplaceAll(uuid.New().String(), "-", "")[:8]
+	bucket := "unity-" + strings.ReplaceAll(uuid.New().String(), "-", "")[:8]
 	// Store created_at for future session expiry checks
 	createdAt := time.Now().Unix()
 	if err = scyllaSession.Query(`INSERT INTO cosmos.users (service, email, name, password_hash, access_key, secret_key, bucket, bucket_display_name, session_id, username, profile_image, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'mybucket', ?, ?, ?, ?)`,
@@ -367,7 +361,7 @@ func handleVerify(w http.ResponseWriter, r *http.Request, service string) {
 			return
 		}
 	}
-	scyllaSession.Query(`DELETE FROM cosmos.pending WHERE service = ? AND reg_token = ?`, service, token).Exec()
+	scyllaSession.Query(`DELETE FROM unity.pending WHERE service = ? AND reg_token = ?`, service, token).Exec()
 
 	// Clear raw password from memory immediately after use
 	pendingPasswords.Delete(service + ":" + token)
@@ -445,9 +439,9 @@ h1{font-size:48px;font-weight:700;margin-bottom:8px}
 <div class="card"><div class="lbl">Access Key ID</div><div class="val">%s</div></div>
 <div class="card"><div class="lbl">Secret Access Key</div><div class="val">%s</div></div>
 <div class="card"><div class="lbl">Private Bucket</div><div class="val">%s</div></div>
-<div class="card"><div class="lbl">S3 Endpoint</div><div class="val">%s</div></div>
+<div class="card"><div class="lbl">S3 Endpoint</div><div class="val">https://cosmos.linuxguy.space</div></div>
 <a href="/oort/console?sid=%s" class="btn">Open Storage Console →</a>
-</div></body></html>`, name, ak, sk, bucket, getCosmosBaseURL(), sid)
+</div></body></html>`, name, ak, sk, bucket, sid)
 
 	case "git":
 		fmt.Fprintf(w, `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Git – Cosmos</title><style>
@@ -471,7 +465,7 @@ h1{font-size:48px;font-weight:700;margin-bottom:8px}
 
 func provisionMinIO(ak, sk, bucket string) {
 	log.Printf("[MinIO] Provisioning %s", ak)
-	exec.Command("mc", "alias", "set", "cosmos", "http://127.0.0.1:9000", getMinioRootUser(), getMinioRootPassword()).Run()
+	exec.Command("mc", "alias", "set", "cosmos", "http://127.0.0.1:9000", "unityadmin", "UnityAdmin2026!").Run()
 	exec.Command("mc", "admin", "user", "add", "cosmos", ak, sk).Run()
 	exec.Command("mc", "mb", "--ignore-existing", "cosmos/"+bucket).Run()
 	exec.Command("mc", "version", "enable", "cosmos/"+bucket).Run()
@@ -482,7 +476,6 @@ func provisionMinIO(ak, sk, bucket string) {
 	os.WriteFile(policyFile, []byte(policyStr), 0644)
 	exec.Command("mc", "admin", "policy", "create", "cosmos", "policy_"+bucket, policyFile).Run()
 	exec.Command("mc", "admin", "policy", "attach", "cosmos", "policy_"+bucket, "--user", ak).Run()
-	os.Remove(policyFile)
 	
 	// Set 10GB quota
 	exec.Command("mc", "quota", "set", "cosmos/"+bucket, "--size", "10G").Run()
@@ -576,16 +569,16 @@ const resetTokenMaxAge = time.Hour // Reset links expire after 1 hour
 
 // sendPasswordResetEmail sends the reset link to the user's email address.
 func sendPasswordResetEmail(toEmail, token, service string) {
-	link := fmt.Sprintf("%s/%s/reset-password?token=%s", getCosmosBaseURL(), service, token)
+	link := fmt.Sprintf("https://cosmos.linuxguy.space/%s/reset-password?token=%s", service, token)
 	msg := fmt.Sprintf(
-		"From: %s\r\nTo: %s\r\nSubject: Reset your Cosmos %s password\r\n\r\n"+
+		"From: noreply@cosmos.linuxguy.space\r\nTo: %s\r\nSubject: Reset your Cosmos %s password\r\n\r\n"+
 			"Hi,\r\n\r\n"+
 			"We received a request to reset the password for your Cosmos %s account (%s).\r\n\r\n"+
 			"Click the link below to set a new password. This link is valid for 1 hour.\r\n\r\n"+
 			"  %s\r\n\r\n"+
 			"If you did not request this, you can safely ignore this email — your account remains secure.\r\n\r\n"+
 			"— Cosmos Team\r\n",
-		getEmailFrom(), toEmail, strings.ToUpper(service), strings.ToUpper(service), toEmail, link,
+		toEmail, strings.ToUpper(service), strings.ToUpper(service), toEmail, link,
 	)
 	cmd := exec.Command("msmtp", "-t")
 	cmd.Stdin = bytes.NewBufferString(msg)
@@ -812,6 +805,7 @@ func main() {
 		w.Write(data)
 	})
 	RegisterS3ConsoleRoutes(mux)
+	RegisterOrbitRoutes(mux)
 	mux.HandleFunc("/oort", func(w http.ResponseWriter, r *http.Request) { handleServicePage(w, r, "oort") })
 	mux.HandleFunc("/git", func(w http.ResponseWriter, r *http.Request) { handleServicePage(w, r, "git") })
 	mux.HandleFunc("/oort/", serviceRouter("oort"))

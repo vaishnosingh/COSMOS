@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cosmos Orbit — Application Platform & Container Runtime</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='6' fill='%2338bdf8'/><circle cx='16' cy='16' r='12' fill='none' stroke='%2338bdf8' stroke-width='1.5' stroke-dasharray='4 3'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/tailwind.css">
+<style>
+:root {
+  --bg-dark: #05070d;
+  --bg-card: rgba(13, 19, 33, 0.75);
+  --border-card: rgba(255, 255, 255, 0.08);
+  --accent-cyan: #38bdf8;
+  --accent-purple: #a855f7;
+  --accent-green: #10b981;
+  --accent-amber: #f59e0b;
+  --accent-red: #ef4444;
+  --text-main: #f1f5f9;
+  --text-dim: #94a3b8;
+  --text-muted: #64748b;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-disp: 'Space Grotesk', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  font-family: var(--font-disp);
+  min-height: 100vh;
+  overflow-x: hidden;
+  background-image:
+    radial-gradient(ellipse at 20% 0%, rgba(56, 189, 248, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 10%, rgba(168, 85, 247, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 100%, rgba(15, 23, 42, 0.8) 0%, transparent 80%);
+}
+/* Header */
+.orbit-header {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  background: rgba(8, 12, 22, 0.7);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.brand-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: #fff;
+  font-weight: 700;
+  font-size: 17px;
+  letter-spacing: -0.02em;
+}
+.brand-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  color: var(--accent-cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+.nav-btn-ghost {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-dim);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.nav-btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+.nav-btn-primary {
+  background: linear-gradient(135deg, #0284c7, #38bdf8);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(56, 189, 248, 0.25);
+}
+.nav-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(56, 189, 248, 0.4);
+}
+/* Container & Layout */
+.main-wrap {
+  max-width: 1380px;
+  margin: 0 auto;
+  padding: 32px 32px 64px;
+}
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px;
+  margin-bottom: 32px;
+}
+.stat-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-card);
+  border-radius: 16px;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+.stat-label {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.stat-val {
+  font-size: 28px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.03em;
+  font-family: var(--font-disp);
+}
+.stat-sub {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+/* App Cards Grid */
+.apps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 20px;
+}
+.app-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 18px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+.app-card:hover {
+  border-color: rgba(56, 189, 248, 0.35);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+  transform: translateY(-2px);
+}
+.app-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.app-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.status-running {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.status-building {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+.status-stopped {
+  background: rgba(100, 116, 139, 0.15);
+  color: #94a3b8;
+  border: 1px solid rgba(100, 116, 139, 0.3);
+}
+.status-failed {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.status-running .status-dot { background: #34d399; box-shadow: 0 0 8px #34d399; animation: pulseDot 2s infinite; }
+.status-building .status-dot { background: #fbbf24; animation: pulseDot 1s infinite; }
+.status-stopped .status-dot { background: #94a3b8; }
+.status-failed .status-dot { background: #f87171; }
+@keyframes pulseDot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+.app-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12.5px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+.app-metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  padding: 12px 16px;
+}
+.metric-box {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.metric-box-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.metric-box-val {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  font-family: var(--font-mono);
+}
+.app-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+.btn-sm-action {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-sm-action:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+.btn-sm-action.danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 7, 18, 0.85);
+  backdrop-filter: blur(12px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.modal-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.modal-dialog {
+  background: #0b1120;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.modal-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+.tab-row {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 10px;
+}
+.tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.tab-btn.active {
+  background: rgba(56, 189, 248, 0.12);
+  color: var(--accent-cyan);
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.form-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+.form-input {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: #fff;
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color 0.2s;
+  width: 100%;
+}
+.form-input:focus {
+  border-color: var(--accent-cyan);
+}
+/* Live Logs Terminal Viewer */
+.terminal-window {
+  background: #020408;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 16px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  color: #e2eaf2;
+  height: 480px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+/* Toast */
+#toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.toast {
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  animation: toastIn 0.3s ease;
+}
+@keyframes toastIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="orbit-header">
+  <div style="display: flex; align-items: center; gap: 20px;">
+    <a href="/" class="brand-link">
+      <svg width="24" height="24" viewBox="0 0 32 32"><circle cx="16" cy="16" r="6" fill="#38bdf8"/><circle cx="16" cy="16" r="12" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="4 3"/></svg>
+      Cosmos Orbit
+    </a>
+    <span class="brand-badge">Module 03 · App PaaS</span>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <a href="/git" class="nav-btn nav-btn-ghost">Forge (Git)</a>
+    <a href="/oort" class="nav-btn nav-btn-ghost">Oort (S3)</a>
+    <button class="nav-btn nav-btn-primary" onclick="openNewAppModal()">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      New Application
+    </button>
+  </div>
+</header>
+
+<!-- Main Container -->
+<div class="main-wrap">
+  <!-- Stats Row -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Applications <span style="color:var(--accent-cyan);">Fleet</span></div>
+      <div class="stat-val" id="stat-apps-count">—</div>
+      <div class="stat-sub" id="stat-apps-running">— Running containers</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Memory Allocation <span style="color:var(--accent-purple);">RAM</span></div>
+      <div class="stat-val" id="stat-mem-total">—</div>
+      <div class="stat-sub">Across managed services</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Container Engine <span style="color:var(--accent-green);">Docker</span></div>
+      <div class="stat-val" style="font-size:20px; font-family:var(--font-mono); color:#34d399;">v1.45 API</div>
+      <div class="stat-sub">Direct socket integration</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Ingress Gateway <span style="color:var(--accent-amber);">Proxy</span></div>
+      <div class="stat-val" style="font-size:20px; font-family:var(--font-mono);">:4100–:4999</div>
+      <div class="stat-sub">Dynamic reverse proxy active</div>
+    </div>
+  </div>
+
+  <!-- Applications Section Header -->
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+    <div>
+      <h2 style="font-size: 22px; font-weight: 800; color: #fff; letter-spacing: -0.02em;">Managed Applications</h2>
+      <p style="font-size: 13.5px; color: var(--text-dim);">Live containers deployed from source repositories</p>
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <button class="btn-sm-action" onclick="loadApplications()">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Applications Grid Container -->
+  <div class="apps-grid" id="apps-container">
+    <div style="grid-column: 1 / -1; padding: 60px 20px; text-align: center; color: var(--text-muted);">
+      Loading your application fleet…
+    </div>
+  </div>
+</div>
+
+<!-- Modal: New Application Wizard -->
+<div class="modal-overlay" id="modal-new-app">
+  <div class="modal-dialog">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div class="modal-title">Deploy New Application</div>
+      <button onclick="closeNewAppModal()" style="background:none; border:none; color:var(--text-dim); font-size:18px; cursor:pointer;">✕</button>
+    </div>
+
+    <!-- Source Selection Tabs -->
+    <div class="tab-row">
+      <button class="tab-btn active" id="tab-btn-forge" onclick="switchDeployTab('forge')">Forge Repository</button>
+      <button class="tab-btn" id="tab-btn-git" onclick="switchDeployTab('git')">Custom Git URL</button>
+      <button class="tab-btn" id="tab-btn-tpl" onclick="switchDeployTab('templates')">Starter Templates</button>
+    </div>
+
+    <form id="form-create-app" onsubmit="submitNewApp(event)">
+      <!-- Tab 1: Forge Picker -->
+      <div id="tab-content-forge">
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label class="form-label">Select from your Forge Repositories</label>
+          <select id="sel-forge-repo" class="form-input" onchange="onForgeRepoSelected(this.value)">
+            <option value="">Loading your repositories…</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Tab 2: Custom Git -->
+      <div id="tab-content-git" style="display: none;">
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label class="form-label">Git Clone URL (HTTPS)</label>
+          <input type="text" id="inp-git-url" class="form-input" placeholder="https://github.com/org/repo.git">
+        </div>
+      </div>
+
+      <!-- Tab 3: Starter Templates -->
+      <div id="tab-content-templates" style="display: none;">
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label class="form-label">Choose a Quick-Start Template</label>
+          <div id="templates-list" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;"></div>
+        </div>
+      </div>
+
+      <!-- Common Fields -->
+      <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 16px;">
+        <div class="form-group">
+          <label class="form-label">Application Name</label>
+          <input type="text" id="inp-app-name" class="form-input" required placeholder="my-web-service">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Branch</label>
+          <input type="text" id="inp-app-branch" class="form-input" value="main" required>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 24px;">
+        <label class="form-label">Environment Variables (optional, KEY=VALUE per line)</label>
+        <textarea id="inp-app-env" class="form-input" rows="3" style="font-family:var(--font-mono); font-size:12px;" placeholder="NODE_ENV=production&#10;DATABASE_URL=postgres://..."></textarea>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 12px;">
+        <button type="button" class="nav-btn nav-btn-ghost" onclick="closeNewAppModal()">Cancel</button>
+        <button type="submit" class="nav-btn nav-btn-primary" id="btn-submit-app">Launch Application</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Live Logs Viewer -->
+<div class="modal-overlay" id="modal-logs">
+  <div class="modal-dialog" style="max-width: 860px;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <div class="modal-title" id="logs-modal-title">Application Logs</div>
+        <div style="font-size: 12px; color: var(--text-dim); font-family: var(--font-mono);" id="logs-modal-sub">Loading…</div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn-sm-action" onclick="refreshCurrentLogs()">Refresh</button>
+        <button class="btn-sm-action" onclick="closeLogsModal()">✕ Close</button>
+      </div>
+    </div>
+    <div class="terminal-window" id="terminal-output">Connecting to container stream…</div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+let currentApps = [];
+let activeLogsAppID = null;
+let logsPollInterval = null;
+
+async function api(path, opts = {}) {
+  try {
+    const res = await fetch(path, opts);
+    if (res.status === 401) {
+      window.location.href = '/oort/login?next=/orbit';
+      return null;
+    }
+    return await res.json();
+  } catch (e) {
+    console.error('API Error:', e);
+    return null;
+  }
+}
+
+function toast(msg, type = 'info') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+async function loadApplications() {
+  const data = await api('/orbit/api/apps');
+  const container = document.getElementById('apps-container');
+  if (!data || !data.apps) {
+    container.innerHTML = '<div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: var(--text-muted);">Failed to load applications.</div>';
+    return;
+  }
+
+  currentApps = data.apps;
+  updateStats(currentApps);
+
+  if (currentApps.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1 / -1; padding: 80px 20px; text-align: center; border: 1px dashed rgba(255,255,255,0.1); border-radius: 20px;">
+        <svg width="48" height="48" fill="none" stroke="var(--accent-cyan)" stroke-width="1.5" viewBox="0 0 24 24" style="margin: 0 auto 16px;"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+        <h3 style="font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 6px;">No Applications Deployed Yet</h3>
+        <p style="color: var(--text-dim); font-size: 14px; max-width: 420px; margin: 0 auto 20px;">Deploy your first containerized service directly from Forge Git or with a quick-start template.</p>
+        <button class="nav-btn nav-btn-primary" onclick="openNewAppModal()">Deploy Application</button>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = currentApps.map(app => {
+    const isRunning = app.status === 'running';
+    const isBuilding = app.status === 'building';
+    const statusClass = `status-${app.status}`;
+    const cpuStr = app.live_stats ? `${app.live_stats.cpu_percent.toFixed(1)}%` : '—';
+    const memStr = app.live_stats ? `${app.live_stats.mem_usage_mb.toFixed(0)} MB` : '—';
+
+    return `
+      <div class="app-card">
+        <div class="app-card-header">
+          <div>
+            <div class="app-name">
+              ${escapeHTML(app.name)}
+            </div>
+            <div class="app-meta-row" style="margin-top: 4px;">
+              <span>branch: ${escapeHTML(app.branch || 'main')}</span>
+              <span>&middot;</span>
+              <span>port :${app.exposed_port}</span>
+            </div>
+          </div>
+          <span class="status-pill ${statusClass}">
+            <span class="status-dot"></span>
+            ${app.status}
+          </span>
+        </div>
+
+        <!-- Telemetry Box -->
+        <div class="app-metrics-grid">
+          <div class="metric-box">
+            <span class="metric-box-label">CPU Usage</span>
+            <span class="metric-box-val">${cpuStr}</span>
+          </div>
+          <div class="metric-box">
+            <span class="metric-box-label">Memory</span>
+            <span class="metric-box-val">${memStr}</span>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="app-card-actions">
+          <div style="display: flex; gap: 6px;">
+            <button class="btn-sm-action" onclick="openAppLogs('${app.app_id}', '${escapeHTML(app.name)}')">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+              Logs
+            </button>
+            ${isRunning ? `
+              <button class="btn-sm-action" onclick="appAction('${app.app_id}', 'restart')">Restart</button>
+              <button class="btn-sm-action" onclick="appAction('${app.app_id}', 'stop')">Stop</button>
+            ` : `
+              <button class="btn-sm-action" style="color:#34d399;" onclick="appAction('${app.app_id}', 'start')">Start</button>
+              <button class="btn-sm-action" onclick="appAction('${app.app_id}', 'rebuild')">Rebuild</button>
+            `}
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <a href="${app.proxy_url}" target="_blank" class="btn-sm-action" style="color:var(--accent-cyan); border-color:rgba(56,189,248,0.3);">
+              Open App ↗
+            </a>
+            <button class="btn-sm-action danger" onclick="deleteApp('${app.app_id}', '${escapeHTML(app.name)}')">✕</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function updateStats(apps) {
+  document.getElementById('stat-apps-count').textContent = apps.length;
+  const running = apps.filter(a => a.status === 'running').length;
+  document.getElementById('stat-apps-running').textContent = `${running} Running containers`;
+
+  let totalMem = 0;
+  apps.forEach(a => {
+    if (a.live_stats && a.live_stats.mem_usage_mb) {
+      totalMem += a.live_stats.mem_usage_mb;
+    }
+  });
+  document.getElementById('stat-mem-total').textContent = totalMem > 0 ? `${totalMem.toFixed(0)} MB` : '512 MB';
+}
+
+function escapeHTML(str) {
+  return (str || '').replace(/[&<>'"]/g, tag => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+  }[tag] || tag));
+}
+
+async function appAction(appID, action) {
+  toast(`Executing ${action} on application…`);
+  const res = await api(`/orbit/api/apps/${appID}/action`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action })
+  });
+  if (res && res.success) {
+    toast(`Action ${action} succeeded.`);
+    loadApplications();
+  } else {
+    toast(`Failed to execute ${action}`, 'error');
+  }
+}
+
+async function deleteApp(appID, name) {
+  if (!confirm(`Are you sure you want to tear down and delete '${name}'?`)) return;
+  const res = await api(`/orbit/api/apps/${appID}`, { method: 'DELETE' });
+  if (res && res.success) {
+    toast(`Application '${name}' removed.`);
+    loadApplications();
+  }
+}
+
+// Modal handling
+function openNewAppModal() {
+  document.getElementById('modal-new-app').classList.add('open');
+  loadForgeRepos();
+  loadStarterTemplates();
+}
+function closeNewAppModal() {
+  document.getElementById('modal-new-app').classList.remove('open');
+}
+
+function switchDeployTab(tab) {
+  document.getElementById('tab-btn-forge').classList.toggle('active', tab === 'forge');
+  document.getElementById('tab-btn-git').classList.toggle('active', tab === 'git');
+  document.getElementById('tab-btn-tpl').classList.toggle('active', tab === 'templates');
+
+  document.getElementById('tab-content-forge').style.display = (tab === 'forge') ? 'block' : 'none';
+  document.getElementById('tab-content-git').style.display = (tab === 'git') ? 'block' : 'none';
+  document.getElementById('tab-content-templates').style.display = (tab === 'templates') ? 'block' : 'none';
+}
+
+async function loadForgeRepos() {
+  const sel = document.getElementById('sel-forge-repo');
+  sel.innerHTML = '<option value="">Loading Forge repositories…</option>';
+  const res = await api('/orbit/api/forge/repos');
+  if (res && res.repos && res.repos.length > 0) {
+    sel.innerHTML = '<option value="">-- Choose a repository --</option>' +
+      res.repos.map(r => `<option value="${r.clone_url || r.html_url}" data-name="${r.name}">${r.name} (${r.default_branch || 'main'})</option>`).join('');
+  } else {
+    sel.innerHTML = '<option value="">No Forge repositories found. Switch to Custom Git URL.</option>';
+  }
+}
+
+function onForgeRepoSelected(url) {
+  if (!url) return;
+  const sel = document.getElementById('sel-forge-repo');
+  const opt = sel.options[sel.selectedIndex];
+  const name = opt.getAttribute('data-name');
+  if (name) {
+    document.getElementById('inp-app-name').value = name;
+  }
+}
+
+async function loadStarterTemplates() {
+  const list = document.getElementById('templates-list');
+  const res = await api('/orbit/api/templates');
+  if (res && res.templates) {
+    list.innerHTML = res.templates.map(t => `
+      <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:12px; cursor:pointer; transition:0.2s;"
+           onclick="selectTemplate('${escapeHTML(t.name)}', '${t.repo_url}', '${t.branch}')">
+        <div style="font-weight:700; color:#fff; font-size:13px; margin-bottom:4px;">${escapeHTML(t.name)}</div>
+        <div style="font-size:11.5px; color:var(--text-dim); line-height:1.4;">${escapeHTML(t.description)}</div>
+      </div>
+    `).join('');
+  }
+}
+
+function selectTemplate(name, repoURL, branch) {
+  document.getElementById('inp-app-name').value = name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+  document.getElementById('inp-git-url').value = repoURL;
+  document.getElementById('inp-app-branch').value = branch;
+  switchDeployTab('git');
+  toast(`Selected template: ${name}`);
+}
+
+async function submitNewApp(e) {
+  e.preventDefault();
+  const name = document.getElementById('inp-app-name').value.trim();
+  const branch = document.getElementById('inp-app-branch').value.trim();
+  let repoURL = '';
+
+  const activeTab = document.querySelector('.tab-btn.active').id;
+  if (activeTab === 'tab-btn-forge') {
+    repoURL = document.getElementById('sel-forge-repo').value;
+  } else {
+    repoURL = document.getElementById('inp-git-url').value.trim();
+  }
+
+  if (!repoURL) {
+    toast('Please select or specify a Git repository URL', 'error');
+    return;
+  }
+
+  // Parse environment variables
+  const envText = document.getElementById('inp-app-env').value;
+  const envVars = {};
+  envText.split('\n').forEach(line => {
+    line = line.trim();
+    if (line && line.includes('=')) {
+      const idx = line.indexOf('=');
+      envVars[line.slice(0, idx).trim()] = line.slice(idx + 1).trim();
+    }
+  });
+
+  const btn = document.getElementById('btn-submit-app');
+  btn.disabled = true;
+  btn.textContent = 'Launching…';
+
+  const res = await api('/orbit/api/apps', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name,
+      repo_url: repoURL,
+      branch,
+      env_vars: envVars
+    })
+  });
+
+  btn.disabled = false;
+  btn.textContent = 'Launch Application';
+
+  if (res && res.success) {
+    closeNewAppModal();
+    toast('Deployment initiated! Streaming build logs…');
+    loadApplications();
+    openAppLogs(res.app_id, name);
+  } else {
+    toast((res && res.error) || 'Failed to create application', 'error');
+  }
+}
+
+// Live Logs Viewer
+async function openAppLogs(appID, name) {
+  activeLogsAppID = appID;
+  document.getElementById('logs-modal-title').textContent = `${name} — Container Logs`;
+  document.getElementById('logs-modal-sub').textContent = `App ID: ${appID}`;
+  document.getElementById('terminal-output').textContent = 'Connecting to log stream…';
+  document.getElementById('modal-logs').classList.add('open');
+
+  refreshCurrentLogs();
+  if (logsPollInterval) clearInterval(logsPollInterval);
+  logsPollInterval = setInterval(refreshCurrentLogs, 2500);
+}
+
+function closeLogsModal() {
+  document.getElementById('modal-logs').classList.remove('open');
+  if (logsPollInterval) {
+    clearInterval(logsPollInterval);
+    logsPollInterval = null;
+  }
+  activeLogsAppID = null;
+}
+
+async function refreshCurrentLogs() {
+  if (!activeLogsAppID) return;
+  try {
+    const res = await fetch(`/orbit/api/apps/${activeLogsAppID}/logs`);
+    const text = await res.text();
+    const win = document.getElementById('terminal-output');
+    win.textContent = text || '[ORBIT] No output yet.';
+    win.scrollTop = win.scrollHeight;
+  } catch(e) {
+    console.error('Error fetching logs:', e);
+  }
+}
+
+// Initial boot
+loadApplications();
+// Auto refresh fleet telemetry every 8 seconds
+setInterval(loadApplications, 8000);
+</script>
+</body>
+</html>
