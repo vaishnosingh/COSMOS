@@ -512,8 +512,6 @@ func deployAppAsync(appID string) {
 		containerID, imageTag, intPort, buildType, time.Now().Unix(), appID).Exec()
 
 	saveDeploymentRecord(appID, "success", int(time.Since(startTime).Seconds()), logBuf.String())
-	// Clear in-memory build log — live container logs will be served from Docker from now on
-	time.Sleep(2 * time.Second) // let any pending log reads finish
 	orbitBuildLogs.Delete(appID)
 }
 
@@ -833,12 +831,14 @@ func handleOrbitAppLogs(w http.ResponseWriter, r *http.Request, appID string) {
 	w.Header().Set("X-App-Status", app.Status)
 
 	// 1. If currently building: serve live in-memory build log
-	if val, ok := orbitBuildLogs.Load(appID); ok {
-		buf := val.(*bytes.Buffer)
-		logText := buf.String()
-		w.Header().Set("X-App-Status", "building")
-		w.Write([]byte(logText))
-		return
+	if app.Status == "building" {
+		if val, ok := orbitBuildLogs.Load(appID); ok {
+			buf := val.(*bytes.Buffer)
+			logText := buf.String()
+			w.Header().Set("X-App-Status", "building")
+			w.Write([]byte(logText))
+			return
+		}
 	}
 
 	// 2. If running: stream live container stdout/stderr
