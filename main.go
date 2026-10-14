@@ -380,7 +380,6 @@ func handleVerify(w http.ResponseWriter, r *http.Request, service string) {
 			if rawPassword != "" {
 				provisionGitea(username, email, rawPassword)
 			}
-		// Note: "cdn" / Seafile provisioning removed — Seafile is not deployed
 		}
 	}()
 	if r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
@@ -449,23 +448,7 @@ h1{font-size:48px;font-weight:700;margin-bottom:8px}
 <div class="card"><div class="lbl">S3 Endpoint</div><div class="val">%s</div></div>
 <a href="/oort/console?sid=%s" class="btn">Open Storage Console →</a>
 </div></body></html>`, name, ak, sk, bucket, getCosmosBaseURL(), sid)
-	case "cdn":
-		fmt.Fprintf(w, `<!DOCTYPE html><html><head><meta charset="utf-8"><title>CDN – Cosmos</title><style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#000;color:#fff;font-family:-apple-system,sans-serif;min-height:100vh}
-nav{position:fixed;top:0;width:100%%;height:44px;background:rgba(0,0,0,0.85);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;z-index:999}
-.ni{max-width:980px;width:100%%;display:flex;justify-content:space-between;padding:0 22px;font-size:12px}
-nav a{color:rgba(255,255,255,0.8);text-decoration:none}
-.main{max-width:680px;margin:0 auto;padding:100px 22px 60px;text-align:center}
-h1{font-size:48px;font-weight:700;margin-bottom:8px}
-.sub{color:#86868b;font-size:19px;margin-bottom:48px}
-.btn{display:inline-block;background:#fff;color:#000;padding:18px 40px;border-radius:980px;text-decoration:none;font-size:19px;font-weight:500}
-</style></head><body>
-<nav><div class="ni"><a href="/">Cosmos</a><a href="/cdn" style="color:#fff;font-weight:600">Workspace</a><a href="/cdn/logout" style="color:#ff3b30;margin-left:24px;font-weight:600">Sign Out</a></div></nav>
-<div class="main">
-<h1>Welcome, %s.</h1><p class="sub">Your personal cdn drive is ready.</p>
-<a href="/workspace/" class="btn">Open CDN Drive →</a>
-</div></body></html>`, name)
+
 	case "git":
 		fmt.Fprintf(w, `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Git – Cosmos</title><style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -831,10 +814,8 @@ func main() {
 	RegisterS3ConsoleRoutes(mux)
 	mux.HandleFunc("/oort", func(w http.ResponseWriter, r *http.Request) { handleServicePage(w, r, "oort") })
 	mux.HandleFunc("/git", func(w http.ResponseWriter, r *http.Request) { handleServicePage(w, r, "git") })
-	mux.HandleFunc("/cdn", func(w http.ResponseWriter, r *http.Request) { handleServicePage(w, r, "cdn") })
 	mux.HandleFunc("/oort/", serviceRouter("oort"))
 	mux.HandleFunc("/git/", serviceRouter("git"))
-	mux.HandleFunc("/cdn/", serviceRouter("cdn"))
 	mux.HandleFunc("/", handleIndex)
 	log.Println("[SERVER] Starting Cosmos Portals on 127.0.0.1:8000")
 	log.Fatal(http.ListenAndServe("127.0.0.1:8000", mux))

@@ -85,26 +85,28 @@
     <text x="54" y="187.5" fill="#c084fc" class="mono-txt" font-size="8" text-anchor="middle">SYNCED</text>
   </g>
 
-  <!-- Card 3: Edge CDN (Emerald Theme) -->
+  <!-- Card 3: Unified SSO Auth (Emerald Theme) -->
   <g transform="translate(470, 20)">
     <rect width="205" height="200" rx="12" fill="url(#cardGradDark)" stroke="rgba(52,211,153,0.4)" stroke-width="1.2" class="neon-border"/>
     <!-- Header Icon Pill -->
     <g transform="translate(16, 16)">
       <rect width="36" height="36" rx="8" fill="rgba(52,211,153,0.12)" stroke="rgba(52,211,153,0.3)" stroke-width="1"/>
-      <path d="M 22,12 L 13,21 L 18,21 L 14,26 L 24,17 L 19,17 Z" fill="#34d399"/>
+      <rect x="12" y="15" width="12" height="10" rx="2" fill="none" stroke="#34d399" stroke-width="1.5"/>
+      <path d="M 14,15 L 14,12 A 4,4 0 0,1 22,12 L 22,15" fill="none" stroke="#34d399" stroke-width="1.5"/>
+      <circle cx="18" cy="20" r="1.2" fill="#34d399"/>
     </g>
     <!-- Text -->
-    <text x="62" y="32" fill="#f8fafc" class="card-title">Edge CDN Layer</text>
-    <text x="62" y="46" fill="#34d399" class="mono-txt">IN-MEMORY CACHE</text>
+    <text x="62" y="32" fill="#f8fafc" class="card-title">Unified SSO</text>
+    <text x="62" y="46" fill="#34d399" class="mono-txt">SINGLE IDENTITY</text>
     <line x1="16" y1="64" x2="189" y2="64" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
-    <text x="16" y="86" fill="#cbd5e1" class="mono-txt">• Sub-millisecond TTL</text>
-    <text x="16" y="106" fill="#94a3b8" class="mono-txt">• ETag Validation</text>
-    <text x="16" y="126" fill="#94a3b8" class="mono-txt">• Vanity CNAME Domains</text>
-    <text x="16" y="146" fill="#94a3b8" class="mono-txt">• Automatic Invalidation</text>
-    <text x="16" y="166" fill="#94a3b8" class="mono-txt">• Zero Origin Bottlenecks</text>
+    <text x="16" y="86" fill="#cbd5e1" class="mono-txt">• Single Master Login</text>
+    <text x="16" y="106" fill="#94a3b8" class="mono-txt">• bcrypt Password Hashes</text>
+    <text x="16" y="126" fill="#94a3b8" class="mono-txt">• Auto-Provisioned S3 Keys</text>
+    <text x="16" y="146" fill="#94a3b8" class="mono-txt">• Gitea Account Sync</text>
+    <text x="16" y="166" fill="#94a3b8" class="mono-txt">• Zero Config Drift</text>
     <!-- Footer Tag -->
     <rect x="16" y="176" width="76" height="16" rx="8" fill="rgba(52,211,153,0.15)"/>
-    <text x="54" y="187.5" fill="#34d399" class="mono-txt" font-size="8" text-anchor="middle">&lt; 1ms RT</text>
+    <text x="54" y="187.5" fill="#34d399" class="mono-txt" font-size="8" text-anchor="middle">ACTIVE</text>
   </g>
 
   <!-- Card 4: 3D Observability (Amber/Gold Theme) -->
@@ -122,7 +124,7 @@
     <line x1="16" y1="64" x2="189" y2="64" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
     <text x="16" y="86" fill="#cbd5e1" class="mono-txt">• Orthographic 3D Globe</text>
     <text x="16" y="106" fill="#94a3b8" class="mono-txt">• Live Request Ratios</text>
-    <text x="16" y="126" fill="#94a3b8" class="mono-txt">• Cache Hit / Miss Gauges</text>
+    <text x="16" y="126" fill="#94a3b8" class="mono-txt">• Success / Error Gauges</text>
     <text x="16" y="146" fill="#94a3b8" class="mono-txt">• Hourly Bandwidth</text>
     <text x="16" y="166" fill="#94a3b8" class="mono-txt">• Granular Error Logs</text>
     <!-- Footer Tag -->

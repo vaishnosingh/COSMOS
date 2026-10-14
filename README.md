@@ -45,7 +45,7 @@ Instead of paying recurring cloud fees for AWS S3, GitHub private repos, or Clou
 <br/>
 
 ### 🌌 1. Unified Single Sign-On (SSO)
-* **One Identity Across Everything:** Single login grants simultaneous access to private S3 storage, Git source control, and CDN workspaces.
+* **One Identity Across Everything:** Single login grants simultaneous access to private S3 storage and Git source control.
 * **Zero Plaintext Credentials:** Industry-standard `bcrypt` salted password hashing. Transient registration credentials exist exclusively in temporary, auto-expiring memory buffers (`sync.Map`) during provisioning.
 * **Self-Service Recovery:** Integrated OTP verification and expiring password reset tokens.
 
@@ -59,14 +59,9 @@ Instead of paying recurring cloud fees for AWS S3, GitHub private repos, or Clou
 * **Auto-Healing Authentication:** Smart credential synchronization between Cosmos and Gitea's internal database. If credentials ever become mismatched, Cosmos automatically re-synchronizes and authenticates transparently.
 * **Full Protocol Support:** Clone, push, and pull effortlessly over HTTPS and SSH (`:2222`).
 
-### ⚡ 4. Sub-Millisecond Edge CDN & Caching
-* **In-Memory Cache Layer:** High-concurrency caching proxy with instantaneous sub-millisecond retrieval.
-* **HTTP Cache Semantics:** Conditional ETags (`If-None-Match`), `304 Not Modified` responses, and instant cache purge queries (`?nocache=1`).
-* **Custom Vanity CNAMEs:** Map custom internet domains directly to specific storage buckets.
-
-### 📊 5. 3D Planetary Telemetry & Observability
+### 📊 4. 3D Planetary Telemetry & Observability
 * **Interactive Canvas Globe:** Orthographic rotating 3D globe rendered dynamically on HTML5 Canvas showing global request node routing.
-* **Real-Time KPI Tracking:** Total request volume, cache hit ratios, origin loads, bandwidth meters, and HTTP error distributions.
+* **Real-Time KPI Tracking:** Total request volume, throughput bandwidth, success rates, and HTTP error distributions.
 * **Historical Time-Series:** Persistent hourly metric aggregations stored in ScyllaDB for telemetry auditing.
 
 ---
@@ -212,7 +207,6 @@ COSMOS/
 ├── main.go                   # HTTP server, auth router & MinIO broker
 ├── oortconsole.go            # S3 API endpoints & bucket management
 ├── oortanalytics.go          # Real-time telemetry & ScyllaDB flushers
-├── s3cache.go                # Sub-millisecond in-memory edge cache
 ├── .env.example              # Sample environment configuration
 ├── go.mod                    # Dependencies manifest
 └── LICENSE                   # MIT License

@@ -135,7 +135,7 @@
     <circle cx="24" cy="26" r="6" fill="#c084fc" class="pulse-beacon"/>
     <text x="40" y="30" fill="#ffffff" class="hud-title" font-size="14">Cosmos Core (Go)</text>
     <text x="40" y="44" fill="#34d399" class="mono" font-size="9" font-weight="600">● 100% HEALTHY // PORT :8080</text>
-    <text x="16" y="66" fill="#cbd5e1" class="mono" font-size="10">Unified SSO • bcrypt Auth • In-Memory Caching</text>
+    <text x="16" y="66" fill="#cbd5e1" class="mono" font-size="10">Unified SSO • bcrypt Auth • High-Speed Routing</text>
     <text x="16" y="82" fill="#94a3b8" class="mono" font-size="9">MinIO Tenant Provisioning • 3D Telemetry Feed</text>
   </g>
 

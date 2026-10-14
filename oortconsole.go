@@ -427,9 +427,6 @@ func handleS3UploadComplete(w http.ResponseWriter, r *http.Request) {
 	// Record a write hit for analytics
 	go recordHit(bucket, 200, 0, false, r.Header.Get("CF-IPCountry"), "write")
 	
-	// Invalidate cache
-	cdnCache.Delete("/" + bucket + "/" + req.Key)
-	
 	jsonOK(w, map[string]any{
 		"key":    upload.Key,
 		"etag":   strings.Trim(upload.ETag, "\""),
@@ -505,18 +502,6 @@ func handleS3Delete(w http.ResponseWriter, r *http.Request) {
 			jsonErr(w, "delete failed", 500)
 			return
 		}
-		cdnCache.Delete("/" + bucket + "/" + key)
-	}
-	
-	// If it was a folder, clear cache for all files in it
-	if strings.HasSuffix(key, "/") {
-		prefix := "/" + bucket + "/" + key
-		cdnCache.Range(func(k, v any) bool {
-			if strings.HasPrefix(k.(string), prefix) {
-				cdnCache.Delete(k)
-			}
-			return true
-		})
 	}
 	
 	jsonOK(w, map[string]bool{"deleted": true})
@@ -1213,24 +1198,6 @@ func handleS3PublicProxy(w http.ResponseWriter, r *http.Request, username, path 
 
 	targetPath := fmt.Sprintf("/%s/%s", actualBucket, objectKey)
 	
-	// Check Cache for GET requests without Range
-	if r.Method == "GET" && r.Header.Get("Range") == "" {
-		if val, ok := cdnCache.Load(targetPath); ok {
-			entry := val.(*cacheEntry)
-			if time.Now().Before(entry.ExpiresAt) {
-				for k, v := range entry.Headers {
-					w.Header()[k] = v
-				}
-				w.Header().Set("X-Cache", "HIT")
-				w.WriteHeader(entry.StatusCode)
-				w.Write(entry.Body)
-				recordHit(actualBucket, entry.StatusCode, int64(len(entry.Body)), true, r.Header.Get("CF-IPCountry"), "read")
-				return
-			}
-			cdnCache.Delete(targetPath)
-		}
-	}
-
 	targetUrl, _ := url.Parse("http://127.0.0.1:9000")
 	proxy := httputil.NewSingleHostReverseProxy(targetUrl)
 	proxy.Transport = proxyTransport
@@ -1244,39 +1211,13 @@ func handleS3PublicProxy(w http.ResponseWriter, r *http.Request, username, path 
 			resp.Body = io.NopCloser(strings.NewReader("<html><body><h1>403 - Access Denied</h1><p>Public access is not enabled for this bucket.</p></body></html>"))
 			resp.Header.Set("Content-Length", fmt.Sprintf("%d", len("<html><body><h1>403 - Access Denied</h1><p>Public access is not enabled for this bucket.</p></body></html>")))
 			resp.Header.Set("Content-Type", "text/html")
-		} else {
-			ct := resp.Header.Get("Content-Type")
-			if strings.HasPrefix(ct, "image/") || strings.HasPrefix(ct, "video/") {
-				resp.Header.Set("Cache-Control", "public, max-age=31536000, immutable")
-			} else {
-				resp.Header.Set("Cache-Control", "public, max-age=3600")
-			}
 		}
-		resp.Header.Set("X-Cache", "MISS")
 		return nil
 	}
 	
-	// If it's a GET request without Range, we can cache it
-	if r.Method == "GET" && r.Header.Get("Range") == "" {
-		cw := &cachingResponseWriter{ResponseWriter: w, statusCode: 200}
-		proxy.ServeHTTP(cw, r)
-		
-		recordHit(actualBucket, cw.statusCode, int64(cw.buf.Len()), false, r.Header.Get("CF-IPCountry"), "read")
-
-		// Cache files under 10MB
-		if cw.statusCode == 200 && cw.buf.Len() < 10*1024*1024 {
-			cdnCache.Store(targetPath, &cacheEntry{
-				Body:       cw.buf.Bytes(),
-				Headers:    cw.Header().Clone(),
-				StatusCode: cw.statusCode,
-				ExpiresAt:  time.Now().Add(1 * time.Hour),
-			})
-		}
-	} else {
-		tw := &trackingResponseWriter{ResponseWriter: w, statusCode: 200}
-		proxy.ServeHTTP(tw, r)
-		recordHit(actualBucket, tw.statusCode, tw.bytes, false, r.Header.Get("CF-IPCountry"), "read")
-	}
+	tw := &trackingResponseWriter{ResponseWriter: w, statusCode: 200}
+	proxy.ServeHTTP(tw, r)
+	recordHit(actualBucket, tw.statusCode, tw.bytes, false, r.Header.Get("CF-IPCountry"), "read")
 }
 
 func handleS3BucketSettings(w http.ResponseWriter, r *http.Request) {
@@ -1749,24 +1690,6 @@ func handleS3CDNProxy(w http.ResponseWriter, r *http.Request) {
 	if key == "" { key = "index.html" }
 	
 	targetPath := "/" + bucket + "/" + key
-	
-	// Check Cache for GET requests without Range
-	if r.Method == "GET" && r.Header.Get("Range") == "" {
-		if val, ok := cdnCache.Load(targetPath); ok {
-			entry := val.(*cacheEntry)
-			if time.Now().Before(entry.ExpiresAt) {
-				for k, v := range entry.Headers {
-					w.Header()[k] = v
-				}
-				w.Header().Set("X-Cache", "HIT")
-				w.WriteHeader(entry.StatusCode)
-				w.Write(entry.Body)
-				recordHit(bucket, entry.StatusCode, int64(len(entry.Body)), true, r.Header.Get("CF-IPCountry"), "read")
-				return
-			}
-			cdnCache.Delete(targetPath)
-		}
-	}
 
 	targetUrl, _ := url.Parse("http://127.0.0.1:9000")
 	proxy := httputil.NewSingleHostReverseProxy(targetUrl)
@@ -1777,32 +1700,7 @@ func handleS3CDNProxy(w http.ResponseWriter, r *http.Request) {
 		req.Host = targetUrl.Host
 	}
 	proxy.ModifyResponse = func(resp *http.Response) error {
-		statusCode := resp.StatusCode
-		var bodyBytes []byte
-		if r.Method == "GET" && r.Header.Get("Range") == "" {
-			if resp.ContentLength > 0 && resp.ContentLength < 10*1024*1024 {
-				bodyBytes, _ = io.ReadAll(resp.Body)
-				resp.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
-				if statusCode == 200 {
-					headersCopy := make(http.Header)
-					for k, v := range resp.Header {
-						headersCopy[k] = v
-					}
-					cdnCache.Store(targetPath, &cacheEntry{
-						Body:       bodyBytes,
-						Headers:    headersCopy,
-						StatusCode: statusCode,
-						ExpiresAt:  time.Now().Add(5 * time.Minute),
-					})
-					resp.Header.Set("X-Cache", "MISS")
-				}
-			}
-		}
-		respBytes := resp.ContentLength
-		if respBytes < 0 {
-			respBytes = int64(len(bodyBytes))
-		}
-		recordHit(bucket, statusCode, respBytes, false, r.Header.Get("CF-IPCountry"), "read")
+		recordHit(bucket, resp.StatusCode, resp.ContentLength, false, r.Header.Get("CF-IPCountry"), "read")
 		return nil
 	}
 	proxy.ServeHTTP(w, r)

@@ -40,7 +40,7 @@ Cosmos is an open-source, self-hosted cloud platform engineered to transform ord
 ### 1. Unified Identity & Application Core (`portals-go`)
 * **Language:** Go (Golang) 1.22+
 * **Serving:** Native `net/http` server with embedded HTML/CSS templates via `embed.FS`.
-* **Single Sign-On (SSO):** A centralized identity provider managing accounts across S3 Storage, Git Source Control, and CDN.
+* **Single Sign-On (SSO):** A centralized identity provider managing accounts across S3 Storage and Git Source Control.
 * **Security Model:**
   * Passwords hashed with `golang.org/x/crypto/bcrypt`.
   * Temporary registration passwords stored in transient, self-expiring memory structures (`sync.Map`) only during automated provisioning—never stored plain-text in database storage.
@@ -54,7 +54,7 @@ Cosmos is an open-source, self-hosted cloud platform engineered to transform ord
   * `cosmos.pending`: Ephemeral registration tokens and OTP codes.
   * `cosmos.password_reset_tokens`: Time-expiring password reset tokens.
   * `cosmos.buckets`: User bucket metadata, ownership tracking, and friendly aliases.
-  * `cosmos.bucket_domains`: Vanity domain and CNAME mapping for edge serving.
+  * `cosmos.bucket_domains`: Vanity domain and CNAME mapping for public bucket serving.
   * `cosmos.quota_requests`: Administrative quota elevation queue.
   * `cosmos.s3_analytics` & `cosmos.s3_analytics_hourly`: Telemetry tracking counters.
 
@@ -72,15 +72,10 @@ Cosmos is an open-source, self-hosted cloud platform engineered to transform ord
   * Cosmos manages registration and credential synchronization via CLI/API hooks (`gitea admin user create`, `gitea admin user change-password`).
   * Auto-healing authentication logic: if credentials fall out of sync during login, Cosmos automatically re-synchronizes the bcrypt hash with Gitea's internal database and retries transparently.
 
-### 5. Edge Caching & CDN Simulation
-* **Caching Engine:** In-memory high-concurrency cache (`sync.Map`) with TTL expiration.
-* **Headers:** Standard HTTP cache control headers (`Cache-Control: public, max-age=...`), ETag generation, and conditional request handling (`If-None-Match`).
-* **Cache Bypass:** Diagnostic and instant-purge queries (`?nocache=1` or `Cache-Control: no-cache`).
-
-### 6. Real-Time Telemetry & Observability
-* **In-Memory Accumulator:** High-throughput `atomic.Int64` counters for request counts, bytes transferred, cache hits/misses, and status code categories (2xx, 4xx, 5xx).
+### 5. Real-Time Telemetry & Observability
+* **In-Memory Accumulator:** High-throughput `atomic.Int64` counters for request counts, bytes transferred, and status code categories (2xx, 4xx, 5xx).
 * **Periodic Flushing:** Background goroutine flushes aggregated metrics to ScyllaDB hourly tables (`cosmos.s3_analytics_hourly`).
-* **Visual Telemetry:** Interactive 3D rotating orthographic globe rendered on HTML5 Canvas using vector latitude/longitude projections, simulating real-time global edge node activity.
+* **Visual Telemetry:** Interactive 3D rotating orthographic globe rendered on HTML5 Canvas using vector latitude/longitude projections, simulating real-time global traffic node activity.
 
 ---
 

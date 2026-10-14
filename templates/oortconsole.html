@@ -937,7 +937,7 @@ input:checked + .slider:before { transform: translateX(16px); }
       </div>
 
       <!-- KPI Row -->
-      <div class="stats-grid" id="analytics-kpi" style="padding: 0 16px 24px;" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+      <div class="stats-grid" id="analytics-kpi" style="padding: 0 16px 24px; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
         <div class="stat-card">
           <div class="stat-card-header">
             <div class="stat-card-label">Total Requests</div>
@@ -947,16 +947,6 @@ input:checked + .slider:before { transform: translateX(16px); }
           </div>
           <div class="stat-card-value" id="an-total-req">—</div>
           <div class="stat-card-meta">All time</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-card-header">
-            <div class="stat-card-label">Cache Hit Rate</div>
-            <div class="stat-card-icon" style="background:rgba(16,185,129,.12)">
-              <svg fill="none" stroke="#10b981" stroke-width="2" viewBox="0 0 24 24" width="18" height="18"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            </div>
-          </div>
-          <div class="stat-card-value" id="an-cache-rate">—</div>
-          <div class="stat-card-meta">Served from edge</div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header">
@@ -977,16 +967,6 @@ input:checked + .slider:before { transform: translateX(16px); }
           </div>
           <div class="stat-card-value" id="an-success-rate">—</div>
           <div class="stat-card-meta">2xx responses</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-card-header">
-            <div class="stat-card-label">Origin Requests</div>
-            <div class="stat-card-icon" style="background:rgba(245,158,11,.12)">
-              <svg fill="none" stroke="#f59e0b" stroke-width="2" viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
-            </div>
-          </div>
-          <div class="stat-card-value" id="an-origin">—</div>
-          <div class="stat-card-meta">Cache misses</div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header">
@@ -1048,7 +1028,7 @@ input:checked + .slider:before { transform: translateX(16px); }
                 <tr style="border-bottom:1px solid var(--border);">
                   <th style="text-align:left;padding:12px 16px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);">Bucket</th>
                   <th style="text-align:right;padding:12px 16px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);">Requests</th>
-                  <th style="text-align:right;padding:12px 16px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);">Cache Hit</th>
+                  <th style="text-align:right;padding:12px 16px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);">Status</th>
                   <th style="text-align:right;padding:12px 16px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);">Errors</th>
                   <th style="text-align:right;padding:12px 16px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);">Bandwidth</th>
                   <th style="text-align:left;padding:12px 16px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);">Last Hit</th>
@@ -1559,7 +1539,7 @@ async function addBucketDomain() {
   const d = inp.value.trim();
   if(!d) { toast('Enter a domain name', 'error'); return; }
   // basic validation
-  if(!d.includes('.')) { toast('Please enter a valid domain like cdn.example.com', 'error'); return; }
+  if(!d.includes('.')) { toast('Please enter a valid domain like static.example.com', 'error'); return; }
   try {
     const res = await api('/oort/api/bucket/domain/add', {
       method: 'POST',
@@ -2044,8 +2024,6 @@ async function loadAnalytics() {
   const r = await api(`/oort/api/analytics?bucket=${b}&start=${dStart}&end=${dEnd}&region=${r_reg}&op=${op}`);
 
   const totalReq = r ? r.total_requests || 0 : 0;
-  const cacheHits = r ? r.total_cache_hits || 0 : 0;
-  const originHits = r ? r.total_origin_hits || 0 : 0;
   const totalSucc = r ? r.total_success || 0 : 0;
   const total4xx = r ? r.total_4xx || 0 : 0;
   const total5xx = r ? r.total_5xx || 0 : 0;
@@ -2054,19 +2032,15 @@ async function loadAnalytics() {
 
   const totalReqEl = document.getElementById('an-total-req');
   if(totalReqEl) totalReqEl.textContent = totalReq.toLocaleString();
-  const cacheEl = document.getElementById('an-cache-rate');
-  if(cacheEl) cacheEl.textContent = totalReq > 0 ? ((cacheHits / totalReq) * 100).toFixed(1) + '%' : '0%';
   const bwEl = document.getElementById('an-bandwidth');
   if(bwEl) bwEl.textContent = fmtBytes(totalBytes);
   const succEl = document.getElementById('an-success-rate');
-  if(succEl) succEl.textContent = totalReq > 0 ? ((totalSucc / totalReq) * 100).toFixed(1) + '%' : '0%';
-  const origEl = document.getElementById('an-origin');
-  if(origEl) origEl.textContent = originHits.toLocaleString();
+  if(succEl) succEl.textContent = totalReq > 0 ? ((totalSucc / totalReq) * 100).toFixed(1) + '%' : '100%';
   const errEl = document.getElementById('an-errors');
   if(errEl) errEl.textContent = totalErrors.toLocaleString();
   if(subtitle) subtitle.textContent = 'Real-time storage performance metrics';
 
-  const ts = r && r.timeseries ? r.timeseries : {labels:[], reqs:[], cache:[], origin:[]};
+  const ts = r && r.timeseries ? r.timeseries : {labels:[], reqs:[]};
   const canv = document.getElementById('analyticsChart');
   if(canv) {
       if (analyticsChart) { analyticsChart.destroy(); }
@@ -2075,9 +2049,7 @@ async function loadAnalytics() {
         data: {
           labels: ts.labels,
           datasets: [
-            { label: 'Total', data: ts.reqs, borderColor: '#8b5cf6', backgroundColor: 'rgba(139,92,246,0.08)', borderWidth: 2, fill: true, tension: 0.4, pointRadius: 2 },
-            { label: 'Cache', data: ts.cache, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.05)', borderWidth: 1.5, fill: false, tension: 0.4, pointRadius: 0 },
-            { label: 'Origin', data: ts.origin, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.05)', borderWidth: 1.5, fill: false, tension: 0.4, pointRadius: 0 },
+            { label: 'S3 Requests', data: ts.reqs, borderColor: '#8b5cf6', backgroundColor: 'rgba(139,92,246,0.08)', borderWidth: 2, fill: true, tension: 0.4, pointRadius: 2 }
           ]
         },
         options: {
@@ -2104,12 +2076,11 @@ async function loadAnalytics() {
         tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text3);">No data found.</td></tr>';
       } else {
         tbody.innerHTML = buckets.map(bk => {
-          const bCache = bk.requests > 0 ? ((bk.cache_hits / bk.requests) * 100).toFixed(1) : '0';
           const lastHit = bk.last_hit ? new Date(bk.last_hit * 1000).toLocaleString() : 'Never';
           return `<tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
             <td style="padding:14px 16px;font-weight:600;">${bk.display || bk.name}</td>
             <td style="padding:14px 16px;text-align:right;">${(bk.requests||0).toLocaleString()}</td>
-            <td style="padding:14px 16px;text-align:right;"><span style="color:#34d399;">${bCache}%</span></td>
+            <td style="padding:14px 16px;text-align:right;"><span style="color:#34d399;">Active</span></td>
             <td style="padding:14px 16px;text-align:right;color:${(bk.errors||0) > 0 ? '#f87171' : 'var(--text3)'}">${(bk.errors||0).toLocaleString()}</td>
             <td style="padding:14px 16px;text-align:right;">${fmtBytes(bk.bytes||0)}</td>
             <td style="padding:14px 16px;font-size:12px;color:var(--text3);">${lastHit}</td>
@@ -3650,7 +3621,7 @@ async function restoreVersion(key, versionId) {
       <div>
         <label style="display:block; font-size:12px; font-weight:600; color:var(--text2); margin-bottom:8px;">Custom Domains</label>
         <div style="display:flex; gap:8px; margin-bottom:12px;">
-          <input type="text" id="bucket-new-domain" class="form-control" placeholder="cdn.example.com">
+          <input type="text" id="bucket-new-domain" class="form-control" placeholder="static.example.com">
           <button class="btn btn-primary" onclick="addBucketDomain()">Add Domain</button>
         </div>
         <div id="bucket-domains-list" style="font-size:13px; color:var(--text3); padding:12px; background:rgba(0,0,0,0.2); border-radius:8px;">Loading domains...</div>
