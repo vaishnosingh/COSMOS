@@ -614,11 +614,54 @@ body {
   background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.07);
   border-radius: 9px; padding: 12px; cursor: pointer;
   transition: all 0.22s var(--transition);
+  position: relative;
 }
 .tpl-card:hover { background: rgba(56,189,248,0.07); border-color: rgba(56,189,248,0.35); transform: translateY(-2px); box-shadow: 0 0 16px rgba(56,189,248,0.15); }
 .tpl-card.selected { background: rgba(56,189,248,0.12); border-color: rgba(56,189,248,0.5); box-shadow: 0 0 20px rgba(56,189,248,0.2); }
-.tpl-name { font-size: 12.5px; font-weight: 700; color: var(--ink-0); }
-.tpl-desc { font-size: 11px; color: var(--ink-3); margin-top: 3px; line-height: 1.4; }
+.tpl-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.tpl-name { font-size: 13px; font-weight: 700; color: var(--ink-0); display: flex; align-items: center; gap: 7px; }
+.tpl-desc { font-size: 11.5px; color: var(--ink-3); margin-top: 4px; line-height: 1.45; }
+.tpl-pill { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.05em; }
+.tpl-pill-cyan { background: rgba(56,189,248,0.15); color: var(--cyan); border: 1px solid rgba(56,189,248,0.3); }
+.tpl-pill-green { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
+.tpl-pill-purple { background: rgba(168,85,247,0.15); color: #c084fc; border: 1px solid rgba(168,85,247,0.3); }
+.tpl-pill-amber { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+.tpl-port-tag { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); }
+
+/* Showcase grid in full view */
+.tpl-showcase-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 16px; margin-top: 18px; }
+.tpl-showcase-card {
+  background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px; padding: 20px; transition: all 0.25s var(--transition);
+  display: flex; flex-direction: column; justify-content: space-between;
+  backdrop-filter: blur(8px);
+}
+.tpl-showcase-card:hover {
+  background: rgba(56,189,248,0.04); border-color: rgba(56,189,248,0.3);
+  transform: translateY(-3px); box-shadow: 0 10px 24px rgba(0,0,0,0.3), 0 0 20px rgba(56,189,248,0.12);
+}
+.tpl-tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.tpl-tag-item { font-size: 11px; font-family: var(--mono); background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); padding: 2px 7px; border-radius: 5px; color: var(--ink-2); }
+
+/* Filter pills */
+.filter-pill-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; align-items: center; }
+.filter-pill {
+  padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+  color: var(--ink-2); cursor: pointer; transition: all 0.2s var(--transition);
+}
+.filter-pill:hover { color: var(--ink-0); background: rgba(255,255,255,0.08); }
+.filter-pill.active { background: rgba(56,189,248,0.15); border-color: rgba(56,189,248,0.4); color: var(--cyan); box-shadow: 0 0 12px rgba(56,189,248,0.2); }
+
+/* Tech Matrix Card */
+.tech-matrix-card {
+  background: rgba(15,23,42,0.45); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px; padding: 24px; margin-top: 32px;
+}
+.matrix-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; margin-top: 16px; }
+.matrix-item { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px; padding: 14px 16px; }
+.matrix-item-title { font-size: 13px; font-weight: 700; color: var(--cyan); display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.matrix-item-list { font-size: 12px; color: var(--ink-2); line-height: 1.65; margin: 0; padding-left: 18px; }
 
 /* Forge repo selector */
 .forge-select {
@@ -755,6 +798,11 @@ body {
       <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="2" y="3" width="7" height="7" rx="1"/><rect x="15" y="3" width="7" height="7" rx="1"/><rect x="2" y="14" width="7" height="7" rx="1"/><rect x="15" y="14" width="7" height="7" rx="1"/></svg>
       Applications
       <span class="nav-badge" id="badge-apps">0</span>
+    </div>
+    <div class="nav-item" id="nav-templates" onclick="switchView('templates')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M4 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5z"/><path d="M4 13a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-6z"/><path d="M16 13a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-6z"/></svg>
+      Starter Templates
+      <span class="nav-badge" id="badge-templates" style="background:rgba(56,189,248,0.15);color:var(--cyan);">6</span>
     </div>
     <div class="nav-item" id="nav-domains" onclick="switchView('domains')">
       <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
@@ -913,6 +961,96 @@ body {
       </div>
     </div>
 
+    <!-- ── TEMPLATES SHOWCASE VIEW ────────────────────────── -->
+    <div class="view" id="view-templates">
+      <div class="page-hd">
+        <div>
+          <div class="page-title">Starter Templates</div>
+          <div class="page-sub">Launch pre-configured application stacks, frontend frameworks, and API microservices in seconds</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openDeployModal()">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+          Deploy Custom App
+        </button>
+      </div>
+
+      <!-- Filter Bar -->
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:6px;">
+        <div class="filter-pill-row" id="tpl-filter-pills">
+          <div class="filter-pill active" onclick="filterTemplates('all', this)">All Stacks</div>
+          <div class="filter-pill" onclick="filterTemplates('frontend', this)">Frontend & SPAs</div>
+          <div class="filter-pill" onclick="filterTemplates('backend', this)">Backend APIs</div>
+          <div class="filter-pill" onclick="filterTemplates('static', this)">Static & Docs</div>
+        </div>
+        <div style="position:relative;width:240px;">
+          <input type="text" class="form-input" id="tpl-search" placeholder="Search templates…" oninput="onTemplateSearch(this.value)" style="padding-left:32px;font-size:12.5px;height:34px;">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="position:absolute;left:10px;top:10px;color:var(--ink-3);"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+      </div>
+
+      <!-- Showcase Grid -->
+      <div class="tpl-showcase-grid" id="tpl-showcase-container">
+        <!-- Rendered dynamically by loadTemplates() -->
+      </div>
+
+      <!-- Supported Stacks & Architecture Matrix -->
+      <div class="tech-matrix-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div style="font-size:15px;font-weight:700;color:var(--ink-0);display:flex;align-items:center;gap:8px;">
+              <svg width="18" height="18" fill="none" stroke="var(--cyan)" stroke-width="2" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+              Supported Tech Stacks, Frameworks & Database Runtimes
+            </div>
+            <div style="font-size:12px;color:var(--ink-3);margin-top:3px;">Cosmos Orbit runs any workload in isolated OCI Docker containers with automated or custom Dockerfile execution</div>
+          </div>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--cyan);background:rgba(56,189,248,0.1);padding:3px 8px;border-radius:6px;border:1px solid rgba(56,189,248,0.2);">Quota: 10 Ports (4100–4999)</span>
+        </div>
+
+        <div class="matrix-grid">
+          <!-- Frontend -->
+          <div class="matrix-item">
+            <div class="matrix-item-title">
+              <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              Frontend Frameworks
+            </div>
+            <ul class="matrix-item-list">
+              <li><strong>React, Vue 3, Svelte, Angular:</strong> Built via Node builder or Vite/Webpack, served statically through high-speed Nginx Alpine container (Port 80).</li>
+              <li><strong>Next.js / Nuxt / Astro:</strong> Supported in static output mode or Node.js SSR runtime (Port 3000).</li>
+              <li><strong>Static HTML5, CSS3, Tailwind:</strong> Zero-config Nginx container with Gzip compression and instant boot.</li>
+            </ul>
+          </div>
+
+          <!-- Backend -->
+          <div class="matrix-item">
+            <div class="matrix-item-title">
+              <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              Backend Runtimes & APIs
+            </div>
+            <ul class="matrix-item-list">
+              <li><strong>Node.js 20/22:</strong> Express, Fastify, NestJS, Koa, Hono with auto-detected <code style="font-family:var(--mono);font-size:10px;">PORT=3000</code>.</li>
+              <li><strong>Go 1.24+:</strong> Standard Library HTTP, Fiber, Gin, Chi built with multi-stage Alpine images (&lt;15MB, Port 8080).</li>
+              <li><strong>Python 3.11+:</strong> FastAPI, Flask, Django, Uvicorn, Gunicorn with auto-entrypoint discovery (Port 8000).</li>
+              <li><strong>Rust, Ruby, PHP, Java:</strong> 100% supported via custom repository <code style="font-family:var(--mono);font-size:10px;">Dockerfile</code>.</li>
+            </ul>
+          </div>
+
+          <!-- Databases -->
+          <div class="matrix-item">
+            <div class="matrix-item-title">
+              <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+              Database & Storage Integration
+            </div>
+            <ul class="matrix-item-list">
+              <li><strong>Internal Cosmos ScyllaDB:</strong> Accessible to user apps on host port <code style="font-family:var(--mono);font-size:10px;">9042</code> (Cassandra CQL driver).</li>
+              <li><strong>Internal Cosmos Oort (S3):</strong> High-speed object storage on <code style="font-family:var(--mono);font-size:10px;">cosmos.linuxguy.space:9000</code> with 1-click snapshot backups.</li>
+              <li><strong>External Databases:</strong> Connect to any managed PostgreSQL, MySQL, Redis, MongoDB, Supabase, Neon via <code style="font-family:var(--mono);font-size:10px;">DATABASE_URL</code> env var.</li>
+              <li><strong>Dedicated DB Containers:</strong> Deploy Redis/Postgres container directly into your 10-port quota.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div><!-- /#content -->
 </div><!-- /#main -->
 
@@ -956,6 +1094,10 @@ body {
 
     <!-- Templates -->
     <div id="tc-tpl" style="display:none;">
+      <div id="tpl-selected-notice" style="display:none;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:var(--cyan);display:flex;align-items:center;justify-content:space-between;">
+        <span>Selected Template: <strong id="tpl-selected-name">—</strong></span>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="clearSelectedTpl()" style="padding:2px 8px;font-size:11px;">✕ Deselect</button>
+      </div>
       <div class="template-grid" id="templates-list">
         <div style="color:var(--ink-3);font-size:13px;grid-column:1/-1;">Loading templates…</div>
       </div>
@@ -1165,7 +1307,11 @@ function switchView(name) {
   currentView = name;
 
   // Update topbar
-  const titles = { apps: ['Applications','Your deployed container fleet'], domains: ['Custom Domains','Route traffic from your own domain'] };
+  const titles = { 
+    apps: ['Applications','Your deployed container fleet'],
+    templates: ['Starter Templates','Pre-configured application stacks ready to deploy'],
+    domains: ['Custom Domains','Route traffic from your own domain']
+  };
   const [t,s] = titles[name]||[name,''];
   document.getElementById('topbar-title').textContent = t;
   document.getElementById('topbar-sub').textContent = s;
@@ -1173,6 +1319,7 @@ function switchView(name) {
   // Load view data
   if (name === 'apps') loadApps();
   if (name === 'domains') renderDomains();
+  if (name === 'templates') renderTemplatesUI();
 }
 
 function toggleSidebar() {
@@ -1335,6 +1482,211 @@ function renderDomains() {
   `).join('');
 }
 
+/* ─── TEMPLATES CATALOG & STATE ───────────────────────────── */
+const DEFAULT_TEMPLATES = [
+  {
+    id: "node-starter",
+    name: "Node.js & Express API",
+    category: "backend",
+    tech: "Node.js 20",
+    description: "High-performance REST server with Express routing, CORS, and JSON error handling",
+    icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>`,
+    repo_url: "http://127.0.0.1:3000/admin/node-express-starter.git",
+    branch: "main",
+    internal_port: 3000,
+    features: ["Express 4.x", "JSON APIs", "Zero-config Docker", "Healthcheck"]
+  },
+  {
+    id: "go-server",
+    name: "Go Lightweight Web Server",
+    category: "backend",
+    tech: "Go 1.24",
+    description: "Ultra-fast compiled HTTP server in under 15MB Alpine container with zero dependencies",
+    icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>`,
+    repo_url: "http://127.0.0.1:3000/admin/go-web-starter.git",
+    branch: "main",
+    internal_port: 8080,
+    features: ["Standard Library HTTP", "15MB Image", "Instant Boot", "High Concurrency"]
+  },
+  {
+    id: "python-fastapi",
+    name: "Python FastAPI",
+    category: "backend",
+    tech: "Python 3.11",
+    description: "Modern asynchronous web framework with automatic Swagger & OpenAPI documentation",
+    icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.93V17a1 1 0 0 1-2 0v-.07A7 7 0 0 1 5.07 11H5a1 1 0 0 1 0-2h.07A7 7 0 0 1 11 5.07V5a1 1 0 0 1 2 0v.07A7 7 0 0 1 18.93 11H19a1 1 0 0 1 0 2h-.07A7 7 0 0 1 13 16.93z"/></svg>`,
+    repo_url: "http://127.0.0.1:3000/admin/python-fastapi-starter.git",
+    branch: "main",
+    internal_port: 8000,
+    features: ["FastAPI + Uvicorn", "Auto OpenAPI Docs", "Pydantic V2", "Async Endpoints"]
+  },
+  {
+    id: "static-landing",
+    name: "Static HTML5 / CSS3 Portal",
+    category: "static",
+    tech: "HTML5 / Nginx",
+    description: "Nginx Alpine container hosting static documentation, landing pages or portfolios",
+    icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>`,
+    repo_url: "http://127.0.0.1:3000/admin/static-landing-portal.git",
+    branch: "main",
+    internal_port: 80,
+    features: ["Nginx Alpine", "Gzip Compressed", "Ultra-low RAM (<10MB)", "Dark Theme"]
+  },
+  {
+    id: "react-vite",
+    name: "React SPA / Vite Portal",
+    category: "frontend",
+    tech: "React 19 / Vite",
+    description: "Modern Single Page App build pipeline deploying production static bundles via Nginx",
+    icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(30 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(90 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(150 12 12)"/><circle cx="12" cy="12" r="2"/></svg>`,
+    repo_url: "http://127.0.0.1:3000/admin/static-landing-portal.git",
+    branch: "main",
+    internal_port: 80,
+    features: ["React 19", "Vite Buildpack", "Client-Side Routing", "Nginx Edge"]
+  },
+  {
+    id: "python-flask",
+    name: "Python Flask Microservice",
+    category: "backend",
+    tech: "Flask / WSGI",
+    description: "Lightweight WSGI Python microservice suitable for data processing and quick web endpoints",
+    icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2"><path d="M10 2v7.31M14 9.3V1.99M8.5 2h7M14 9.3a6.5 6.5 0 1 1-4 0"/></svg>`,
+    repo_url: "http://127.0.0.1:3000/admin/python-fastapi-starter.git",
+    branch: "main",
+    internal_port: 8000,
+    features: ["Flask 3.x", "Lightweight WSGI", "Dynamic Routing", "Python 3.11"]
+  }
+];
+
+let cachedTemplates = DEFAULT_TEMPLATES;
+let selectedTemplateObj = null;
+let currentTplCategory = 'all';
+let currentTplSearch = '';
+
+function renderTemplatesUI() {
+  const modalList = document.getElementById('templates-list');
+  const showcaseContainer = document.getElementById('tpl-showcase-container');
+
+  // Filter templates for showcase view
+  let filtered = cachedTemplates;
+  if (currentTplCategory !== 'all') {
+    filtered = filtered.filter(t => t.category === currentTplCategory);
+  }
+  if (currentTplSearch) {
+    const q = currentTplSearch.toLowerCase();
+    filtered = filtered.filter(t => (t.name||'').toLowerCase().includes(q) || (t.description||'').toLowerCase().includes(q) || (t.tech||'').toLowerCase().includes(q));
+  }
+
+  // 1. Render in Deploy Modal
+  if (modalList) {
+    modalList.innerHTML = cachedTemplates.map(t => {
+      const isSel = selectedTemplateObj && selectedTemplateObj.id === t.id;
+      const pillClass = t.category === 'frontend' ? 'tpl-pill-cyan' : t.category === 'backend' ? 'tpl-pill-green' : 'tpl-pill-purple';
+      return `
+        <div class="tpl-card ${isSel ? 'selected' : ''}" id="tpl-card-${t.id}" onclick="selectTplById('${t.id}')">
+          <div class="tpl-card-top">
+            <div class="tpl-name">
+              <span>${t.icon || ''}</span>
+              <span>${esc(t.name)}</span>
+            </div>
+            <span class="tpl-pill ${pillClass}">${esc(t.tech || t.category)}</span>
+          </div>
+          <div class="tpl-desc">${esc(t.description)}</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
+            <span class="tpl-port-tag">Port :${t.internal_port || 8080}</span>
+            <span style="font-size:11px;color:var(--cyan);font-weight:600;">${isSel ? '✓ Selected' : 'Select →'}</span>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // 2. Render in Showcase View
+  if (showcaseContainer) {
+    if (filtered.length === 0) {
+      showcaseContainer.innerHTML = '<div style="color:var(--ink-3);font-size:13px;grid-column:1/-1;text-align:center;padding:40px;">No templates found matching your search.</div>';
+    } else {
+      showcaseContainer.innerHTML = filtered.map(t => {
+        const pillClass = t.category === 'frontend' ? 'tpl-pill-cyan' : t.category === 'backend' ? 'tpl-pill-green' : 'tpl-pill-purple';
+        return `
+          <div class="tpl-showcase-card">
+            <div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);padding:9px;border-radius:10px;">${t.icon || ''}</div>
+                  <div>
+                    <div style="font-size:15px;font-weight:700;color:var(--ink-0);">${esc(t.name)}</div>
+                    <div style="font-size:11.5px;color:var(--ink-3);margin-top:2px;">${esc(t.tech || '')} • Port :${t.internal_port || 8080}</div>
+                  </div>
+                </div>
+                <span class="tpl-pill ${pillClass}">${esc(t.category)}</span>
+              </div>
+              <div style="font-size:12.5px;color:var(--ink-2);line-height:1.55;margin-bottom:12px;">${esc(t.description)}</div>
+              <div class="tpl-tag-row">
+                ${(t.features || []).map(f => `<span class="tpl-tag-item">${esc(f)}</span>`).join('')}
+              </div>
+            </div>
+            <div style="margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3);">Zero-Config</span>
+              <button class="btn btn-primary btn-sm" onclick="launchTemplateFromShowcase('${t.id}')">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
+                Deploy Template
+              </button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+  }
+}
+
+function filterTemplates(cat, el) {
+  currentTplCategory = cat;
+  document.querySelectorAll('#tpl-filter-pills .filter-pill').forEach(p => p.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderTemplatesUI();
+}
+
+function onTemplateSearch(val) {
+  currentTplSearch = (val || '').trim();
+  renderTemplatesUI();
+}
+
+function selectTplById(id) {
+  const t = cachedTemplates.find(x => x.id === id);
+  if (!t) return;
+  selectedTemplateObj = t;
+
+  document.querySelectorAll('.tpl-card').forEach(c => c.classList.remove('selected'));
+  const card = document.getElementById('tpl-card-' + id);
+  if (card) card.classList.add('selected');
+
+  const notice = document.getElementById('tpl-selected-notice');
+  const nameEl = document.getElementById('tpl-selected-name');
+  if (notice && nameEl) {
+    nameEl.textContent = `${t.name} (${t.tech || ''})`;
+    notice.style.display = 'flex';
+  }
+
+  document.getElementById('inp-app-name').value = t.name.toLowerCase().replace(/[^a-z0-9]/g,'-').slice(0,25);
+  document.getElementById('inp-git-url').value = t.repo_url;
+  document.getElementById('inp-branch').value = t.branch || 'main';
+
+  toast(`Template selected: ${t.name}. Click "Launch Application" below to deploy!`, 'success');
+}
+
+function clearSelectedTpl() {
+  selectedTemplateObj = null;
+  document.querySelectorAll('.tpl-card').forEach(c => c.classList.remove('selected'));
+  const notice = document.getElementById('tpl-selected-notice');
+  if (notice) notice.style.display = 'none';
+  document.getElementById('inp-git-url').value = '';
+}
+
+function launchTemplateFromShowcase(id) {
+  openDeployModal();
+  switchTab('tpl');
+  selectTplById(id);
+}
+
 /* ─── DEPLOY MODAL ────────────────────────────────────────── */
 function openDeployModal() {
   openModal('modal-deploy');
@@ -1347,6 +1699,9 @@ function switchTab(tab) {
     document.getElementById('tab-'+t).classList.toggle('active', t===tab);
     document.getElementById('tc-'+t).style.display = t===tab ? 'block' : 'none';
   });
+  if (tab === 'tpl') {
+    loadTemplates();
+  }
 }
 
 async function loadForgeRepos() {
@@ -1369,25 +1724,19 @@ function onForgeRepoSelect(url) {
 }
 
 async function loadTemplates() {
-  const list = document.getElementById('templates-list');
-  const res = await api('/orbit/api/templates');
-  if (res && res.templates) {
-    list.innerHTML = res.templates.map(t => `
-      <div class="tpl-card" onclick="selectTpl('${esc(t.name)}','${esc(t.repo_url)}','${esc(t.branch)}',this)">
-        <div class="tpl-name">${esc(t.name)}</div>
-        <div class="tpl-desc">${esc(t.description)}</div>
-      </div>`).join('');
+  renderTemplatesUI();
+  try {
+    const res = await api('/orbit/api/templates');
+    if (res && res.templates && res.templates.length > 0) {
+      cachedTemplates = res.templates.map(rt => {
+        const d = DEFAULT_TEMPLATES.find(dt => dt.id === rt.id) || {};
+        return { ...d, ...rt };
+      });
+      renderTemplatesUI();
+    }
+  } catch(e) {
+    console.warn('API templates error:', e);
   }
-}
-
-function selectTpl(name, repoURL, branch, el) {
-  document.querySelectorAll('.tpl-card').forEach(c => c.classList.remove('selected'));
-  el.classList.add('selected');
-  document.getElementById('inp-app-name').value = name.toLowerCase().replace(/[^a-z0-9]/g,'-').slice(0,30);
-  document.getElementById('inp-git-url').value = repoURL;
-  document.getElementById('inp-branch').value = branch;
-  switchTab('git');
-  toast(`Template selected: ${name}`);
 }
 
 async function submitDeploy() {
@@ -1398,6 +1747,8 @@ async function submitDeploy() {
   const activeTab = document.querySelector('.tab-btn.active').id.replace('tab-','');
   if (activeTab === 'forge') {
     repoURL = document.getElementById('sel-forge-repo').value;
+  } else if (activeTab === 'tpl') {
+    repoURL = (selectedTemplateObj && selectedTemplateObj.repo_url) || document.getElementById('inp-git-url').value.trim();
   } else {
     repoURL = document.getElementById('inp-git-url').value.trim();
   }
@@ -1726,6 +2077,7 @@ async function refreshAll() {
 
 /* ─── BOOT ────────────────────────────────────────────────── */
 loadApps();
+loadTemplates();
 setInterval(loadApps, 8000);
 
 // Mobile menu button visibility
