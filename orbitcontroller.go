@@ -126,18 +126,22 @@ func allocateOrbitPort() (int, error) {
 
 // getSessionUser extracts the email from the session cookie.
 func getSessionUser(r *http.Request) (string, error) {
-	cookie, err := r.Cookie("oort_session")
-	if err != nil || cookie.Value == "" {
-		cookie, err = r.Cookie("orbit_session")
+	var sid string
+	if c, err := r.Cookie("cosmos_sid"); err == nil && c.Value != "" {
+		sid = c.Value
+	} else if c, err := r.Cookie("oort_session"); err == nil && c.Value != "" {
+		sid = c.Value
+	} else if c, err := r.Cookie("orbit_session"); err == nil && c.Value != "" {
+		sid = c.Value
 	}
-	if err != nil || cookie.Value == "" {
+	if sid == "" {
 		return "", fmt.Errorf("unauthorized")
 	}
 
 	var email, name string
-	err = scyllaSession.Query(
+	err := scyllaSession.Query(
 		`SELECT email, name FROM cosmos.users WHERE session_id = ? ALLOW FILTERING`,
-		cookie.Value,
+		sid,
 	).Scan(&email, &name)
 	if err != nil || email == "" {
 		return "", fmt.Errorf("invalid session")
@@ -816,12 +820,8 @@ func handleOrbitListForgeRepos(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var giteaUser string
-	_ = scyllaSession.Query(`SELECT username FROM cosmos.users WHERE service = 'git' AND email = ? ALLOW FILTERING`, email).
+	_ = scyllaSession.Query(`SELECT username FROM cosmos.users WHERE email = ? ALLOW FILTERING`, email).
 		Scan(&giteaUser)
-	if giteaUser == "" {
-		_ = scyllaSession.Query(`SELECT username FROM cosmos.users WHERE service = 'oort' AND email = ? ALLOW FILTERING`, email).
-			Scan(&giteaUser)
-	}
 
 	var repos []map[string]interface{}
 	if giteaUser != "" {
@@ -923,16 +923,20 @@ func handleOrbitProxy(w http.ResponseWriter, r *http.Request, path string) {
 
 // handleOrbitBackupToOort exports container filesystem snapshot and uploads directly into the user's Oort S3 bucket.
 func handleOrbitBackupToOort(w http.ResponseWriter, r *http.Request, appID string) {
-	cookie, err := r.Cookie("oort_session")
-	if err != nil || cookie.Value == "" {
-		cookie, err = r.Cookie("orbit_session")
+	var sid string
+	if c, err := r.Cookie("cosmos_sid"); err == nil && c.Value != "" {
+		sid = c.Value
+	} else if c, err := r.Cookie("oort_session"); err == nil && c.Value != "" {
+		sid = c.Value
+	} else if c, err := r.Cookie("orbit_session"); err == nil && c.Value != "" {
+		sid = c.Value
 	}
-	if err != nil || cookie.Value == "" {
+	if sid == "" {
 		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
 		return
 	}
 
-	_, ak, sk, defaultBucket, err := lookupBySession("oort", cookie.Value)
+	_, ak, sk, defaultBucket, err := lookupBySession("", sid)
 	if err != nil || ak == "" {
 		http.Error(w, `{"error":"failed to authenticate S3 storage credentials"}`, http.StatusUnauthorized)
 		return

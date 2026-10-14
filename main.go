@@ -131,8 +131,8 @@ const sessionMaxAge = 30 * 24 * time.Hour
 func lookupBySession(service, sid string) (name, ak, sk, bucket string, err error) {
 	var createdAt int64
 	err = scyllaSession.Query(
-		`SELECT name, access_key, secret_key, bucket, created_at FROM cosmos.users WHERE service = ? AND session_id = ? ALLOW FILTERING`,
-		service, sid).Scan(&name, &ak, &sk, &bucket, &createdAt)
+		`SELECT name, access_key, secret_key, bucket, created_at FROM cosmos.users WHERE session_id = ? ALLOW FILTERING`,
+		sid).Scan(&name, &ak, &sk, &bucket, &createdAt)
 	if err != nil {
 		return
 	}
@@ -204,12 +204,12 @@ func handleSignup(w http.ResponseWriter, r *http.Request, service string) {
 	}
 
 	var ex string
-	if scyllaSession.Query(`SELECT email FROM cosmos.users WHERE service = ? AND email = ?`, service, email).Scan(&ex) == nil {
+	if scyllaSession.Query(`SELECT email FROM cosmos.users WHERE email = ? ALLOW FILTERING`, email).Scan(&ex) == nil {
 		http.Error(w, "Email already registered", http.StatusConflict)
 		return
 	}
 	// Also check username uniqueness
-	if scyllaSession.Query(`SELECT email FROM cosmos.users WHERE service = ? AND username = ? ALLOW FILTERING`, service, username).Scan(&ex) == nil {
+	if scyllaSession.Query(`SELECT email FROM cosmos.users WHERE username = ? ALLOW FILTERING`, username).Scan(&ex) == nil {
 		http.Error(w, "Username already taken", http.StatusConflict)
 		return
 	}
@@ -251,61 +251,98 @@ func handleLogin(w http.ResponseWriter, r *http.Request, service string) {
 	r.ParseForm()
 	ident := strings.ToLower(strings.TrimSpace(r.FormValue("email")))
 	password := r.FormValue("password")
-	
-	var sessionID, passwordHash string
-	
-	// Check if ident is email or username
-	query := `SELECT session_id, password_hash FROM cosmos.users WHERE service = ? AND email = ?`
-	if !strings.Contains(ident, "@") {
-		query = `SELECT session_id, password_hash FROM cosmos.users WHERE service = ? AND username = ? ALLOW FILTERING`
+
+	var sessionID, passwordHash, userEmail, userName string
+	var err error
+
+	// Query single unified user database by email or username
+	if strings.Contains(ident, "@") {
+		err = scyllaSession.Query(
+			`SELECT session_id, password_hash, email, username FROM cosmos.users WHERE email = ? ALLOW FILTERING`,
+			ident,
+		).Scan(&sessionID, &passwordHash, &userEmail, &userName)
+	} else {
+		err = scyllaSession.Query(
+			`SELECT session_id, password_hash, email, username FROM cosmos.users WHERE username = ? ALLOW FILTERING`,
+			ident,
+		).Scan(&sessionID, &passwordHash, &userEmail, &userName)
 	}
-	
-	if err := scyllaSession.Query(query, service, ident).Scan(&sessionID, &passwordHash); err != nil {
+
+	if err != nil || sessionID == "" {
+		log.Printf("[LOGIN] User not found for '%s': %v", ident, err)
 		http.Redirect(w, r, "/"+service+"/login?error=1", http.StatusFound)
 		return
 	}
 	if bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(password)) != nil {
+		log.Printf("[LOGIN] Password mismatch for '%s'", ident)
 		http.Redirect(w, r, "/"+service+"/login?error=1", http.StatusFound)
 		return
 	}
 
-	if service == "git" {
-		var giteaUser string
-		scyllaSession.Query(`SELECT username FROM cosmos.users WHERE service = ? AND email = ?`, service, ident).Scan(&giteaUser)
-		if giteaUser == "" {
-			scyllaSession.Query(`SELECT username FROM cosmos.users WHERE service = ? AND username = ? ALLOW FILTERING`, service, ident).Scan(&giteaUser)
-		}
-		if giteaUser == "" {
-			giteaUser = ident
-		}
-		cookies, err := loginGitea(giteaUser, password)
-		if err == nil {
-			for _, c := range cookies {
-				if c.Name == "i_like_gitea" && c.Value != "" {
-					http.SetCookie(w, &http.Cookie{
-						Name:     c.Name,
-						Value:    c.Value,
-						Path:     "/source",
-						MaxAge:   86400 * 7,
-						HttpOnly: true,
-						Secure:   r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https",
-						SameSite: http.SameSiteLaxMode,
-					})
-				}
+	// Set unified SSO session cookies across all Cosmos modules
+	isSecure := r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https"
+	http.SetCookie(w, &http.Cookie{
+		Name:     "cosmos_sid",
+		Value:    sessionID,
+		Path:     "/",
+		MaxAge:   86400 * 30,
+		HttpOnly: true,
+		Secure:   isSecure,
+		SameSite: http.SameSiteLaxMode,
+	})
+	http.SetCookie(w, &http.Cookie{
+		Name:     "oort_session",
+		Value:    sessionID,
+		Path:     "/",
+		MaxAge:   86400 * 30,
+		HttpOnly: true,
+		Secure:   isSecure,
+		SameSite: http.SameSiteLaxMode,
+	})
+	http.SetCookie(w, &http.Cookie{
+		Name:     "orbit_session",
+		Value:    sessionID,
+		Path:     "/",
+		MaxAge:   86400 * 30,
+		HttpOnly: true,
+		Secure:   isSecure,
+		SameSite: http.SameSiteLaxMode,
+	})
+
+	// Also log into Gitea to establish the i_like_gitea session
+	giteaUser := userName
+	if giteaUser == "" {
+		giteaUser = ident
+	}
+	if cookies, gErr := loginGitea(giteaUser, password); gErr == nil {
+		for _, c := range cookies {
+			if c.Name == "i_like_gitea" && c.Value != "" {
+				http.SetCookie(w, &http.Cookie{
+					Name:     c.Name,
+					Value:    c.Value,
+					Path:     "/source",
+					MaxAge:   86400 * 7,
+					HttpOnly: true,
+					Secure:   isSecure,
+					SameSite: http.SameSiteLaxMode,
+				})
 			}
-			http.SetCookie(w, &http.Cookie{
-				Name:     "cosmos_sid",
-				Value:    sessionID,
-				Path:     "/",
-				MaxAge:   86400 * 30,
-				HttpOnly: true,
-				Secure:   r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https",
-				SameSite: http.SameSiteLaxMode,
-			})
-			http.Redirect(w, r, "/source/", http.StatusFound)
-			return
 		}
-		log.Printf("[LOGIN] Gitea login attempt failed for %s: %v", giteaUser, err)
+	} else {
+		log.Printf("[LOGIN] Gitea login attempt for %s: %v", giteaUser, gErr)
+	}
+
+	if service == "git" {
+		http.Redirect(w, r, "/source/", http.StatusFound)
+		return
+	}
+	if service == "oort" {
+		http.Redirect(w, r, "/oort/console?sid="+sessionID, http.StatusFound)
+		return
+	}
+	if service == "orbit" {
+		http.Redirect(w, r, "/orbit", http.StatusFound)
+		return
 	}
 
 	http.Redirect(w, r, "/"+service+"/dashboard?sid="+sessionID, http.StatusFound)
@@ -351,11 +388,11 @@ func handleVerify(w http.ResponseWriter, r *http.Request, service string) {
 	bucket := "unity-" + strings.ReplaceAll(uuid.New().String(), "-", "")[:8]
 	// Store created_at for future session expiry checks
 	createdAt := time.Now().Unix()
-	if err = scyllaSession.Query(`INSERT INTO cosmos.users (service, email, name, password_hash, access_key, secret_key, bucket, bucket_display_name, session_id, username, profile_image, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'mybucket', ?, ?, ?, ?)`,
-		service, email, name, passwordHash, accessKey, secretKey, bucket, sessionID, username, profileImage, createdAt).Exec(); err != nil {
+	if err = scyllaSession.Query(`INSERT INTO cosmos.users (service, email, name, password_hash, access_key, secret_key, bucket, bucket_display_name, session_id, username, profile_image, created_at) VALUES ('git', ?, ?, ?, ?, ?, ?, 'mybucket', ?, ?, ?, ?)`,
+		email, name, passwordHash, accessKey, secretKey, bucket, sessionID, username, profileImage, createdAt).Exec(); err != nil {
 		// created_at column may not exist yet — fall back without it
-		if err2 := scyllaSession.Query(`INSERT INTO cosmos.users (service, email, name, password_hash, access_key, secret_key, bucket, bucket_display_name, session_id, username, profile_image) VALUES (?, ?, ?, ?, ?, ?, ?, 'mybucket', ?, ?, ?)`,
-			service, email, name, passwordHash, accessKey, secretKey, bucket, sessionID, username, profileImage).Exec(); err2 != nil {
+		if err2 := scyllaSession.Query(`INSERT INTO cosmos.users (service, email, name, password_hash, access_key, secret_key, bucket, bucket_display_name, session_id, username, profile_image) VALUES ('git', ?, ?, ?, ?, ?, ?, 'mybucket', ?, ?, ?)`,
+			email, name, passwordHash, accessKey, secretKey, bucket, sessionID, username, profileImage).Exec(); err2 != nil {
 			log.Printf("[VERIFY] Insert failed: %v", err2)
 			http.Error(w, "Failed to create account", 500)
 			return
@@ -367,13 +404,9 @@ func handleVerify(w http.ResponseWriter, r *http.Request, service string) {
 	pendingPasswords.Delete(service + ":" + token)
 
 	go func() {
-		switch service {
-		case "oort":
-			provisionMinIO(accessKey, secretKey, bucket)
-		case "git":
-			if rawPassword != "" {
-				provisionGitea(username, email, rawPassword)
-			}
+		provisionMinIO(accessKey, secretKey, bucket)
+		if rawPassword != "" {
+			provisionGitea(username, email, rawPassword)
 		}
 	}()
 	if r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
@@ -398,14 +431,24 @@ a{background:#fafafa;color:#000;padding:14px 28px;border-radius:8px;text-decorat
 
 func handleLogout(w http.ResponseWriter, r *http.Request, service string) {
 	http.SetCookie(w, &http.Cookie{Name: "cosmos_sid", Value: "", Path: "/", MaxAge: -1})
-	if service == "git" {
-		http.SetCookie(w, &http.Cookie{Name: "i_like_gitea", Value: "", Path: "/source", MaxAge: -1})
-	}
+	http.SetCookie(w, &http.Cookie{Name: "oort_session", Value: "", Path: "/", MaxAge: -1})
+	http.SetCookie(w, &http.Cookie{Name: "orbit_session", Value: "", Path: "/", MaxAge: -1})
+	http.SetCookie(w, &http.Cookie{Name: "i_like_gitea", Value: "", Path: "/source", MaxAge: -1})
 	http.Redirect(w, r, "/" + service, http.StatusFound)
 }
 
 func handleDashboard(w http.ResponseWriter, r *http.Request, service string) {
 	sid := r.URL.Query().Get("sid")
+	if sid == "" {
+		if c, err := r.Cookie("cosmos_sid"); err == nil {
+			sid = c.Value
+		}
+	}
+	if sid == "" {
+		if c, err := r.Cookie("oort_session"); err == nil {
+			sid = c.Value
+		}
+	}
 	if sid == "" {
 		http.Redirect(w, r, "/"+service+"/login", http.StatusFound)
 		return
@@ -414,6 +457,10 @@ func handleDashboard(w http.ResponseWriter, r *http.Request, service string) {
 	if err != nil {
 		log.Printf("[DASHBOARD] Lookup failed service=%s sid=%s: %v", service, sid, err)
 		http.Redirect(w, r, "/"+service+"/login", http.StatusFound)
+		return
+	}
+	if service == "oort" {
+		http.Redirect(w, r, "/oort/console?sid="+sid, http.StatusFound)
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")

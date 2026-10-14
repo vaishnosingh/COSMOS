@@ -42,9 +42,21 @@ func authS3Console(r *http.Request) (ak, sk, bucket string, ok bool) {
 		}
 	}
 	if sid == "" {
+		cookie, err := r.Cookie("oort_session")
+		if err == nil {
+			sid = cookie.Value
+		}
+	}
+	if sid == "" {
+		cookie, err := r.Cookie("orbit_session")
+		if err == nil {
+			sid = cookie.Value
+		}
+	}
+	if sid == "" {
 		return "", "", "", false
 	}
-	_, ak, sk, bucket, err := lookupBySession("oort", sid)
+	_, ak, sk, bucket, err := lookupBySession("", sid)
 	if err != nil || ak == "" {
 		return "", "", "", false
 	}
@@ -684,7 +696,7 @@ func handleS3RenameBucket(w http.ResponseWriter, r *http.Request) {
 
 	if req.OldName == defBucket {
 		// Rename default bucket
-		scyllaSession.Query(`UPDATE cosmos.users SET bucket_display_name = ? WHERE service = 'oort' AND email = ?`, displayName, ak).Exec()
+		scyllaSession.Query(`UPDATE cosmos.users SET bucket_display_name = ? WHERE service = 'git' AND email = ?`, displayName, ak).Exec()
 	} else {
 		// Verify ownership in DB
 		var owner string
@@ -724,7 +736,7 @@ func handleS3Profile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var name, username, profileImage string
-	scyllaSession.Query(`SELECT name, username, profile_image FROM cosmos.users WHERE service = 'oort' AND email = ?`, ak).Scan(&name, &username, &profileImage)
+	scyllaSession.Query(`SELECT name, username, profile_image FROM cosmos.users WHERE service = 'git' AND email = ?`, ak).Scan(&name, &username, &profileImage)
 
 	jsonOK(w, map[string]any{
 		"access_key":     ak,
@@ -824,10 +836,15 @@ func handleS3Password(w http.ResponseWriter, r *http.Request) {
 
 	// Change in ScyllaDB ONLY. MinIO API token (secret_key) remains unchanged.
 	hash, _ := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
-	err := scyllaSession.Query(`UPDATE cosmos.users SET password_hash = ? WHERE service = 'oort' AND email = ?`,
+	err := scyllaSession.Query(`UPDATE cosmos.users SET password_hash = ? WHERE service = 'git' AND email = ?`,
 		string(hash), ak).Exec()
 	if err != nil {
 		log.Printf("[S3] password update scylla: %v", err)
+	}
+	var gUser string
+	scyllaSession.Query(`SELECT username FROM cosmos.users WHERE service = 'git' AND email = ?`, ak).Scan(&gUser)
+	if gUser != "" {
+		syncGiteaPassword(gUser, req.NewPassword)
 	}
 
 	jsonOK(w, map[string]bool{"success": true})
@@ -880,7 +897,7 @@ func handleS3Buckets(w http.ResponseWriter, r *http.Request) {
 	// Always include the default private bucket
 	if defBucket != "" {
 		var defDisp string
-		scyllaSession.Query(`SELECT bucket_display_name FROM cosmos.users WHERE service='oort' AND email=?`, ak).Scan(&defDisp)
+		scyllaSession.Query(`SELECT bucket_display_name FROM cosmos.users WHERE service='git' AND email=?`, ak).Scan(&defDisp)
 		if defDisp == "" {
 			defDisp = "mybucket"
 		}
@@ -996,7 +1013,7 @@ func handleS3ProfileImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	encoded := "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(bytes)
-	if err := scyllaSession.Query(`UPDATE cosmos.users SET profile_image = ? WHERE service = 'oort' AND email = ?`, encoded, ak).Exec(); err != nil {
+	if err := scyllaSession.Query(`UPDATE cosmos.users SET profile_image = ? WHERE service = 'git' AND email = ?`, encoded, ak).Exec(); err != nil {
 		jsonErr(w, "db error", 500)
 		return
 	}
@@ -1028,12 +1045,12 @@ func handleS3ProfileUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var ex string
-	if scyllaSession.Query(`SELECT email FROM cosmos.users WHERE service = 'oort' AND username = ? ALLOW FILTERING`, req.Username).Scan(&ex) == nil && ex != ak {
+	if scyllaSession.Query(`SELECT email FROM cosmos.users WHERE username = ? ALLOW FILTERING`, req.Username).Scan(&ex) == nil && ex != ak {
 		jsonErr(w, "username already taken", 409)
 		return
 	}
 
-	if err := scyllaSession.Query(`UPDATE cosmos.users SET name = ?, username = ? WHERE service = 'oort' AND email = ?`, req.Name, req.Username, ak).Exec(); err != nil {
+	if err := scyllaSession.Query(`UPDATE cosmos.users SET name = ?, username = ? WHERE service = 'git' AND email = ?`, req.Name, req.Username, ak).Exec(); err != nil {
 		jsonErr(w, "db error", 500)
 		return
 	}
@@ -1161,7 +1178,7 @@ func handleS3PublicProxy(w http.ResponseWriter, r *http.Request, username, path 
 		actualBucket = cached.(string)
 	} else {
 		var email, defBucket string
-		err := scyllaSession.Query(`SELECT email, bucket FROM cosmos.users WHERE service='oort' AND username=? ALLOW FILTERING`, username).Scan(&email, &defBucket)
+		err := scyllaSession.Query(`SELECT email, bucket FROM cosmos.users WHERE username=? ALLOW FILTERING`, username).Scan(&email, &defBucket)
 		if err != nil {
 			w.Header().Set("Content-Type", "text/html")
 			w.WriteHeader(404)
@@ -1170,7 +1187,7 @@ func handleS3PublicProxy(w http.ResponseWriter, r *http.Request, username, path 
 		}
 
 		var defDisp string
-		scyllaSession.Query(`SELECT bucket_display_name FROM cosmos.users WHERE service='oort' AND email=?`, email).Scan(&defDisp)
+		scyllaSession.Query(`SELECT bucket_display_name FROM cosmos.users WHERE service='git' AND email=?`, email).Scan(&defDisp)
 		if defDisp == "" {
 			defDisp = "mybucket"
 		}
@@ -1488,7 +1505,7 @@ func handleS3Analytics(w http.ResponseWriter, r *http.Request) {
 		}
 		var disp string
 		if b == defBucket {
-			scyllaSession.Query(`SELECT bucket_display_name FROM cosmos.users WHERE service='oort' AND email=?`, ak).Scan(&disp)
+			scyllaSession.Query(`SELECT bucket_display_name FROM cosmos.users WHERE service='git' AND email=?`, ak).Scan(&disp)
 			if disp == "" { disp = "mybucket" }
 		} else {
 			scyllaSession.Query(`SELECT display_name FROM cosmos.buckets WHERE bucket_name = ?`, b).Scan(&disp)

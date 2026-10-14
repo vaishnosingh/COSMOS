@@ -114,13 +114,13 @@ func getOwnerCredentials(bucketOrEmail string) (ak, sk, email string, err error)
 	} else {
 		err = scyllaSession.Query(`SELECT owner_email FROM cosmos.buckets WHERE bucket_name = ?`, bucketOrEmail).Scan(&email)
 		if err != nil || email == "" {
-			scyllaSession.Query(`SELECT email FROM cosmos.users WHERE service = 'oort' AND bucket = ? ALLOW FILTERING`, bucketOrEmail).Scan(&email)
+			scyllaSession.Query(`SELECT email FROM cosmos.users WHERE bucket = ? ALLOW FILTERING`, bucketOrEmail).Scan(&email)
 		}
 	}
 	if email == "" {
 		return "", "", "", fmt.Errorf("owner not found")
 	}
-	err = scyllaSession.Query(`SELECT access_key, secret_key FROM cosmos.users WHERE service = 'oort' AND email = ?`, email).Scan(&ak, &sk)
+	err = scyllaSession.Query(`SELECT access_key, secret_key FROM cosmos.users WHERE email = ? ALLOW FILTERING`, email).Scan(&ak, &sk)
 	return ak, sk, email, err
 }
 
