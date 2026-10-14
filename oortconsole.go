@@ -26,6 +26,7 @@ import (
 )
 
 const minioEndpoint = "127.0.0.1:9000"
+const publicMinioEndpoint = "cosmos.linuxguy.space"
 
 // authS3Console validates the session and returns (accessKey, secretKey, bucket).
 // It looks up the session from the cosmos.users table.
@@ -85,6 +86,8 @@ func RegisterS3ConsoleRoutes(mux *http.ServeMux) {
 		bucket_name text,
 		owner_email text
 	)`).Exec()
+
+	RegisterExpansionRoutes(mux)
 
 	mux.HandleFunc("/oort/api/objects/versions", handleS3ObjectVersions)
 	mux.HandleFunc("/oort/api/objects/restore", handleS3ObjectRestore)
@@ -426,6 +429,7 @@ func handleS3UploadComplete(w http.ResponseWriter, r *http.Request) {
 	
 	// Record a write hit for analytics
 	go recordHit(bucket, 200, 0, false, r.Header.Get("CF-IPCountry"), "write")
+	go dispatchWebhooks(bucket, "object:created", upload.Key, 0, "")
 	
 	jsonOK(w, map[string]any{
 		"key":    upload.Key,
@@ -504,6 +508,7 @@ func handleS3Delete(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	
+	go dispatchWebhooks(bucket, "object:deleted", key, 0, "")
 	jsonOK(w, map[string]bool{"deleted": true})
 }
 
@@ -522,9 +527,9 @@ func handleS3Presign(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, "missing key", 400)
 		return
 	}
-	mc, err := minio.New(getPublicMinioEndpoint(), &minio.Options{
+	mc, err := minio.New(publicMinioEndpoint, &minio.Options{
 		Creds: credentials.NewStaticV4(ak, sk, ""),
-		Secure: !strings.HasPrefix(getPublicMinioEndpoint(), "localhost") && !strings.HasPrefix(getPublicMinioEndpoint(), "127.0.0.1"),
+		Secure: true,
 	})
 	if err != nil {
 		jsonErr(w, "minio error", 500)
@@ -725,7 +730,7 @@ func handleS3Profile(w http.ResponseWriter, r *http.Request) {
 		"access_key":     ak,
 		"secret_key":     sk,
 		"default_bucket": defaultBucket,
-		"endpoint":       getCosmosBaseURL(),
+		"endpoint":       "https://cosmos.linuxguy.space",
 		"name":           name,
 		"username":       username,
 		"profile_image":  profileImage,
@@ -765,8 +770,8 @@ func handleS3Quota(w http.ResponseWriter, r *http.Request) {
 }
 
 func sendQuotaEmail(userEmail, token string, amount int) {
-	link := fmt.Sprintf("%s/oort/api/quota/approve?token=%s", getCosmosBaseURL(), token)
-	msg := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: Quota Request from %s\r\n\r\nUser %s has requested a quota increase to %d GB.\r\n\r\nClick here to approve: %s\r\n", getEmailFrom(), getAdminEmail(), userEmail, userEmail, amount, link)
+	link := fmt.Sprintf("https://cosmos.linuxguy.space/oort/api/quota/approve?token=%s", token)
+	msg := fmt.Sprintf("From: serverdmncr@gmail.com\r\nTo: serverdmncr@gmail.com\r\nSubject: Quota Request from %s\r\n\r\nUser %s has requested a quota increase to %d GB.\r\n\r\nClick here to approve: %s\r\n", userEmail, userEmail, amount, link)
 	cmd := exec.Command("msmtp", "-t")
 	cmd.Stdin = bytes.NewBufferString(msg)
 	if err := cmd.Run(); err != nil {
@@ -1064,7 +1069,7 @@ func handleS3ShareObject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	jsonOK(w, map[string]string{"url": strings.Replace(presignedURL.String(), "http://"+minioEndpoint, getCosmosBaseURL(), 1)})
+	jsonOK(w, map[string]string{"url": strings.Replace(presignedURL.String(), "http://"+minioEndpoint, "https://"+publicMinioEndpoint, 1)})
 }
 
 // ─── GET /oort/api/objects/versions ──────────────────────────────────────────────
@@ -1197,7 +1202,7 @@ func handleS3PublicProxy(w http.ResponseWriter, r *http.Request, username, path 
 	}
 
 	targetPath := fmt.Sprintf("/%s/%s", actualBucket, objectKey)
-	
+
 	targetUrl, _ := url.Parse("http://127.0.0.1:9000")
 	proxy := httputil.NewSingleHostReverseProxy(targetUrl)
 	proxy.Transport = proxyTransport

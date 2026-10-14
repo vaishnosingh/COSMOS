@@ -628,6 +628,9 @@ input:checked + .slider:before { transform: translateX(16px); }
 .btn-icon { background:none; border:none; color:var(--text3); cursor:pointer; padding:8px; border-radius:8px; transition:0.2s; display:flex; align-items:center; justify-content:center; width:32px; height:32px; }
 .btn-icon:hover { background:var(--surface3); color:var(--text); }
 .btn-icon.danger:hover { background:rgba(239,68,68,0.1); color:var(--red); }
+.cat-chip { padding: 4px 10px !important; font-size: 11.5px !important; font-weight: 600 !important; border-radius: 999px !important; border: 1px solid rgba(255,255,255,0.08) !important; background: rgba(255,255,255,0.03) !important; color: var(--text3) !important; transition: all 0.2s ease; cursor: pointer; }
+.cat-chip:hover { background: rgba(255,255,255,0.08) !important; color: var(--text); border-color: rgba(255,255,255,0.15) !important; }
+.cat-chip.active { background: rgba(56,189,248,0.15) !important; color: #38bdf8 !important; border-color: rgba(56,189,248,0.4) !important; }
 @media (max-width:800px) { 
  .layout { flex-direction: column; } 
  .sidebar { width: 100%; min-width: 100%; height: auto; min-height: auto; flex-shrink: 0; padding-bottom: 12px; } 
@@ -1013,6 +1016,17 @@ input:checked + .slider:before { transform: translateX(16px); }
             <canvas id="analyticsChart"></canvas>
           </div>
         </div>
+
+        <!-- Storage Breakdown Donut Chart -->
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div class="chart-card-title">Storage Breakdown</div>
+            <div class="chart-card-sub">Capacity distribution by file type</div>
+          </div>
+          <div class="chart-wrap" style="height:280px; position:relative;">
+            <canvas id="storageBreakdownChart"></canvas>
+          </div>
+        </div>
       </div>
 
       <!-- Per-bucket table -->
@@ -1046,27 +1060,69 @@ input:checked + .slider:before { transform: translateX(16px); }
 
   <!-- ─── BROWSER VIEW ─── -->
   <div class="view" id="view-browser">
-    <div class="browser-header">
-      <div style="font-weight:600;font-size:14px" id="browser-title">Bucket</div>
-      <div class="browser-actions">
+    <div class="browser-header" style="flex-wrap:wrap; gap:12px; padding:16px 24px;">
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; flex:1; min-width:260px;">
+        <div style="font-weight:600; font-size:14px; white-space:nowrap;" id="browser-title">Bucket</div>
+        <!-- Live Search -->
+        <div style="position:relative; width:220px;">
+          <input type="text" id="browser-search-inp" class="form-control" placeholder="Search files..." style="padding-left:32px; height:32px; font-size:12px; border-radius:8px;" oninput="filterObjectsByQuery(this.value)">
+          <svg style="position:absolute; left:10px; top:8px; pointer-events:none; opacity:0.5;" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+      </div>
+      <div class="browser-actions" style="flex-wrap:wrap; gap:8px;">
+        <!-- Category Filter Pills -->
+        <div style="display:flex; gap:4px; margin-right:4px;" id="cat-filter-chips">
+          <button class="btn btn-ghost btn-sm cat-chip active" data-cat="all" onclick="filterByCategory('all')">All</button>
+          <button class="btn btn-ghost btn-sm cat-chip" data-cat="images" onclick="filterByCategory('images')">Images</button>
+          <button class="btn btn-ghost btn-sm cat-chip" data-cat="media" onclick="filterByCategory('media')">Media</button>
+          <button class="btn btn-ghost btn-sm cat-chip" data-cat="docs" onclick="filterByCategory('docs')">Docs</button>
+          <button class="btn btn-ghost btn-sm cat-chip" data-cat="code" onclick="filterByCategory('code')">Code</button>
+          <button class="btn btn-ghost btn-sm cat-chip" data-cat="archives" onclick="filterByCategory('archives')">Archives</button>
+        </div>
         <button class="btn btn-ghost btn-sm" onclick="loadObjects()">
           <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13" height="13"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
           Refresh
         </button>
         <button class="btn btn-ghost btn-sm" onclick="openBucketSettings()">
           <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13" height="13"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-          Bucket Settings
+          Settings
         </button>
         <button class="btn btn-ghost btn-sm" onclick="openModal('modal-mkdir')">
           <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13" height="13"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
           New Folder
         </button>
+        <!-- Folder upload button -->
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('inp-folder-upload').click()">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13" height="13"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/><polyline points="12 11 12 17 12 11"/><polyline points="9 14 12 11 15 14"/></svg>
+          Upload Folder
+        </button>
+        <input type="file" id="inp-folder-upload" webkitdirectory directory multiple style="display:none" onchange="queueFiles(this.files)">
         <button class="btn btn-primary btn-sm" onclick="openUploader()">
           <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13" height="13"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          Upload
+          Upload Files
         </button>
       </div>
     </div>
+
+    <!-- Sticky Batch Action Bar (shown when 1+ checkboxes selected) -->
+    <div id="batch-action-bar" style="display:none; position:sticky; top:12px; z-index:100; margin:8px 16px; background:rgba(15,23,42,0.95); border:1px solid rgba(56,189,248,0.35); border-radius:12px; padding:10px 18px; box-shadow:0 12px 36px rgba(0,0,0,0.6); backdrop-filter:blur(16px); align-items:center; justify-content:space-between; gap:16px;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span id="batch-count-badge" style="background:rgba(56,189,248,0.2); color:#38bdf8; padding:3px 10px; border-radius:999px; font-weight:700; font-size:12px;">0 items</span>
+        <span id="batch-size-badge" style="color:var(--text2); font-size:13px; font-family:var(--mono);">0 B</span>
+      </div>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <button class="btn btn-sm btn-ghost" onclick="batchDownloadZip()">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download .ZIP
+        </button>
+        <button class="btn btn-sm btn-ghost" style="color:#f87171;" onclick="batchDeleteSelected()">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+          Delete Selected
+        </button>
+        <button class="btn btn-sm btn-ghost" onclick="clearBatchSelection()">Clear</button>
+      </div>
+    </div>
+
     <div class="file-table-wrap" id="file-table-wrap">
       <!-- populated by JS -->
     </div>
@@ -1417,6 +1473,120 @@ input:checked + .slider:before { transform: translateX(16px); }
   </div>
 </div>
 
+<!-- ─── SHARE LINK MODAL ─── -->
+<div class="modal-bg" id="modal-share-link">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <div class="modal-title">Create Secure Share Link</div>
+      <button class="btn-icon" onclick="closeModal('modal-share-link')"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="modal-body" style="padding:24px;">
+      <div style="font-size:13px; color:var(--text3); margin-bottom:16px;">
+        Generate an expiring public download link for:
+        <div id="share-target-key" style="font-weight:600; color:var(--text); font-family:var(--mono); margin-top:4px; word-break:break-all;"></div>
+      </div>
+      <div class="form-row" style="margin-bottom:14px;">
+        <label class="form-label" style="display:block; font-size:12px; font-weight:600; color:var(--text2); margin-bottom:6px;">Link Expiration</label>
+        <select class="form-control" id="share-expire-select">
+          <option value="3600">1 Hour</option>
+          <option value="21600">6 Hours</option>
+          <option value="86400" selected>24 Hours (1 Day)</option>
+          <option value="259200">3 Days</option>
+          <option value="604800">7 Days</option>
+          <option value="2592000">30 Days</option>
+        </select>
+      </div>
+      <div class="form-row" style="margin-bottom:14px;">
+        <label class="form-label" style="display:block; font-size:12px; font-weight:600; color:var(--text2); margin-bottom:6px;">Optional Passphrase (Leave blank for open access)</label>
+        <input type="password" class="form-control" id="share-password" placeholder="Passphrase to protect this file">
+      </div>
+      <div class="form-row" style="margin-bottom:14px;">
+        <label class="form-label" style="display:block; font-size:12px; font-weight:600; color:var(--text2); margin-bottom:6px;">Max Downloads (0 for unlimited)</label>
+        <input type="number" class="form-control" id="share-max-dl" value="0" min="0">
+      </div>
+      <div id="share-result-wrap" style="display:none; margin-top:16px; background:rgba(56,189,248,0.06); border:1px solid rgba(56,189,248,0.25); border-radius:10px; padding:14px;">
+        <label class="form-label" style="display:block; font-size:12px; font-weight:600; color:#38bdf8; margin-bottom:6px;">Your Share Link is Ready!</label>
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="share-result-url" class="form-control" readonly style="font-family:var(--mono); font-size:12px; flex:1;">
+          <button class="btn btn-primary btn-sm" onclick="copyShareResultURL()">Copy</button>
+          <button class="btn btn-ghost btn-sm" onclick="window.open(document.getElementById('share-result-url').value, '_blank')">Open</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" id="share-footer-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-share-link')">Close</button>
+      <button class="btn btn-primary" id="btn-create-share" onclick="generateShareLink()">Generate Link</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── PREVIEW & CODE EDITOR MODAL ─── -->
+<div class="modal-bg" id="modal-preview-editor">
+  <div class="modal" style="max-width:960px; width:92vw; max-height:92vh; display:flex; flex-direction:column; padding:0; overflow:hidden;">
+    <div class="modal-header" style="padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-shrink:0;">
+      <div style="display:flex; align-items:center; gap:12px; min-width:0;">
+        <div class="modal-title" id="preview-title" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:40vw; font-size:15px;">Preview</div>
+        <span id="preview-badge" style="font-family:var(--mono); font-size:10px; padding:2px 8px; border-radius:999px; background:rgba(56,189,248,0.12); color:#38bdf8;">CODE</span>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center; flex-shrink:0;">
+        <button id="btn-save-preview" class="btn btn-primary btn-sm" style="display:none;" onclick="savePreviewContent()">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save &amp; Upload
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="openShareFromPreview()">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          Share
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="downloadPreviewFile()">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download
+        </button>
+        <button class="btn-icon" onclick="closeModal('modal-preview-editor')"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+      </div>
+    </div>
+    <div class="modal-body" id="preview-body" style="padding:0; flex:1; overflow:auto; display:flex; align-items:center; justify-content:center; min-height:400px; background:rgba(0,0,0,0.4);">
+      <!-- Content injected by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- ─── ADD WEBHOOK MODAL ─── -->
+<div class="modal-bg" id="modal-add-webhook">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <div class="modal-title">Add Event Webhook</div>
+      <button class="btn-icon" onclick="closeModal('modal-add-webhook')"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="modal-body" style="padding:24px;">
+      <div class="form-row" style="margin-bottom:14px;">
+        <label class="form-label" style="display:block; font-size:12px; font-weight:600; color:var(--text2); margin-bottom:6px;">Payload URL</label>
+        <input type="url" class="form-control" id="webhook-target-url" placeholder="https://api.example.com/webhook" required>
+      </div>
+      <div class="form-row" style="margin-bottom:14px;">
+        <label class="form-label" style="display:block; font-size:12px; font-weight:600; color:var(--text2); margin-bottom:6px;">Secret Token (Optional HMAC-SHA256 signature)</label>
+        <input type="text" class="form-control" id="webhook-secret" placeholder="Optional webhook secret">
+      </div>
+      <div class="form-row">
+        <label class="form-label" style="display:block; font-size:12px; font-weight:600; color:var(--text2); margin-bottom:6px;">Trigger Events</label>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-top:6px;">
+          <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer;">
+            <input type="checkbox" id="wh-evt-upload" checked style="accent-color:var(--accent);">
+            <span><strong>object:created</strong> — Trigger when a file is uploaded or updated</span>
+          </label>
+          <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer;">
+            <input type="checkbox" id="wh-evt-delete" checked style="accent-color:var(--accent);">
+            <span><strong>object:deleted</strong> — Trigger when a file is deleted</span>
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-add-webhook')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveNewWebhook()">Create Webhook</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast-stack" id="toast-stack"></div>
 
 <!-- ════════════════════════════════ SCRIPT ════════════════════════════════ -->
@@ -1478,7 +1648,7 @@ async function openBucketSettings() {
   
   const username = state.profile && state.profile.username ? state.profile.username : document.getElementById('sidebarName').textContent.replace('@','');
   const disp = getBucketDisplayName(state.bucket);
-  document.getElementById('bucket-public-url-input').value = `${window.location.origin}/oort/${username}/${disp}`;
+  document.getElementById('bucket-public-url-input').value = `https://cosmos.linuxguy.space/oort/${username}/${disp}`;
   
   openModal('modal-bucket-settings');
 
@@ -1488,6 +1658,8 @@ async function openBucketSettings() {
   }
   
   loadBucketDomains();
+  loadSiteConfig();
+  loadWebhooks();
 }
 
 
@@ -1519,7 +1691,7 @@ async function loadBucketDomains() {
     if (!r || !r.domains || r.domains.length === 0) {
       list.innerHTML = `<div style="color:var(--text3); font-size:13px;">No custom domains attached.</div>
         <div style="margin-top:10px; font-size:12px; color:var(--text3); line-height:1.6;">
-          To use a custom domain, point a CNAME record for your domain to your server's domain or IP.
+          To use a custom domain, point a CNAME record for your domain to <code style="background:rgba(255,255,255,0.08); padding:1px 5px; border-radius:4px;">cosmos.linuxguy.space</code>
         </div>`;
       return;
     }
@@ -2005,6 +2177,81 @@ function clearAnalyticsFilters() {
   loadAnalytics();
 }
 
+let storageBreakdownChart = null;
+async function loadStorageBreakdown() {
+  const canv = document.getElementById('storageBreakdownChart');
+  if (!canv) return;
+  const bEl = document.getElementById('an-filter-bucket');
+  const b = bEl ? bEl.value : 'all';
+  const r = await api(`/oort/api/storage/breakdown?bucket=${encodeURIComponent(b)}`);
+  if (!r || !r.categories) return;
+
+  const cats = r.categories;
+  const labels = ['Images', 'Videos', 'Audio', 'Documents', 'Code', 'Archives', 'Other'];
+  const data = [
+    cats.images || 0,
+    cats.videos || 0,
+    cats.audio || 0,
+    cats.documents || 0,
+    cats.code || 0,
+    cats.archives || 0,
+    cats.other || 0
+  ];
+  const colors = [
+    '#38bdf8', // Images - sky blue
+    '#a855f7', // Videos - purple
+    '#ec4899', // Audio - pink
+    '#10b981', // Documents - emerald
+    '#f59e0b', // Code - amber
+    '#6366f1', // Archives - indigo
+    '#64748b'  // Other - slate
+  ];
+
+  if (storageBreakdownChart) {
+    storageBreakdownChart.destroy();
+  }
+
+  const total = data.reduce((a, b) => a + b, 0);
+  storageBreakdownChart = new Chart(canv, {
+    type: 'doughnut',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: total === 0 ? [1] : data,
+        backgroundColor: total === 0 ? ['rgba(255,255,255,0.06)'] : colors,
+        borderWidth: 2,
+        borderColor: '#0b0f17'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '70%',
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: {
+            color: '#94a3b8',
+            font: { size: 11 },
+            boxWidth: 10,
+            padding: 10
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              if (total === 0) return ' No files yet';
+              const val = data[ctx.dataIndex];
+              const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+              return ` ${ctx.label}: ${fmtBytes(val)} (${pct}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
 async function loadAnalytics() {
   const subtitle = document.getElementById('analytics-subtitle');
   if(subtitle) subtitle.textContent = 'Loading metrics…';
@@ -2061,6 +2308,8 @@ async function loadAnalytics() {
       });
   }
 
+  loadStorageBreakdown();
+
   const tbody = document.getElementById('analytics-bucket-tbody');
   const buckets = r ? (r.buckets || []) : [];
   if (bEl && bEl.options.length <= 1 && buckets.length > 0) {
@@ -2076,6 +2325,7 @@ async function loadAnalytics() {
         tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text3);">No data found.</td></tr>';
       } else {
         tbody.innerHTML = buckets.map(bk => {
+          const bCache = bk.requests > 0 ? ((bk.cache_hits / bk.requests) * 100).toFixed(1) : '0';
           const lastHit = bk.last_hit ? new Date(bk.last_hit * 1000).toLocaleString() : 'Never';
           return `<tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
             <td style="padding:14px 16px;font-weight:600;">${bk.display || bk.name}</td>
@@ -2570,75 +2820,314 @@ async function downloadFile(key) {
     toast('Download started');
   }
 }
-async function shareFile(key) {
-  const r = await api(`/oort/api/objects/share?bucket=${encodeURIComponent(state.bucket)}&key=${encodeURIComponent(key)}`);
+
+/* ─── SECURE EXPIRING SHARE LINKS ─── */
+let currentShareKey = '';
+
+function shareFile(key) {
+  openShareModal(key);
+}
+
+function openShareModal(key) {
+  currentShareKey = key;
+  const keyEl = document.getElementById('share-target-key');
+  if (keyEl) keyEl.textContent = key;
+  const expEl = document.getElementById('share-expire-select');
+  if (expEl) expEl.value = '86400';
+  const pwdEl = document.getElementById('share-password');
+  if (pwdEl) pwdEl.value = '';
+  const dlEl = document.getElementById('share-max-dl');
+  if (dlEl) dlEl.value = '0';
+  const resWrap = document.getElementById('share-result-wrap');
+  if (resWrap) resWrap.style.display = 'none';
+  const resUrl = document.getElementById('share-result-url');
+  if (resUrl) resUrl.value = '';
+  const btn = document.getElementById('btn-create-share');
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = 'Generate Link';
+  }
+  openModal('modal-share-link');
+}
+
+async function generateShareLink() {
+  if (!currentShareKey) return;
+  const expireSeconds = parseInt(document.getElementById('share-expire-select').value || '86400', 10);
+  const password = document.getElementById('share-password').value;
+  const maxDownloads = parseInt(document.getElementById('share-max-dl').value || '0', 10);
+
+  const btn = document.getElementById('btn-create-share');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Generating…';
+  }
+
+  const r = await api('/oort/api/shares/create', {
+    method: 'POST',
+    body: JSON.stringify({
+      bucket: state.bucket,
+      object_key: currentShareKey,
+      expire_seconds: expireSeconds,
+      password: password,
+      max_downloads: maxDownloads
+    })
+  });
+
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = 'Generate Link';
+  }
+
   if (r && r.url) {
-    navigator.clipboard.writeText(r.url).then(() => {
-      showToast('Share link copied to clipboard! (Valid for 7 days)', 'success');
-    }).catch(() => {
-      prompt('Share Link (Valid for 7 days):', r.url);
-    });
+    document.getElementById('share-result-wrap').style.display = 'block';
+    document.getElementById('share-result-url').value = r.url;
+    toast('Secure share link created!');
   }
 }
 
+function copyShareResultURL() {
+  const url = document.getElementById('share-result-url').value;
+  if (!url) return;
+  navigator.clipboard.writeText(url).then(() => {
+    toast('Link copied to clipboard!');
+  }).catch(() => {
+    prompt('Share Link:', url);
+  });
+}
+
+function openShareFromPreview() {
+  if (currentPreviewKey) {
+    openShareModal(currentPreviewKey);
+  }
+}
+
+/* ─── IN-BROWSER PREVIEW & CODE/MARKDOWN EDITOR ─── */
+let currentPreviewKey = '';
+
 async function previewFile(key) {
-  const r = await api(`/oort/api/presign?bucket=${encodeURIComponent(state.bucket)}&key=${encodeURIComponent(key)}`);
-  if (!r || !r.url) return;
+  currentPreviewKey = key;
+  const titleEl = document.getElementById('preview-title');
+  const badgeEl = document.getElementById('preview-badge');
+  const saveBtn = document.getElementById('btn-save-preview');
+  const bodyEl = document.getElementById('preview-body');
 
-  const ext = key.split('.').pop().toLowerCase();
-  const isImg = /^(jpg|jpeg|png|gif|webp|svg|bmp|ico)$/.test(ext);
-  const isVideo = /^(mp4|webm|mov|mkv|avi)$/.test(ext);
-  const isAudio = /^(mp3|wav|ogg|flac|aac)$/.test(ext);
+  const fileName = key.split('/').pop();
+  if (titleEl) titleEl.textContent = fileName;
+  const ext = (fileName.split('.').pop() || '').toLowerCase();
+  if (badgeEl) badgeEl.textContent = ext ? ext.toUpperCase() : 'FILE';
+  if (saveBtn) saveBtn.style.display = 'none';
+
+  const previewUrl = `/oort/api/preview?bucket=${encodeURIComponent(state.bucket)}&key=${encodeURIComponent(key)}`;
+
+  const isImg = /^(jpg|jpeg|png|gif|webp|svg|bmp|ico|avif)$/.test(ext);
+  const isVideo = /^(mp4|webm|mov|mkv|avi|ogv)$/.test(ext);
+  const isAudio = /^(mp3|wav|ogg|flac|aac|m4a)$/.test(ext);
   const isPdf = ext === 'pdf';
-  const isText = /^(txt|md|json|yaml|yml|xml|csv|log|sh|js|ts|py|go|java|html|css|sql)$/.test(ext);
+  const isText = /^(txt|md|json|yaml|yml|xml|csv|log|sh|js|ts|jsx|tsx|py|go|java|html|css|sql|conf|env|ini|toml|c|cpp|h|rs|php|rb)$/.test(ext);
 
-  const modal = document.createElement('div');
-  modal.className = 'modal-bg open';
-  modal.style.cssText = 'z-index:999999; align-items:center; justify-content:center;';
-  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+  openModal('modal-preview-editor');
 
-  let mediaHtml = '';
   if (isImg) {
-    mediaHtml = `<img src="${r.url}" style="max-width:100%; max-height:75vh; object-fit:contain; border-radius:8px; display:block;">`;
+    bodyEl.innerHTML = `<div style="padding:24px; display:flex; align-items:center; justify-content:center; width:100%; height:100%;">
+      <img src="${previewUrl}" alt="${fileName}" style="max-width:100%; max-height:75vh; object-fit:contain; border-radius:8px; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
+    </div>`;
   } else if (isVideo) {
-    mediaHtml = `<video src="${r.url}" controls autoplay style="max-width:100%; max-height:75vh; border-radius:8px; display:block;"></video>`;
+    bodyEl.innerHTML = `<div style="padding:24px; width:100%; height:100%; display:flex; align-items:center; justify-content:center;">
+      <video src="${previewUrl}" controls autoplay style="max-width:100%; max-height:75vh; border-radius:8px; box-shadow:0 8px 32px rgba(0,0,0,0.5);"></video>
+    </div>`;
   } else if (isAudio) {
-    mediaHtml = `<audio src="${r.url}" controls autoplay style="width:100%; margin:24px 0;"></audio>`;
+    bodyEl.innerHTML = `<div style="padding:60px 24px; width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px;">
+      <div style="font-size:48px;">🎵</div>
+      <div style="font-weight:600; font-size:16px; color:#fff;">${fileName}</div>
+      <audio src="${previewUrl}" controls autoplay style="width:360px; max-width:100%;"></audio>
+    </div>`;
   } else if (isPdf) {
-    mediaHtml = `<iframe src="${r.url}" style="width:80vw; height:75vh; border:none; border-radius:8px;"></iframe>`;
+    bodyEl.innerHTML = `<iframe src="${previewUrl}" style="width:100%; height:75vh; border:none; background:#fff; border-radius:4px;"></iframe>`;
   } else if (isText) {
-    // fetch and show text content
-    mediaHtml = `<div id="preview-text-loading" style="padding:40px; color:var(--text3);">Loading…</div>`;
+    bodyEl.innerHTML = `<div style="padding:40px; color:var(--text3); font-size:13px;">Loading file content…</div>`;
+    if (saveBtn) saveBtn.style.display = 'inline-flex';
+    try {
+      const resp = await fetch(previewUrl, { headers: { 'X-Session-Id': SID } });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const text = await resp.text();
+      bodyEl.innerHTML = `<textarea id="preview-editor-textarea" spellcheck="false" style="width:100%; height:75vh; background:#0b0f17; color:#f1f5f9; font-family:var(--mono); font-size:13px; line-height:1.6; padding:20px; border:none; outline:none; resize:none; tab-size:2;"></textarea>`;
+      const ta = document.getElementById('preview-editor-textarea');
+      if (ta) ta.value = text;
+    } catch(err) {
+      bodyEl.innerHTML = `<div style="padding:40px; color:#f87171;">Failed to load file text: ${err.message}</div>`;
+    }
   } else {
-    // non-previewable: open in new tab
-    window.open(r.url, '_blank');
+    // Non-previewable
+    bodyEl.innerHTML = `<div style="padding:60px 24px; text-align:center; color:var(--text2);">
+      <div style="font-size:48px; margin-bottom:12px;">📁</div>
+      <div style="font-weight:600; font-size:16px; margin-bottom:6px;">Preview not supported for this file type</div>
+      <div style="font-size:13px; color:var(--text3); margin-bottom:20px;">You can download this file to view it on your workstation.</div>
+      <button class="btn btn-primary" onclick="downloadPreviewFile()">Download File</button>
+    </div>`;
+  }
+}
+
+async function savePreviewContent() {
+  const ta = document.getElementById('preview-editor-textarea');
+  if (!ta || !currentPreviewKey) return;
+  const btn = document.getElementById('btn-save-preview');
+  const oldText = btn.innerHTML;
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  const r = await api('/oort/api/preview/save', {
+    method: 'POST',
+    body: JSON.stringify({
+      bucket: state.bucket,
+      key: currentPreviewKey,
+      content: ta.value
+    })
+  });
+
+  btn.disabled = false;
+  btn.innerHTML = oldText;
+
+  if (r) {
+    toast(`Saved and uploaded new version of ${currentPreviewKey.split('/').pop()}!`);
+    loadObjects();
+  }
+}
+
+function downloadPreviewFile() {
+  if (currentPreviewKey) {
+    downloadFile(currentPreviewKey);
+  }
+}
+
+/* ─── STATIC WEBSITE HOSTING ─── */
+function toggleSiteInputs(enabled) {
+  const f = document.getElementById('site-config-fields');
+  if (f) f.style.display = enabled ? 'flex' : 'none';
+}
+
+async function loadSiteConfig() {
+  const chk = document.getElementById('site-setting-enabled');
+  if (!chk) return;
+  const r = await api(`/oort/api/bucket/website?bucket=${encodeURIComponent(state.bucket)}`);
+  const enabled = r && !!r.enabled;
+  chk.checked = enabled;
+  toggleSiteInputs(enabled);
+  if (r) {
+    const idx = document.getElementById('site-index-doc');
+    const err = document.getElementById('site-error-doc');
+    const spa = document.getElementById('site-spa-mode');
+    if (idx) idx.value = r.index_doc || 'index.html';
+    if (err) err.value = r.error_doc || '404.html';
+    if (spa) spa.checked = !!r.spa_mode;
+  }
+  const hostLink = document.getElementById('site-hosted-url');
+  if (hostLink) {
+    hostLink.href = `/oort/site/${encodeURIComponent(state.bucket)}/`;
+  }
+}
+
+async function saveSiteConfig() {
+  const chk = document.getElementById('site-setting-enabled');
+  const enabled = chk ? chk.checked : false;
+  const idx = document.getElementById('site-index-doc');
+  const err = document.getElementById('site-error-doc');
+  const spa = document.getElementById('site-spa-mode');
+  const indexDoc = idx ? idx.value.trim() || 'index.html' : 'index.html';
+  const errorDoc = err ? err.value.trim() || '404.html' : '404.html';
+  const spaMode = spa ? spa.checked : false;
+
+  const r = await api('/oort/api/bucket/website', {
+    method: 'POST',
+    body: JSON.stringify({
+      bucket: state.bucket,
+      enabled: enabled,
+      index_doc: indexDoc,
+      error_doc: errorDoc,
+      spa_mode: spaMode
+    })
+  });
+
+  if (r) {
+    toast('Static website settings saved successfully!');
+  }
+}
+
+/* ─── S3 EVENT WEBHOOKS ─── */
+async function loadWebhooks() {
+  const listEl = document.getElementById('bucket-webhooks-list');
+  if (!listEl) return;
+  listEl.innerHTML = '<div style="color:var(--text3); padding:8px;">Loading webhooks…</div>';
+
+  const r = await api(`/oort/api/bucket/webhooks?bucket=${encodeURIComponent(state.bucket)}`);
+  if (!r || !r.webhooks || !r.webhooks.length) {
+    listEl.innerHTML = '<div style="color:var(--text3); font-size:12px; padding:6px 0;">No webhooks configured for this bucket.</div>';
     return;
   }
 
-  modal.innerHTML = `
-    <div style="background:var(--surface-0); border:1px solid var(--card-border); border-radius:16px; max-width:92vw; max-height:92vh; display:flex; flex-direction:column; box-shadow:0 24px 64px rgba(0,0,0,0.6); overflow:hidden;">
-      <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid rgba(255,255,255,0.06); flex-shrink:0;">
-        <div style="font-weight:700; font-size:14px; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:60vw;">${key.split('/').pop()}</div>
-        <div style="display:flex; gap:8px; flex-shrink:0;">
-          <button onclick="downloadFile('${key}')" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#fff; border-radius:8px; padding:6px 14px; cursor:pointer; font-size:13px; font-weight:600;">⬇ Download</button>
-          <button onclick="this.closest('.modal-bg').remove()" style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); color:#ef4444; border-radius:8px; padding:6px 14px; cursor:pointer; font-size:13px; font-weight:600;">✕ Close</button>
+  listEl.innerHTML = r.webhooks.map(w => {
+    const evts = (w.events || []).join(', ');
+    return `
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:8px; margin-bottom:8px;">
+        <div style="min-width:0; flex:1; margin-right:12px;">
+          <div style="font-weight:600; font-size:13px; color:var(--text); font-family:var(--mono); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${w.target_url}</div>
+          <div style="font-size:11px; color:var(--text3); margin-top:2px;">Events: <span style="color:#38bdf8;">${evts || 'all'}</span> ${w.secret ? '• <span style="color:#10b981;">HMAC signed</span>' : ''}</div>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button class="btn btn-ghost btn-sm" onclick="testWebhook('${w.webhook_id}')" title="Send test ping">Test</button>
+          <button class="btn btn-ghost btn-sm" style="color:#f87171;" onclick="deleteWebhook('${w.webhook_id}')" title="Delete webhook">Delete</button>
         </div>
       </div>
-      <div style="padding:16px; overflow:auto; flex:1; display:flex; align-items:center; justify-content:center;">
-        ${mediaHtml}
-      </div>
-    </div>
-  `;
-  document.body.appendChild(modal);
+    `;
+  }).join('');
+}
 
-  // Load text content
-  if (isText) {
-    fetch(r.url).then(res => res.text()).then(text => {
-      const pre = modal.querySelector('#preview-text-loading');
-      if (pre) {
-        pre.outerHTML = `<pre style="margin:0; padding:16px; overflow:auto; font-size:13px; color:var(--text); background:rgba(0,0,0,0.2); border-radius:8px; max-height:70vh; width:70vw; white-space:pre-wrap; word-break:break-all;">${text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>`;
-      }
-    }).catch(() => {});
+async function saveNewWebhook() {
+  const targetUrl = document.getElementById('webhook-target-url').value.trim();
+  if (!targetUrl) return toast('Target URL is required', 'error');
+  const secret = document.getElementById('webhook-secret').value.trim();
+  const evts = [];
+  if (document.getElementById('wh-evt-upload').checked) evts.push('object:created');
+  if (document.getElementById('wh-evt-delete').checked) evts.push('object:deleted');
+  if (!evts.length) return toast('Select at least one trigger event', 'error');
+
+  const r = await api('/oort/api/bucket/webhooks', {
+    method: 'POST',
+    body: JSON.stringify({
+      bucket: state.bucket,
+      target_url: targetUrl,
+      secret: secret,
+      events: evts
+    })
+  });
+
+  if (r) {
+    toast('Webhook registered successfully!');
+    closeModal('modal-add-webhook');
+    document.getElementById('webhook-target-url').value = '';
+    document.getElementById('webhook-secret').value = '';
+    loadWebhooks();
+  }
+}
+
+async function deleteWebhook(id) {
+  if (!confirm('Are you sure you want to delete this webhook?')) return;
+  const r = await api(`/oort/api/bucket/webhooks?bucket=${encodeURIComponent(state.bucket)}&webhook_id=${encodeURIComponent(id)}`, {
+    method: 'DELETE'
+  });
+  if (r) {
+    toast('Webhook deleted');
+    loadWebhooks();
+  }
+}
+
+async function testWebhook(id) {
+  toast('Dispatching test ping…');
+  const r = await api('/oort/api/bucket/webhooks/test', {
+    method: 'POST',
+    body: JSON.stringify({ bucket: state.bucket, webhook_id: id })
+  });
+  if (r) {
+    toast(`Test payload delivered! (Status: ${r.status_code || 200})`);
   }
 }
 
@@ -2721,59 +3210,199 @@ async function loadObjects() {
   }
 
   const objects = r.objects || [];
-  if (!objects.length) {
-    wrap.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-state-icon"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></div>
-        <h3>Empty</h3>
-        <p>Upload files or create a folder to get started.</p>
-        <div style="margin-top:16px;display:flex;gap:8px;justify-content:center">
-        <button class="btn btn-ghost btn-sm" onclick="openBucketSettings()">
-          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13" height="13"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-          Bucket Settings
-        </button>
-          ${uiMode === 'drive' ? `<button class="btn btn-ghost btn-sm" onclick="openModal('modal-mkdir')">New Folder</button>` : ''}
-          <button class="btn btn-primary btn-sm" onclick="openUploader()">Upload Files</button>
-        </div>
-      </div>`;
+  state.rawObjects = objects;
+
+  renderFilteredObjects();
+}
+
+/* ─── CATEGORY FILTERING & SEARCH ─── */
+function getFileCategory(name) {
+  const ext = (name.split('.').pop() || '').toLowerCase();
+  if (/^(jpg|jpeg|png|gif|webp|svg|bmp|ico|tiff|avif)$/.test(ext)) return 'images';
+  if (/^(mp4|webm|mov|mkv|avi|mp3|wav|ogg|flac|aac|m4a|ogv)$/.test(ext)) return 'media';
+  if (/^(pdf|doc|docx|xls|xlsx|ppt|pptx|txt|rtf|odt|csv)$/.test(ext)) return 'docs';
+  if (/^(js|ts|jsx|tsx|py|go|html|css|json|yaml|yml|xml|sh|sql|md|c|cpp|h|rs|php|rb|conf|env|ini|toml)$/.test(ext)) return 'code';
+  if (/^(zip|tar|gz|tgz|bz2|7z|rar|iso)$/.test(ext)) return 'archives';
+  return 'other';
+}
+
+function filterByCategory(cat) {
+  state.activeCategory = cat;
+  document.querySelectorAll('.cat-chip').forEach(el => {
+    el.classList.toggle('active', el.dataset.cat === cat);
+  });
+  renderFilteredObjects();
+}
+
+function filterObjectsByQuery(q) {
+  state.searchQuery = (q || '').trim().toLowerCase();
+  renderFilteredObjects();
+}
+
+function clearFilters() {
+  state.searchQuery = '';
+  state.activeCategory = 'all';
+  const inp = document.getElementById('browser-search-inp');
+  if (inp) inp.value = '';
+  document.querySelectorAll('.cat-chip').forEach(el => {
+    el.classList.toggle('active', el.dataset.cat === 'all');
+  });
+  renderFilteredObjects();
+}
+
+function renderFilteredObjects() {
+  const wrap = document.getElementById('file-table-wrap');
+  if (!wrap) return;
+  const raw = state.rawObjects || [];
+  const q = state.searchQuery || '';
+  const cat = state.activeCategory || 'all';
+
+  let filtered = raw.filter(o => {
+    if (o.name === '.keep' || o.name === '') return false;
+    if (q) {
+      const matchName = o.name.toLowerCase().includes(q);
+      const matchKey = o.key.toLowerCase().includes(q);
+      if (!matchName && !matchKey) return false;
+    }
+    if (cat !== 'all') {
+      if (o.is_dir) return false;
+      if (getFileCategory(o.name) !== cat) return false;
+    }
+    return true;
+  });
+
+  if (!filtered.length) {
+    if (q || cat !== 'all') {
+      wrap.innerHTML = `
+        <div class="empty-state" style="padding:60px 20px;">
+          <div class="empty-state-icon"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+          <h3>No matching files found</h3>
+          <p style="color:var(--text3); font-size:13px; margin-top:6px;">Try adjusting your search query or category filter.</p>
+          <button class="btn btn-ghost btn-sm" style="margin-top:16px;" onclick="clearFilters()">Reset Filters</button>
+        </div>`;
+    } else {
+      wrap.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></div>
+          <h3>Empty</h3>
+          <p>Upload files or create a folder to get started.</p>
+          <div style="margin-top:16px;display:flex;gap:8px;justify-content:center">
+          <button class="btn btn-ghost btn-sm" onclick="openBucketSettings()">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13" height="13"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            Bucket Settings
+          </button>
+            ${typeof uiMode !== 'undefined' && uiMode === 'drive' ? `<button class="btn btn-ghost btn-sm" onclick="openModal('modal-mkdir')">New Folder</button>` : ''}
+            <button class="btn btn-primary btn-sm" onclick="openUploader()">Upload Files</button>
+          </div>
+        </div>`;
+    }
+    updateBatchSelection();
     return;
   }
 
-  {
-    // ─── UNIFIED HIERARCHICAL MODE (both S3 and Drive) ───
-    const sorted = [...objects.filter(o => o.is_dir && o.name !== ''), ...objects.filter(o => !o.is_dir && o.name !== '.keep')];
-    wrap.innerHTML = `
-      <div style="display:flex; flex-direction:column; gap:6px;">
-        <div style="display:flex; padding:0 16px 12px 16px; border-bottom:1px solid var(--border); font-size:12px; font-weight:600; color:var(--text3); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">
-           <div style="flex:1;">Name</div>
-           <div style="width:140px; text-align:left;">Last Modified</div>
-           <div style="width:100px; text-align:right;">Size</div>
-           <div style="width:140px;"></div>
-        </div>
-        ${sorted.map(o => {
-          const cls = o.is_dir ? 'folder' : fileIconClass(o.name);
-          const icon = o.is_dir ? folderSVG() : fileSVG(cls);
-          const dateStr = o.is_dir ? '—' : new Date(o.last_modified).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-          const sizeStr = o.is_dir ? '—' : fmtBytes(o.size);
-          return `
-          <div class="drive-item" onclick="rowClick('${o.key}',${o.is_dir})">
-             <div style="display:flex; align-items:center; flex:1; min-width:0;">
-                <div class="drive-item-icon ${cls}">
-                   ${icon}
-                </div>
-                <div style="font-weight:600; font-size:14px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                   ${o.name}
-                </div>
-             </div>
-             <div style="width:140px; font-size:13px; color:var(--text2);">${dateStr}</div>
-             <div style="width:100px; font-size:13px; color:var(--text2); text-align:right; font-weight:500;">${sizeStr}</div>
-             <div style="width:40px; display:flex; justify-content:flex-end;" onclick="event.stopPropagation()">
-                <button class="btn-icon" onclick="openFileMenu(event, '${o.key}', ${o.is_dir})">${dotsSVG()}</button>
-             </div>
-          </div>`;
-        }).join('')}
+  const sorted = [...filtered.filter(o => o.is_dir), ...filtered.filter(o => !o.is_dir)];
+  wrap.innerHTML = `
+    <div style="display:flex; flex-direction:column; gap:4px;">
+      <div style="display:flex; align-items:center; padding:0 16px 12px 16px; border-bottom:1px solid var(--border); font-size:12px; font-weight:600; color:var(--text3); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">
+         <div style="width:36px; display:flex; align-items:center;" onclick="event.stopPropagation()">
+           <input type="checkbox" id="select-all-cb" onchange="toggleSelectAll(this)" style="cursor:pointer; accent-color:#38bdf8; width:15px; height:15px;">
+         </div>
+         <div style="flex:1;">Name</div>
+         <div style="width:140px; text-align:left;">Last Modified</div>
+         <div style="width:100px; text-align:right;">Size</div>
+         <div style="width:140px;"></div>
       </div>
-    `;
+      ${sorted.map(o => {
+        const cls = o.is_dir ? 'folder' : fileIconClass(o.name);
+        const icon = o.is_dir ? folderSVG() : fileSVG(cls);
+        const dateStr = o.is_dir ? '—' : new Date(o.last_modified).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+        const sizeStr = o.is_dir ? '—' : fmtBytes(o.size);
+        const escKey = o.key.replace(/'/g, "\\'");
+        return `
+        <div class="drive-item" data-key="${o.key}" data-size="${o.size||0}" data-isdir="${o.is_dir}" onclick="rowClick('${escKey}',${o.is_dir})">
+           <div style="width:36px; display:flex; align-items:center;" onclick="event.stopPropagation()">
+             ${o.is_dir ? '' : `<input type="checkbox" class="file-select-cb" data-key="${o.key}" data-size="${o.size||0}" onchange="updateBatchSelection()" style="cursor:pointer; accent-color:#38bdf8; width:15px; height:15px;">`}
+           </div>
+           <div style="display:flex; align-items:center; flex:1; min-width:0;">
+              <div class="drive-item-icon ${cls}">
+                 ${icon}
+              </div>
+              <div style="font-weight:600; font-size:14px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                 ${o.name}
+              </div>
+           </div>
+           <div style="width:140px; font-size:13px; color:var(--text2);">${dateStr}</div>
+           <div style="width:100px; font-size:13px; color:var(--text2); text-align:right; font-weight:500;">${sizeStr}</div>
+           <div style="width:40px; display:flex; justify-content:flex-end;" onclick="event.stopPropagation()">
+              <button class="btn-icon" onclick="openFileMenu(event, '${escKey}', ${o.is_dir})">${dotsSVG()}</button>
+           </div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+  updateBatchSelection();
+}
+
+/* ─── BATCH OPERATIONS ─── */
+function toggleSelectAll(masterCb) {
+  const cbs = document.querySelectorAll('.file-select-cb');
+  cbs.forEach(cb => { cb.checked = masterCb.checked; });
+  updateBatchSelection();
+}
+
+function updateBatchSelection() {
+  const cbs = Array.from(document.querySelectorAll('.file-select-cb:checked'));
+  const bar = document.getElementById('batch-action-bar');
+  if (!bar) return;
+
+  if (cbs.length > 0) {
+    bar.style.display = 'flex';
+    let totalSize = 0;
+    cbs.forEach(cb => {
+      totalSize += parseInt(cb.dataset.size || '0', 10);
+    });
+    const cntBadge = document.getElementById('batch-count-badge');
+    const szBadge = document.getElementById('batch-size-badge');
+    if (cntBadge) cntBadge.textContent = `${cbs.length} item${cbs.length === 1 ? '' : 's'} selected`;
+    if (szBadge) szBadge.textContent = fmtBytes(totalSize);
+  } else {
+    bar.style.display = 'none';
+    const master = document.getElementById('select-all-cb');
+    if (master) master.checked = false;
+  }
+}
+
+function clearBatchSelection() {
+  const master = document.getElementById('select-all-cb');
+  if (master) master.checked = false;
+  document.querySelectorAll('.file-select-cb').forEach(cb => { cb.checked = false; });
+  updateBatchSelection();
+}
+
+function batchDownloadZip() {
+  const cbs = Array.from(document.querySelectorAll('.file-select-cb:checked'));
+  if (!cbs.length) return toast('No files selected', 'error');
+  const params = new URLSearchParams();
+  params.set('bucket', state.bucket);
+  cbs.forEach(cb => params.append('keys', cb.dataset.key));
+  window.location.href = `/oort/api/batch/zip?${params.toString()}`;
+}
+
+async function batchDeleteSelected() {
+  const cbs = Array.from(document.querySelectorAll('.file-select-cb:checked'));
+  if (!cbs.length) return toast('No files selected', 'error');
+  if (!confirm(`Are you sure you want to permanently delete ${cbs.length} selected file(s)? This cannot be undone.`)) return;
+
+  const keys = cbs.map(cb => cb.dataset.key);
+  const r = await api('/oort/api/batch/delete', {
+    method: 'POST',
+    body: JSON.stringify({ bucket: state.bucket, keys: keys })
+  });
+
+  if (r) {
+    toast(`Successfully deleted ${r.deleted || keys.length} file(s)`);
+    clearBatchSelection();
+    loadObjects();
   }
 }
 
@@ -2855,10 +3484,48 @@ window.addEventListener('drop', (e) => {
   dragCounter = 0;
   document.getElementById('global-dropzone').style.display = 'none';
   if (!state.bucket) return toast('Select a bucket first', 'error');
-  if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+  if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+    handleDropEntries(e.dataTransfer.items);
+  } else if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
     queueFiles(e.dataTransfer.files);
   }
 });
+
+async function handleDropEntries(items) {
+  const files = [];
+  async function traverse(entry, path = '') {
+    if (entry.isFile) {
+      const file = await new Promise((res, rej) => entry.file(res, rej));
+      Object.defineProperty(file, 'webkitRelativePath', {
+        value: path + file.name,
+        writable: true
+      });
+      files.push(file);
+    } else if (entry.isDirectory) {
+      const reader = entry.createReader();
+      const readAll = () => new Promise((res, rej) => {
+        reader.readEntries(async entries => {
+          if (!entries.length) return res();
+          for (const child of entries) {
+            await traverse(child, path + entry.name + '/');
+          }
+          readAll().then(res);
+        }, rej);
+      });
+      await readAll();
+    }
+  }
+  for (let i = 0; i < items.length; i++) {
+    const entry = items[i].webkitGetAsEntry ? items[i].webkitGetAsEntry() : null;
+    if (entry) {
+      await traverse(entry);
+    } else if (items[i].kind === 'file') {
+      const f = items[i].getAsFile();
+      if (f) files.push(f);
+    }
+  }
+  if (files.length > 0) queueFiles(files);
+}
 
 function openUploader() {
   if (!state.bucket) { toast('Select a bucket first', 'error'); return; }
@@ -2897,7 +3564,8 @@ async function uploadFile(file) {
   activeUploads++;
   updateUMHeader();
   
-  const key = state.prefix + file.name;
+  const relPath = file.webkitRelativePath || file.name;
+  const key = state.prefix + relPath;
   const id = 'u' + Math.random().toString(36).slice(2);
 
   const item = document.createElement('div');
@@ -2905,7 +3573,7 @@ async function uploadFile(file) {
   item.innerHTML = `
     <div class="um-icon"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/></svg></div>
     <div class="um-content">
-      <div class="um-name" title="${file.name}">${file.name}</div>
+      <div class="um-name" title="${relPath}">${relPath}</div>
       <div class="um-meta"><span id="${id}-st">Preparing...</span><span>${fmtBytes(file.size)}</span></div>
       <div class="um-track"><div class="um-fill" id="${id}-bar"></div></div>
     </div>
@@ -3376,7 +4044,7 @@ async function copyPublicURL() {
     ? state.profile.username
     : document.getElementById('sidebarName').textContent.replace('@','').trim();
   const disp = getBucketDisplayName(state.bucket);
-  const url = `${window.location.origin}/oort/${username}/${disp}/${key}`;
+  const url = `https://cosmos.linuxguy.space/oort/${username}/${disp}/${key}`;
   try {
     await navigator.clipboard.writeText(url);
     toast('Public URL copied!');
@@ -3625,6 +4293,57 @@ async function restoreVersion(key, versionId) {
           <button class="btn btn-primary" onclick="addBucketDomain()">Add Domain</button>
         </div>
         <div id="bucket-domains-list" style="font-size:13px; color:var(--text3); padding:12px; background:rgba(0,0,0,0.2); border-radius:8px;">Loading domains...</div>
+      </div>
+
+      <!-- Static Website Hosting -->
+      <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border);">
+        <label style="display:block; font-size:12px; font-weight:600; color:var(--text2); margin-bottom:8px;">Static Website Hosting</label>
+        <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); padding:16px; border-radius:8px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+            <div>
+              <div style="font-weight:600; font-size:14px; margin-bottom:4px;">Host as Static Site</div>
+              <div style="font-size:12px; color:var(--text3);">Serve SPAs or static sites directly from this bucket with clean URL routing.</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="site-setting-enabled" onchange="toggleSiteInputs(this.checked)">
+              <span class="slider round"></span>
+            </label>
+          </div>
+          <div id="site-config-fields" style="display:none; flex-direction:column; gap:12px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+              <div>
+                <label style="font-size:11px; color:var(--text3); display:block; margin-bottom:4px;">Index Document</label>
+                <input type="text" id="site-index-doc" class="form-control" value="index.html">
+              </div>
+              <div>
+                <label style="font-size:11px; color:var(--text3); display:block; margin-bottom:4px;">Error Document</label>
+                <input type="text" id="site-error-doc" class="form-control" value="404.html">
+              </div>
+            </div>
+            <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text2); cursor:pointer;">
+              <input type="checkbox" id="site-spa-mode" style="accent-color:var(--accent);">
+              <span>Enable SPA Routing (Redirect unmatched routes to Index Document)</span>
+            </label>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+              <a id="site-hosted-url" href="#" target="_blank" style="font-size:12px; color:#38bdf8; text-decoration:none; display:flex; align-items:center; gap:4px;">
+                <span>Visit Hosted Site</span> ↗
+              </a>
+              <button class="btn btn-primary btn-sm" onclick="saveSiteConfig()">Save Website Settings</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Event Webhooks -->
+      <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <div>
+            <label style="display:block; font-size:12px; font-weight:600; color:var(--text2); margin-bottom:2px;">Event Webhooks</label>
+            <div style="font-size:12px; color:var(--text3);">Receive HTTP POST pings when files are uploaded or deleted.</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="openModal('modal-add-webhook')">+ Add Webhook</button>
+        </div>
+        <div id="bucket-webhooks-list" style="font-size:13px; color:var(--text3); padding:12px; background:rgba(0,0,0,0.2); border-radius:8px;">Loading webhooks...</div>
       </div>
       
       <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid rgba(239,68,68,0.2);">
