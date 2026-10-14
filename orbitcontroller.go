@@ -323,21 +323,23 @@ CMD ["npm", "start"]
 		}
 		var dockerfile string
 		if buildCmd != "" {
-			// Multi-stage: build then serve with nginx
+			// Multi-stage: build with Node then serve with nginx
+			// Use a RUN step to move built output to /output dir, then COPY that in nginx stage
 			dockerfile = `FROM node:22-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm install --legacy-peer-deps 2>/dev/null || npm install || true
+RUN npm install --legacy-peer-deps 2>/dev/null || npm install 2>/dev/null || true
 COPY . .
 RUN npm run build 2>/dev/null || true
+RUN mkdir -p /output && \
+    if [ -d dist ] && [ "$(ls -A dist)" ]; then cp -r dist/. /output/; \
+    elif [ -d build ] && [ "$(ls -A build)" ]; then cp -r build/. /output/; \
+    elif [ -d public ] && [ "$(ls -A public)" ]; then cp -r public/. /output/; \
+    elif [ -d out ] && [ "$(ls -A out)" ]; then cp -r out/. /output/; \
+    else cp -r . /output/; fi
 FROM nginx:alpine
-WORKDIR /usr/share/nginx/html
-RUN rm -rf ./*
-COPY --from=builder /app/dist ./  2>/dev/null || true
-COPY --from=builder /app/build ./ 2>/dev/null || true
-COPY --from=builder /app/public ./ 2>/dev/null || true
-COPY --from=builder /app/out ./ 2>/dev/null || true
-COPY --from=builder /app ./ 2>/dev/null || true
+RUN rm -rf /usr/share/nginx/html/*
+COPY --from=builder /output /usr/share/nginx/html
 EXPOSE 80
 `
 		} else {
