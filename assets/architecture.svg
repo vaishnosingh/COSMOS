@@ -1,0 +1,199 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 380" width="100%" height="100%">
+  <defs>
+    <radialGradient id="archNebula" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#1e1b4b" stop-opacity="0.4"/>
+      <stop offset="60%" stop-color="#090d16" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#020308" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="laserCyan" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="50%" stop-color="#818cf8"/>
+      <stop offset="100%" stop-color="#c084fc"/>
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#020617" stop-opacity="0.95"/>
+    </linearGradient>
+    <linearGradient id="coreCardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1035" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#0d1527" stop-opacity="0.95"/>
+    </linearGradient>
+
+    <!-- Glow Filter -->
+    <filter id="laserGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <style>
+      @keyframes laserMove {
+        0% { stroke-dashoffset: 40; }
+        100% { stroke-dashoffset: 0; }
+      }
+      @keyframes laserMoveReverse {
+        0% { stroke-dashoffset: 0; }
+        100% { stroke-dashoffset: 40; }
+      }
+      @keyframes pulseNode {
+        0%, 100% { opacity: 0.6; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.15); }
+      }
+      @keyframes busGlow {
+        0%, 100% { opacity: 0.4; }
+        50% { opacity: 0.85; }
+      }
+
+      .flow-cyan {
+        stroke-dasharray: 6, 8;
+        animation: laserMove 1.4s linear infinite;
+      }
+      .flow-purple {
+        stroke-dasharray: 6, 8;
+        animation: laserMoveReverse 1.8s linear infinite;
+      }
+      .pulse-beacon {
+        animation: pulseNode 2.2s ease-in-out infinite;
+        transform-origin: center;
+      }
+      .hud-title {
+        font-family: 'Space Grotesk', -apple-system, sans-serif;
+        font-weight: 700;
+      }
+      .mono {
+        font-family: 'JetBrains Mono', monospace;
+      }
+    </style>
+  </defs>
+
+  <!-- Deep Space Canvas -->
+  <rect width="100%" height="100%" fill="#020308" rx="14"/>
+  <rect width="100%" height="100%" fill="url(#archNebula)" rx="14"/>
+
+  <!-- Matrix Background Grid -->
+  <g opacity="0.05" stroke="#38bdf8" stroke-width="0.6">
+    <line x1="30" y1="50" x2="890" y2="50"/>
+    <line x1="30" y1="130" x2="890" y2="130"/>
+    <line x1="30" y1="210" x2="890" y2="210"/>
+    <line x1="30" y1="290" x2="890" y2="290"/>
+    <line x1="160" y1="20" x2="160" y2="360"/>
+    <line x1="460" y1="20" x2="460" y2="360"/>
+    <line x1="760" y1="20" x2="760" y2="360"/>
+  </g>
+
+  <!-- Animated Data Flow Laser Pipelines -->
+  <g stroke-width="2" fill="none" filter="url(#laserGlow)">
+    <!-- Client to Nginx -->
+    <path d="M 200,80 L 290,80" stroke="#38bdf8" class="flow-cyan"/>
+    
+    <!-- Nginx to Cosmos Core -->
+    <path d="M 470,80 L 550,80" stroke="#818cf8" class="flow-cyan"/>
+    
+    <!-- Cosmos Core down to Service Distribution Bus -->
+    <path d="M 680,122 L 680,175 L 460,175" stroke="#c084fc" class="flow-cyan"/>
+    <path d="M 460,175 L 180,175 L 180,220" stroke="#38bdf8" class="flow-cyan"/>
+    <path d="M 460,175 L 460,220" stroke="#c084fc" class="flow-cyan"/>
+    <path d="M 460,175 L 740,175 L 740,220" stroke="#34d399" class="flow-cyan"/>
+  </g>
+
+  <!-- Static Bus Rail in background -->
+  <g stroke-width="1" stroke="rgba(255,255,255,0.08)" fill="none">
+    <path d="M 200,80 L 290,80"/>
+    <path d="M 470,80 L 550,80"/>
+    <path d="M 680,122 L 680,175 L 180,175 L 180,220"/>
+    <path d="M 460,175 L 460,220"/>
+    <path d="M 680,175 L 740,175 L 740,220"/>
+  </g>
+
+  <!-- ==================== TOP TIER: INGRESS ==================== -->
+
+  <!-- Node 1: Client Ingress -->
+  <g transform="translate(40, 38)">
+    <rect width="160" height="84" rx="10" fill="url(#cardGrad)" stroke="rgba(56,189,248,0.3)" stroke-width="1.2"/>
+    <circle cx="22" cy="24" r="5" fill="#38bdf8" class="pulse-beacon"/>
+    <text x="36" y="27" fill="#f8fafc" class="hud-title" font-size="12">Client Ingress</text>
+    <text x="14" y="50" fill="#94a3b8" class="mono" font-size="10">Web Browser / Mobile</text>
+    <text x="14" y="66" fill="#64748b" class="mono" font-size="9">AWS CLI / Git Client</text>
+    <text x="14" y="78" fill="#38bdf8" class="mono" font-size="8.5">PORT :443 (HTTPS)</text>
+  </g>
+
+  <!-- Node 2: Nginx Reverse Proxy -->
+  <g transform="translate(290, 38)">
+    <rect width="180" height="84" rx="10" fill="url(#cardGrad)" stroke="rgba(129,140,248,0.35)" stroke-width="1.2"/>
+    <circle cx="22" cy="24" r="5" fill="#818cf8" class="pulse-beacon"/>
+    <text x="36" y="27" fill="#f8fafc" class="hud-title" font-size="12">Nginx Edge Proxy</text>
+    <text x="14" y="50" fill="#94a3b8" class="mono" font-size="10">TLS 1.3 / HTTP/2 SSL</text>
+    <text x="14" y="66" fill="#64748b" class="mono" font-size="9">Rate Limiting &amp; CNAME</text>
+    <text x="14" y="78" fill="#818cf8" class="mono" font-size="8.5">REVERSE PROXY MUX</text>
+  </g>
+
+  <!-- Node 3: Cosmos Orchestrator Core (Special Glowing Card) -->
+  <g transform="translate(550, 34)">
+    <rect width="330" height="92" rx="12" fill="url(#coreCardGrad)" stroke="rgba(192,132,252,0.5)" stroke-width="1.5" filter="url(#laserGlow)"/>
+    <circle cx="24" cy="26" r="6" fill="#c084fc" class="pulse-beacon"/>
+    <text x="40" y="30" fill="#ffffff" class="hud-title" font-size="14">Cosmos Core (Go)</text>
+    <text x="40" y="44" fill="#34d399" class="mono" font-size="9" font-weight="600">● 100% HEALTHY // PORT :8080</text>
+    <text x="16" y="66" fill="#cbd5e1" class="mono" font-size="10">Unified SSO • bcrypt Auth • In-Memory Caching</text>
+    <text x="16" y="82" fill="#94a3b8" class="mono" font-size="9">MinIO Tenant Provisioning • 3D Telemetry Feed</text>
+  </g>
+
+  <!-- Data Bus Label -->
+  <g transform="translate(460, 168)">
+    <rect x="-105" y="-10" width="210" height="20" rx="10" fill="#0b0f19" stroke="rgba(255,255,255,0.15)" stroke-width="0.8"/>
+    <text x="0" y="3" fill="#94a3b8" class="mono" font-size="9" text-anchor="middle" letter-spacing="0.1em">INTERNAL SERVICE BUS</text>
+  </g>
+
+  <!-- ==================== BOTTOM TIER: ENGINES ==================== -->
+
+  <!-- Engine 1: MinIO S3 Object Storage -->
+  <g transform="translate(50, 220)">
+    <rect width="260" height="130" rx="12" fill="url(#cardGrad)" stroke="rgba(56,189,248,0.4)" stroke-width="1.2"/>
+    <rect x="0" y="0" width="260" height="32" rx="12" fill="rgba(56,189,248,0.08)"/>
+    <!-- Icon & Title -->
+    <circle cx="20" cy="16" r="4.5" fill="#38bdf8"/>
+    <text x="34" y="20" fill="#38bdf8" class="hud-title" font-size="12">OORT S3 STORAGE (MinIO)</text>
+    <text x="16" y="52" fill="#e2e8f0" class="mono" font-size="10" font-weight="600">S3 API Engine (:9000)</text>
+    <text x="16" y="70" fill="#94a3b8" class="mono" font-size="9.5">• Automated IAM Tenant Policies</text>
+    <text x="16" y="86" fill="#94a3b8" class="mono" font-size="9.5">• Per-User Bucket Isolation</text>
+    <text x="16" y="102" fill="#94a3b8" class="mono" font-size="9.5">• Object Versioning &amp; Quotas</text>
+    <text x="16" y="120" fill="#38bdf8" class="mono" font-size="9">STORAGE: NVMe / HDD EXT4</text>
+  </g>
+
+  <!-- Engine 2: ScyllaDB Distributed Persistence -->
+  <g transform="translate(330, 220)">
+    <rect width="260" height="130" rx="12" fill="url(#cardGrad)" stroke="rgba(192,132,252,0.4)" stroke-width="1.2"/>
+    <rect x="0" y="0" width="260" height="32" rx="12" fill="rgba(192,132,252,0.08)"/>
+    <!-- Icon & Title -->
+    <circle cx="20" cy="16" r="4.5" fill="#c084fc"/>
+    <text x="34" y="20" fill="#c084fc" class="hud-title" font-size="12">SCYLLADB CLUSTER</text>
+    <text x="16" y="52" fill="#e2e8f0" class="mono" font-size="10" font-weight="600">CQL NoSQL Protocol (:9042)</text>
+    <text x="16" y="70" fill="#94a3b8" class="mono" font-size="9.5">• cosmos.users (SSO &amp; Keys)</text>
+    <text x="16" y="86" fill="#94a3b8" class="mono" font-size="9.5">• cosmos.buckets (Registry)</text>
+    <text x="16" y="102" fill="#94a3b8" class="mono" font-size="9.5">• cosmos.s3_analytics_hourly</text>
+    <text x="16" y="120" fill="#c084fc" class="mono" font-size="9">PERSISTENCE: ULTRA-LOW LATENCY</text>
+  </g>
+
+  <!-- Engine 3: Gitea Source Control Engine -->
+  <g transform="translate(610, 220)">
+    <rect width="260" height="130" rx="12" fill="url(#cardGrad)" stroke="rgba(52,211,153,0.4)" stroke-width="1.2"/>
+    <rect x="0" y="0" width="260" height="32" rx="12" fill="rgba(52,211,153,0.08)"/>
+    <!-- Icon & Title -->
+    <circle cx="20" cy="16" r="4.5" fill="#34d399"/>
+    <text x="34" y="20" fill="#34d399" class="hud-title" font-size="12">SOURCE FORGE (Gitea)</text>
+    <text x="16" y="52" fill="#e2e8f0" class="mono" font-size="10" font-weight="600">Git Interface (:3000 / :22)</text>
+    <text x="16" y="70" fill="#94a3b8" class="mono" font-size="9.5">• Private Git Repositories</text>
+    <text x="16" y="86" fill="#94a3b8" class="mono" font-size="9.5">• SSO Password Auto-Healing</text>
+    <text x="16" y="102" fill="#94a3b8" class="mono" font-size="9.5">• CI/CD &amp; Issue Tracking</text>
+    <text x="16" y="120" fill="#34d399" class="mono" font-size="9">ENGINE: LIGHTWEIGHT CGO/SQLITE</text>
+  </g>
+
+  <!-- Corner Brackets -->
+  <g stroke="#38bdf8" stroke-width="1.4" fill="none" opacity="0.4">
+    <path d="M 12,24 L 12,12 L 24,12"/>
+    <path d="M 908,24 L 908,12 L 896,12"/>
+    <path d="M 12,356 L 12,368 L 24,368"/>
+    <path d="M 908,356 L 908,368 L 896,368"/>
+  </g>
+</svg>

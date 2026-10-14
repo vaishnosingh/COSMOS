@@ -1,0 +1,284 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 380" width="100%" height="100%">
+  <defs>
+    <!-- Dark Cosmic Background Gradient -->
+    <radialGradient id="nebulaPurple" cx="80%" cy="30%" r="65%">
+      <stop offset="0%" stop-color="#3b0764" stop-opacity="0.45"/>
+      <stop offset="50%" stop-color="#1e1035" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#020308" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="nebulaCyan" cx="20%" cy="80%" r="60%">
+      <stop offset="0%" stop-color="#0369a1" stop-opacity="0.35"/>
+      <stop offset="60%" stop-color="#082f49" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#020308" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="planetBody" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="25%" stop-color="#c084fc"/>
+      <stop offset="65%" stop-color="#38bdf8"/>
+      <stop offset="90%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </radialGradient>
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="35%" stop-color="#e2e8f0"/>
+      <stop offset="70%" stop-color="#c084fc"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
+    </linearGradient>
+    <linearGradient id="ringGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#818cf8" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#c084fc" stop-opacity="0.8"/>
+    </linearGradient>
+    <linearGradient id="ringGrad2" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#34d399" stop-opacity="0.8"/>
+      <stop offset="70%" stop-color="#06b6d4" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.7"/>
+    </linearGradient>
+
+    <!-- Filters -->
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="bloom" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="16" result="blur2"/>
+      <feMerge>
+        <feMergeNode in="blur2"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <style>
+      @keyframes spinSlow {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+      @keyframes spinReverse {
+        from { transform: rotate(360deg); }
+        to { transform: rotate(0deg); }
+      }
+      @keyframes twinkle {
+        0%, 100% { opacity: 0.2; transform: scale(0.8); }
+        50% { opacity: 1; transform: scale(1.2); }
+      }
+      @keyframes radarSweep {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      @keyframes pulseBeam {
+        0%, 100% { opacity: 0.3; }
+        50% { opacity: 0.9; }
+      }
+      @keyframes badgePulse {
+        0%, 100% { transform: scale(1); opacity: 0.9; }
+        50% { transform: scale(1.05); opacity: 1; }
+      }
+      @keyframes orbitParticle {
+        0% { stroke-dashoffset: 0; }
+        100% { stroke-dashoffset: 800; }
+      }
+      @keyframes hudFlicker {
+        0%, 100% { opacity: 0.85; }
+        85% { opacity: 0.85; }
+        86% { opacity: 0.4; }
+        87% { opacity: 0.85; }
+      }
+
+      .star1 { animation: twinkle 3s ease-in-out infinite; }
+      .star2 { animation: twinkle 4.5s ease-in-out infinite 1s; }
+      .star3 { animation: twinkle 2.2s ease-in-out infinite 0.5s; }
+      .orbit-ring-1 { transform-origin: 720px 190px; animation: spinSlow 32s linear infinite; }
+      .orbit-ring-2 { transform-origin: 720px 190px; animation: spinReverse 24s linear infinite; }
+      .radar-arm { transform-origin: 720px 190px; animation: radarSweep 10s linear infinite; }
+      .pulse-dot { animation: badgePulse 2s ease-in-out infinite; }
+      .orbit-stream { stroke-dasharray: 20, 140; animation: orbitParticle 12s linear infinite; }
+      .hud-text { font-family: 'JetBrains Mono', -apple-system, BlinkMacSystemFont, monospace; animation: hudFlicker 6s infinite; }
+      .brand-title { font-family: 'Space Grotesk', -apple-system, sans-serif; font-weight: 800; letter-spacing: -0.03em; }
+    </style>
+  </defs>
+
+  <!-- Deep Space Canvas -->
+  <rect width="100%" height="100%" fill="#020308" rx="16"/>
+  <rect width="100%" height="100%" fill="url(#nebulaPurple)" rx="16"/>
+  <rect width="100%" height="100%" fill="url(#nebulaCyan)" rx="16"/>
+
+  <!-- Matrix HUD Grid (Subtle Coordinate Lines) -->
+  <g opacity="0.08" stroke="#38bdf8" stroke-width="0.7">
+    <line x1="40" y1="60" x2="880" y2="60"/>
+    <line x1="40" y1="140" x2="880" y2="140"/>
+    <line x1="40" y1="220" x2="880" y2="220"/>
+    <line x1="40" y1="300" x2="880" y2="300"/>
+    <line x1="120" y1="30" x2="120" y2="350"/>
+    <line x1="280" y1="30" x2="280" y2="350"/>
+    <line x1="440" y1="30" x2="440" y2="350"/>
+    <line x1="600" y1="30" x2="600" y2="350"/>
+    <line x1="760" y1="30" x2="760" y2="350"/>
+  </g>
+
+  <!-- Starfield Clusters (Animated Twinkle) -->
+  <g fill="#ffffff">
+    <!-- Starfield Batch 1 -->
+    <circle cx="85" cy="72" r="1.4" class="star1" opacity="0.7"/>
+    <circle cx="210" cy="45" r="0.9" class="star2" opacity="0.6"/>
+    <circle cx="340" cy="85" r="1.8" class="star3" opacity="0.9"/>
+    <circle cx="490" cy="50" r="1.2" class="star1" opacity="0.7"/>
+    <circle cx="560" cy="95" r="1.5" class="star2" opacity="0.8"/>
+    <circle cx="150" cy="180" r="1.2" class="star3" opacity="0.5"/>
+    <circle cx="270" cy="240" r="1.6" class="star1" opacity="0.8"/>
+    <circle cx="410" cy="275" r="1" class="star2" opacity="0.7"/>
+    <circle cx="530" cy="290" r="1.7" class="star3" opacity="0.85"/>
+    <circle cx="90" cy="320" r="1.1" class="star1" opacity="0.6"/>
+    <circle cx="320" cy="340" r="1.3" class="star2" opacity="0.7"/>
+    <circle cx="640" cy="40" r="1.5" class="star3" opacity="0.8"/>
+    <circle cx="840" cy="70" r="1.2" class="star1" opacity="0.9"/>
+    <circle cx="870" cy="220" r="1.7" class="star2" opacity="0.7"/>
+    <circle cx="820" cy="330" r="1.4" class="star3" opacity="0.8"/>
+    <circle cx="670" cy="340" r="0.8" class="star1" opacity="0.5"/>
+    <!-- Distant Cosmic Sparkles (4-point cross) -->
+    <g transform="translate(460, 110)" class="star2" opacity="0.7">
+      <line x1="-5" y1="0" x2="5" y2="0" stroke="#c084fc" stroke-width="0.8"/>
+      <line x1="0" y1="-5" x2="0" y2="5" stroke="#c084fc" stroke-width="0.8"/>
+    </g>
+    <g transform="translate(190, 290)" class="star1" opacity="0.6">
+      <line x1="-4" y1="0" x2="4" y2="0" stroke="#38bdf8" stroke-width="0.7"/>
+      <line x1="0" y1="-4" x2="0" y2="4" stroke="#38bdf8" stroke-width="0.7"/>
+    </g>
+  </g>
+
+  <!-- Left Content Column: Branding & Telemetry HUD -->
+  <g transform="translate(50, 48)">
+    <!-- Top HUD Status Pill -->
+    <g transform="translate(0, 0)">
+      <rect x="0" y="0" width="280" height="26" rx="13" fill="rgba(15,23,42,0.7)" stroke="rgba(56,189,248,0.25)" stroke-width="1"/>
+      <circle cx="14" cy="13" r="4" fill="#34d399" class="pulse-dot" filter="url(#glow)"/>
+      <text x="26" y="17" fill="#67e8f9" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="600" letter-spacing="0.16em">SYS:ONLINE // WORKSTATION OS</text>
+    </g>
+
+    <!-- Main Title -->
+    <g transform="translate(0, 78)">
+      <text x="0" y="0" class="brand-title" font-size="58" fill="url(#textGrad)" filter="url(#glow)">COSMOS</text>
+    </g>
+
+    <!-- Tagline & Description -->
+    <g transform="translate(0, 115)">
+      <text x="0" y="0" font-family="'JetBrains Mono', monospace" font-size="14" font-weight="500" fill="#38bdf8" letter-spacing="0.08em">TURN YOUR OLD PC TO WORKSTATION</text>
+      <text x="0" y="26" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" fill="#94a3b8" letter-spacing="0.01em">
+        Self-hosted S3 Object Storage, Private Git Engine &amp; Edge CDN.
+      </text>
+      <text x="0" y="46" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" fill="#94a3b8">
+        One unified login. High-performance ScyllaDB &amp; MinIO architecture.
+      </text>
+    </g>
+
+    <!-- Feature Pillars Badges -->
+    <g transform="translate(0, 196)">
+      <!-- Badge 1: S3 Storage -->
+      <g transform="translate(0, 0)">
+        <rect width="112" height="34" rx="8" fill="rgba(14,165,233,0.1)" stroke="rgba(56,189,248,0.3)" stroke-width="1"/>
+        <text x="14" y="21" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="600">S3 STORAGE</text>
+      </g>
+      <!-- Badge 2: Git Forge -->
+      <g transform="translate(122, 0)">
+        <rect width="112" height="34" rx="8" fill="rgba(168,85,247,0.1)" stroke="rgba(192,132,252,0.3)" stroke-width="1"/>
+        <text x="18" y="21" fill="#c084fc" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="600">GIT FORGE</text>
+      </g>
+      <!-- Badge 3: Edge CDN -->
+      <g transform="translate(244, 0)">
+        <rect width="112" height="34" rx="8" fill="rgba(52,211,153,0.1)" stroke="rgba(52,211,153,0.3)" stroke-width="1"/>
+        <text x="18" y="21" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="600">EDGE CDN</text>
+      </g>
+      <!-- Badge 4: 3D Observability -->
+      <g transform="translate(366, 0)">
+        <rect width="118" height="34" rx="8" fill="rgba(245,158,11,0.1)" stroke="rgba(251,191,36,0.3)" stroke-width="1"/>
+        <text x="14" y="21" fill="#fbbf24" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="600">3D TELEMETRY</text>
+      </g>
+    </g>
+
+    <!-- Telemetry Readout Strip -->
+    <g transform="translate(0, 260)" class="hud-text">
+      <text x="0" y="0" fill="#64748b" font-size="9.5" letter-spacing="0.12em">
+        ARCH: X86_64 // SCYLLADB: 9042 // MINIO S3: 9000 // GITEA: 3000 // STATUS: READY
+      </text>
+    </g>
+  </g>
+
+  <!-- Right Visual Column: Celestial Planet & Animated Orbital HUD -->
+  <g transform="translate(710, 190)">
+    <!-- Planet Atmospheric Glow Halo -->
+    <circle cx="0" cy="0" r="105" fill="#38bdf8" opacity="0.08" filter="url(#bloom)"/>
+    <circle cx="0" cy="0" r="85" fill="#8b5cf6" opacity="0.15" filter="url(#glow)"/>
+
+    <!-- Radar Sweep Scanner Line -->
+    <g class="radar-arm" opacity="0.4">
+      <line x1="0" y1="0" x2="130" y2="0" stroke="url(#ringGrad1)" stroke-width="1.5" stroke-dasharray="6,4"/>
+    </g>
+
+    <!-- Outer Orbital Ring with Stream particles -->
+    <g class="orbit-ring-1">
+      <ellipse cx="0" cy="0" rx="140" ry="52" fill="none" stroke="url(#ringGrad1)" stroke-width="1.2" opacity="0.75" transform="rotate(-28)"/>
+      <ellipse cx="0" cy="0" rx="140" ry="52" fill="none" stroke="#67e8f9" stroke-width="2.5" class="orbit-stream" transform="rotate(-28)"/>
+    </g>
+
+    <!-- Inner Orbital Counter-Ring -->
+    <g class="orbit-ring-2">
+      <ellipse cx="0" cy="0" rx="115" ry="42" fill="none" stroke="url(#ringGrad2)" stroke-width="1" stroke-dasharray="8,6" opacity="0.65" transform="rotate(22)"/>
+    </g>
+
+    <!-- Celestial Planet Sphere -->
+    <circle cx="0" cy="0" r="64" fill="url(#planetBody)" filter="url(#glow)"/>
+
+    <!-- Planetary Latitude/Longitude Grid Lines -->
+    <g opacity="0.25" stroke="#ffffff" stroke-width="0.7" fill="none">
+      <ellipse cx="0" cy="0" rx="64" ry="24"/>
+      <ellipse cx="0" cy="0" rx="64" ry="46"/>
+      <ellipse cx="0" cy="0" rx="28" ry="64"/>
+      <line x1="-64" y1="0" x2="64" y2="0"/>
+      <line x1="0" y1="-64" x2="0" y2="64"/>
+    </g>
+
+    <!-- Glowing Specular Reflection (Sunlight Point) -->
+    <ellipse cx="-22" cy="-24" rx="24" ry="14" fill="#ffffff" opacity="0.22" transform="rotate(-30)"/>
+    <circle cx="-28" cy="-30" r="5" fill="#ffffff" opacity="0.75" filter="url(#glow)"/>
+
+    <!-- Orbiting Satellite Node 1 -->
+    <g class="orbit-ring-1">
+      <g transform="translate(138, -12)">
+        <circle cx="0" cy="0" r="4.5" fill="#38bdf8" filter="url(#glow)"/>
+        <circle cx="0" cy="0" r="9" fill="none" stroke="#38bdf8" stroke-width="0.7" opacity="0.6"/>
+        <line x1="-8" y1="-8" x2="-14" y2="-14" stroke="#38bdf8" stroke-width="0.7"/>
+        <text x="-38" y="-16" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="8" letter-spacing="0.1em">S3.NODE</text>
+      </g>
+    </g>
+
+    <!-- Orbiting Satellite Node 2 -->
+    <g class="orbit-ring-2">
+      <g transform="translate(-108, 28)">
+        <circle cx="0" cy="0" r="3.5" fill="#34d399" filter="url(#glow)"/>
+        <circle cx="0" cy="0" r="7" fill="none" stroke="#34d399" stroke-width="0.7" opacity="0.6"/>
+        <text x="10" y="8" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="8" letter-spacing="0.1em">GIT.FORGE</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Cyberpunk HUD Corner Brackets -->
+  <g stroke="#38bdf8" stroke-width="1.8" fill="none" opacity="0.65">
+    <!-- Top-Left -->
+    <path d="M 20,44 L 20,20 L 44,20"/>
+    <!-- Top-Right -->
+    <path d="M 900,44 L 900,20 L 876,20"/>
+    <!-- Bottom-Left -->
+    <path d="M 20,336 L 20,360 L 44,360"/>
+    <!-- Bottom-Right -->
+    <path d="M 900,336 L 900,360 L 876,360"/>
+  </g>
+
+  <!-- Bottom Technical Coordinate Strip -->
+  <g fill="#475569" font-family="'JetBrains Mono', monospace" font-size="8.5" letter-spacing="0.15em">
+    <text x="24" y="368">COORD: 45° 18' N, 9° 32' E</text>
+    <text x="440" y="368" text-anchor="middle">STATION ID: COSMOS-01 // FREQUENCY: 1420.405 MHz</text>
+    <text x="896" y="368" text-anchor="end">SYS.VER: 2.4.0</text>
+  </g>
+</svg>
