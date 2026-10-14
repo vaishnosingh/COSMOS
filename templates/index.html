@@ -180,12 +180,14 @@ body.m-open .mmenu a:nth-child(3){transition-delay:.24s}
   background:linear-gradient(90deg,transparent,rgba(143,216,255,.8),transparent);
   animation:packet 8.5s linear infinite}
 .divider.d-ember::after{background:linear-gradient(90deg,transparent,rgba(255,171,77,.75),transparent)}
+.divider.d-violet::after{background:linear-gradient(90deg,transparent,rgba(168,85,247,.85),transparent)}
 @keyframes packet{to{left:calc(100% + 130px)}}
 
 /* ─── MODULE SECTIONS ─── */
 .module{position:relative;z-index:10;padding:clamp(90px,11vw,170px) var(--pad);scroll-margin-top:70px}
 .m-forge{--ac:255,171,77}
 .m-oort{--ac:143,216,255}
+.m-orbit{--ac:168,85,247}
 .module-inner{max-width:1260px;margin:0 auto;display:grid;grid-template-columns:1.02fr 1fr;
   gap:clamp(48px,7vw,110px);align-items:center}
 .module-inner.flip .m-text{order:2}
@@ -230,9 +232,9 @@ body.m-open .mmenu a:nth-child(3){transition-delay:.24s}
 @supports(-webkit-text-stroke:1px red){
   .m-ghost{color:transparent;-webkit-text-stroke:1.3px rgba(var(--ac),.16)}
 }
-.m-oort canvas{touch-action:pan-y}
-body:not(.has-cur) .m-oort canvas{cursor:grab}
-body:not(.has-cur).grabbing .m-oort canvas{cursor:grabbing}
+.m-oort canvas,.m-orbit canvas{touch-action:pan-y}
+body:not(.has-cur) .m-oort canvas,body:not(.has-cur) .m-orbit canvas{cursor:grab}
+body:not(.has-cur).grabbing .m-oort canvas,body:not(.has-cur).grabbing .m-orbit canvas{cursor:grabbing}
 
 /* glass panels */
 .glass{position:absolute;z-index:5;background:rgba(5,9,18,.72);
@@ -254,13 +256,17 @@ body:not(.has-cur).grabbing .m-oort canvas{cursor:grabbing}
 @keyframes sweep{0%{top:0;opacity:0}8%{opacity:1}88%{opacity:1}100%{top:100%;opacity:0}}
 
 .stat{right:max(-3.5%,-26px);top:4%;padding:16px 18px 14px;min-width:214px}
+.m-orbit .stat{left:max(-3.5%,-26px);bottom:5%;top:auto;right:auto;min-width:236px}
 .srow{display:flex;align-items:baseline;gap:10px;padding:5.5px 0}
 .srow span{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:rgba(226,234,242,.34)}
 .srow b{font-family:var(--mono);font-size:14px;font-weight:500;color:#cfeafc;margin-left:auto}
 .srow em{font-style:normal;font-family:var(--mono);font-size:9px;color:rgba(143,216,255,.55);letter-spacing:.08em}
+.m-orbit .srow b{color:#f1f5f9}
+.m-orbit .srow em{color:rgba(168,85,247,.85)}
 .bars{display:flex;gap:3px;height:22px;align-items:flex-end;margin-top:12px}
 .bars i{width:3px;border-radius:1px;background:rgba(143,216,255,.55);
   animation:bar 1s ease-in-out infinite alternate;transform-origin:bottom}
+.m-orbit .bars i{background:linear-gradient(to top, rgba(168,85,247,.65), rgba(56,189,248,.85))}
 @keyframes bar{from{transform:scaleY(.12)}to{transform:scaleY(1)}}
 
 /* ─── FOOTER ─── */
@@ -470,7 +476,7 @@ footer{position:relative;z-index:10;border-top:1px solid var(--line);
   </div>
 </section>
 
-<div class="divider d-ember"></div>
+<div class="divider d-violet"></div>
 
 <!-- ORBIT MODULE -->
 <section class="module m-orbit">
@@ -490,12 +496,14 @@ footer{position:relative;z-index:10;border-top:1px solid var(--line);
         <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 17L17 7M17 7H7M17 7v10"/></svg>
       </a>
     </div>
-    <div class="m-visual" data-reveal>
+    <div class="m-visual" data-reveal data-cursor="drag">
       <span class="m-ghost" aria-hidden="true">03</span>
-      <div class="glass stat" style="width:100%; max-width:440px; margin: 0 auto;">
+      <canvas id="orbitCv" aria-hidden="true"></canvas>
+      <div class="glass stat">
         <div class="srow"><span>container engine</span><b>Docker</b><em>v1.45</em></div>
-        <div class="srow"><span>proxy gateway</span><b>Active</b><em>:4100</em></div>
-        <div class="srow"><span>orchestrator</span><b>Healthy</b><em>100%</em></div>
+        <div class="srow"><span>active runtime</span><b id="orbPorts">:4100</b><em>proxy</em></div>
+        <div class="srow"><span>orchestrator</span><b id="orbHealth">Healthy</b><em>100%</em></div>
+        <div class="bars" id="orbitBars"></div>
       </div>
     </div>
   </div>
@@ -966,6 +974,283 @@ function oortFrame(t,dt){
   drawParts(true); /* near particles */
 }
 
+/* ═══════════════ ORBIT — draggable 3D multi-ring reactor system ═══════════════ */
+const orbCv=$('#orbitCv'),orbCtx=orbCv?orbCv.getContext('2d'):null,orbBox=orbCv?orbCv.parentElement:null;
+let orbW=0,orbH=0,orbR=0,orbCX=0,orbCY=0,orbVis=false,orbInit=false;
+let orbYaw=.48,orbPitch=.42,orbPitchT=.42,orbYawV=.0028,orbDrag=false,orbLx=0,orbLy=0;
+let orbRings=[],orbNodes=[],orbPulses=[],orbDust=[],nextOrbPulse=1800;
+
+function orbitResize(){
+  if(!orbBox||!orbCv)return;
+  const s=orbBox.clientWidth;if(!s)return;
+  orbW=s;orbH=s;
+  orbCv.width=s*DPR;orbCv.height=s*DPR;
+  orbCv.style.width=s+'px';orbCv.style.height=s+'px';
+  orbCtx.setTransform(DPR,0,0,DPR,0,0);
+  orbR=s*.175;orbCX=s*.5;orbCY=s*.5;
+}
+
+function orbitBuild(){
+  orbRings=[
+    {r:1.18,incX:.35,incY:.25,rotSpeed:.55,a:0,color:'rgba(56,189,248,',segs:64},
+    {r:1.62,incX:-.48,incY:.38,rotSpeed:-.42,a:1.2,color:'rgba(168,85,247,',segs:72},
+    {r:2.08,incX:.22,incY:-.52,rotSpeed:.28,a:2.5,color:'rgba(14,165,233,',segs:80}
+  ];
+
+  orbNodes=[
+    {ring:0,a:.2,w:.55,sz:5.5,label:'WEB',port:':4100',color:[56,189,248]},
+    {ring:0,a:3.3,w:.55,sz:5.0,label:'API',port:':4101',color:[16,185,129]},
+    {ring:1,a:1.5,w:-.42,sz:6.0,label:'SVC',port:':4102',color:[168,85,247]},
+    {ring:1,a:4.7,w:-.42,sz:4.8,label:'AUTH',port:':4103',color:[245,158,11]},
+    {ring:2,a:.8,w:.28,sz:5.2,label:'DATA',port:':4104',color:[14,165,233]},
+    {ring:2,a:3.9,w:.28,sz:5.6,label:'CRON',port:':4105',color:[16,185,129]}
+  ];
+
+  orbDust=[];
+  for(let i=0;i<180;i++){
+    const rr=.75+Math.random()*1.55;
+    orbDust.push({
+      rr,
+      a:Math.random()*TAU,
+      w:(.7/Math.pow(rr,1.4))*(.85+Math.random()*.3),
+      y:(Math.random()-0.5)*.35,
+      sz:Math.random()<.1?1.4+Math.random()*.8:.6+Math.random()*.6,
+      al:.25+Math.random()*.65,
+      isPurple:Math.random()>.5
+    });
+  }
+}
+
+if(orbCv){
+  orbCv.addEventListener('pointerdown',e=>{
+    orbDrag=true;orbLx=e.clientX;orbLy=e.clientY;
+    try{orbCv.setPointerCapture(e.pointerId);}catch(_){}
+    document.body.classList.add('grabbing');
+  });
+  orbCv.addEventListener('pointermove',e=>{
+    if(!orbDrag)return;
+    const dx=e.clientX-orbLx,dy=e.clientY-orbLy;
+    orbLx=e.clientX;orbLy=e.clientY;
+    orbYaw+=dx*.0056;orbYawV=dx*.0056;
+    orbPitchT=clamp(orbPitchT+dy*.0035,-.6,1.2);
+  });
+  ['pointerup','pointercancel'].forEach(ev=>orbCv.addEventListener(ev,()=>{
+    orbDrag=false;document.body.classList.remove('grabbing');
+  }));
+}
+
+function orbitFrame(t,dt){
+  if(!orbInit){orbitBuild();orbInit=true;}
+  if(!orbDrag){
+    if(!RM)orbYawV+=(.0028-orbYawV)*.02;
+    else orbYawV*=.9;
+    orbYaw+=orbYawV;
+  }
+  orbPitch+=(orbPitchT-orbPitch)*.09;
+
+  const cyw=Math.cos(orbYaw),syw=Math.sin(orbYaw);
+  const cp=Math.cos(orbPitch),sp=Math.sin(orbPitch);
+
+  const P=(x,y,z)=>{
+    const x1=x*cyw+z*syw,z1=-x*syw+z*cyw;
+    const y2=y*cp-z1*sp,z2=y*sp+z1*cp;
+    const pr=900/(900+z2);
+    return{x:orbCX+x1*pr,y:orbCY+y2*pr,z:z2,pr};
+  };
+
+  const ringPt=(ring,angle)=>{
+    const rad=ring.r*orbR;
+    const rx=Math.cos(angle)*rad;
+    const ry=0;
+    const rz=Math.sin(angle)*rad;
+    const cx=Math.cos(ring.incX),sx=Math.sin(ring.incX);
+    const y1=ry*cx-rz*sx,z1=ry*sx+rz*cx;
+    const cy=Math.cos(ring.incY),sy=Math.sin(ring.incY);
+    const x2=rx*cy+z1*sy,z2=-rx*sy+z1*cy;
+    return P(x2,y1,z2);
+  };
+
+  orbCtx.clearRect(0,0,orbW,orbH);
+
+  for(const r of orbRings)r.a+=r.rotSpeed*dt;
+  for(const n of orbNodes)n.a+=n.w*dt;
+  for(const d of orbDust)d.a+=d.w*dt;
+
+  /* Far dust */
+  for(const d of orbDust){
+    const q=P(Math.cos(d.a)*d.rr*orbR,d.y*orbR,Math.sin(d.a)*d.rr*orbR);
+    if(q.z>0)continue;
+    const al=d.al*clamp((q.pr-.75)*1.8,.2,1);
+    orbCtx.fillStyle=d.isPurple?`rgba(168,85,247,${al.toFixed(3)})`:`rgba(56,189,248,${al.toFixed(3)})`;
+    orbCtx.beginPath();orbCtx.arc(q.x,q.y,d.sz*q.pr,0,TAU);orbCtx.fill();
+  }
+
+  /* Far ring segments */
+  for(const ring of orbRings){
+    orbCtx.lineWidth=1.1;
+    for(let k=0;k<ring.segs;k++){
+      const a1=(k/ring.segs)*TAU;
+      const a2=((k+1)/ring.segs)*TAU;
+      const q1=ringPt(ring,a1);
+      const q2=ringPt(ring,a2);
+      if(q1.z<=0||q2.z<=0){
+        const alpha=clamp((q1.pr-.72)*1.5,.1,.45);
+        orbCtx.strokeStyle=ring.color+alpha.toFixed(3)+')';
+        orbCtx.beginPath();orbCtx.moveTo(q1.x,q1.y);orbCtx.lineTo(q2.x,q2.y);orbCtx.stroke();
+      }
+    }
+  }
+
+  /* Central Quantum Engine Core / Docker Host */
+  const corePulse=.5+.5*Math.sin(t*.003);
+  orbCtx.globalCompositeOperation='screen';
+  let cg=orbCtx.createRadialGradient(orbCX,orbCY,orbR*.2,orbCX,orbCY,orbR*1.7);
+  cg.addColorStop(0,`rgba(56,189,248,${(.25+corePulse*.15).toFixed(3)})`);
+  cg.addColorStop(.5,`rgba(168,85,247,${(.12+corePulse*.08).toFixed(3)})`);
+  cg.addColorStop(1,'rgba(0,0,0,0)');
+  orbCtx.fillStyle=cg;orbCtx.beginPath();orbCtx.arc(orbCX,orbCY,orbR*1.7,0,TAU);orbCtx.fill();
+
+  orbCtx.globalCompositeOperation='source-over';
+  cg=orbCtx.createRadialGradient(orbCX-orbR*.35,orbCY-orbR*.35,orbR*.05,orbCX,orbCY,orbR*.85);
+  cg.addColorStop(0,'#e0f2fe');
+  cg.addColorStop(.3,'#38bdf8');
+  cg.addColorStop(.65,'#6366f1');
+  cg.addColorStop(.9,'#1e1b4b');
+  cg.addColorStop(1,'#05070d');
+  orbCtx.fillStyle=cg;orbCtx.beginPath();orbCtx.arc(orbCX,orbCY,orbR*.85,0,TAU);orbCtx.fill();
+
+  /* Rotating Core Hex Brackets */
+  orbCtx.save();
+  orbCtx.translate(orbCX,orbCY);
+  orbCtx.rotate(t*.0008);
+  orbCtx.strokeStyle='rgba(56,189,248,.7)';
+  orbCtx.lineWidth=1.4;
+  orbCtx.beginPath();
+  for(let i=0;i<6;i++){
+    const ang=(i/6)*TAU;
+    const hx=Math.cos(ang)*orbR*.62;
+    const hy=Math.sin(ang)*orbR*.62;
+    if(i===0)orbCtx.moveTo(hx,hy);else orbCtx.lineTo(hx,hy);
+  }
+  orbCtx.closePath();orbCtx.stroke();
+  orbCtx.restore();
+
+  /* Central Core Badge */
+  orbCtx.save();
+  orbCtx.font=`700 ${(orbR*.36)|0}px var(--font-disp, monospace)`;
+  orbCtx.textAlign='center';orbCtx.textBaseline='middle';
+  orbCtx.fillStyle='#ffffff';
+  orbCtx.shadowColor='rgba(56,189,248,.9)';orbCtx.shadowBlur=10;
+  orbCtx.fillText('⬡',orbCX,orbCY-1);
+  orbCtx.restore();
+
+  /* Core Shockwave Radar Pings */
+  if(!RM&&t>nextOrbPulse){
+    orbPulses.push({t0:t});
+    nextOrbPulse=t+3200+Math.random()*2200;
+  }
+  for(let i=orbPulses.length-1;i>=0;i--){
+    const f=(t-orbPulses[i].t0)/2200;
+    if(f>=1){orbPulses.splice(i,1);continue;}
+    const prp=(.85+f*1.4)*orbR;
+    const alp=((1-f)*.45).toFixed(3);
+    orbCtx.strokeStyle=`rgba(56,189,248,${alp})`;
+    orbCtx.lineWidth=1.5;
+    orbCtx.beginPath();
+    orbCtx.arc(orbCX,orbCY,prp,0,TAU);
+    orbCtx.stroke();
+  }
+
+  /* Near Ring Segments */
+  for(const ring of orbRings){
+    orbCtx.lineWidth=1.3;
+    for(let k=0;k<ring.segs;k++){
+      const a1=(k/ring.segs)*TAU;
+      const a2=((k+1)/ring.segs)*TAU;
+      const q1=ringPt(ring,a1);
+      const q2=ringPt(ring,a2);
+      if(q1.z>0&&q2.z>0){
+        const alpha=clamp((q1.pr-.72)*2.2,.25,.95);
+        orbCtx.strokeStyle=ring.color+alpha.toFixed(3)+')';
+        orbCtx.beginPath();orbCtx.moveTo(q1.x,q1.y);orbCtx.lineTo(q2.x,q2.y);orbCtx.stroke();
+      }
+    }
+  }
+
+  /* Container Nodes & Laser Beams */
+  const renderedNodes=orbNodes.map(n=>{
+    const ring=orbRings[n.ring];
+    const pos=ringPt(ring,n.a);
+    return{...n,pos};
+  }).sort((a,b)=>a.pos.z-b.pos.z);
+
+  for(const node of renderedNodes){
+    const q=node.pos;
+    const r=node.sz*q.pr;
+    const [cr,cg,cb]=node.color;
+    const cl=clamp((q.pr-.75)*1.9,.35,1);
+
+    if(q.z>0||Math.abs(q.z)<orbR*.8){
+      const laserGrad=orbCtx.createLinearGradient(orbCX,orbCY,q.x,q.y);
+      laserGrad.addColorStop(0,`rgba(56,189,248,${(.12*cl).toFixed(3)})`);
+      laserGrad.addColorStop(.7,`rgba(${cr},${cg},${cb},${(.35*cl).toFixed(3)})`);
+      laserGrad.addColorStop(1,`rgba(${cr},${cg},${cb},${(.85*cl).toFixed(3)})`);
+      orbCtx.strokeStyle=laserGrad;
+      orbCtx.lineWidth=1.2;
+      orbCtx.beginPath();
+      orbCtx.moveTo(orbCX,orbCY);
+      orbCtx.lineTo(q.x,q.y);
+      orbCtx.stroke();
+
+      const pktPos=(t*.0018+node.a)%1;
+      const px=orbCX+(q.x-orbCX)*pktPos;
+      const py=orbCY+(q.y-orbCY)*pktPos;
+      orbCtx.fillStyle='#fff';
+      orbCtx.beginPath();
+      orbCtx.arc(px,py,1.8*q.pr,0,TAU);
+      orbCtx.fill();
+    }
+
+    orbCtx.globalCompositeOperation='lighter';
+    let g=orbCtx.createRadialGradient(q.x,q.y,0,q.x,q.y,r*4.5);
+    g.addColorStop(0,`rgba(${cr},${cg},${cb},${(.6*cl).toFixed(3)})`);
+    g.addColorStop(1,`rgba(${cr},${cg},${cb},0)`);
+    orbCtx.fillStyle=g;
+    orbCtx.beginPath();orbCtx.arc(q.x,q.y,r*4.5,0,TAU);orbCtx.fill();
+
+    orbCtx.globalCompositeOperation='source-over';
+    g=orbCtx.createRadialGradient(q.x-r*.3,q.y-r*.3,0,q.x,q.y,r);
+    g.addColorStop(0,'#ffffff');
+    g.addColorStop(.45,`rgb(${cr},${cg},${cb})`);
+    g.addColorStop(1,'#05070d');
+    orbCtx.fillStyle=g;
+    orbCtx.beginPath();orbCtx.arc(q.x,q.y,r,0,TAU);orbCtx.fill();
+
+    orbCtx.strokeStyle=`rgba(255,255,255,${(.8*cl).toFixed(2)})`;
+    orbCtx.lineWidth=1;
+    orbCtx.stroke();
+
+    if(q.z>-orbR*.4){
+      orbCtx.save();
+      orbCtx.font=`600 ${Math.max(9,(10*q.pr)|0)}px var(--font-mono, monospace)`;
+      orbCtx.textAlign='left';
+      orbCtx.textBaseline='middle';
+      orbCtx.fillStyle=`rgba(241,245,249,${(.9*cl).toFixed(2)})`;
+      orbCtx.fillText(`${node.label} ${node.port}`,q.x+r+6,q.y);
+      orbCtx.restore();
+    }
+  }
+
+  /* Near dust */
+  for(const d of orbDust){
+    const q=P(Math.cos(d.a)*d.rr*orbR,d.y*orbR,Math.sin(d.a)*d.rr*orbR);
+    if(q.z<=0)continue;
+    const al=d.al*clamp((q.pr-.75)*2.2,.35,1);
+    orbCtx.fillStyle=d.isPurple?`rgba(192,132,252,${al.toFixed(3)})`:`rgba(125,211,252,${al.toFixed(3)})`;
+    orbCtx.beginPath();orbCtx.arc(q.x,q.y,d.sz*q.pr,0,TAU);orbCtx.fill();
+  }
+}
+
 /* ═══════════════ UI — cursor · reveals · scramble · telemetry ═══════════════ */
 let curDot=null,curRing=null,curShown=false,crx=innerWidth/2,cry=innerHeight/2;
 if(FINE&&!RM){curDot=$('#curDot');curRing=$('#curRing');document.body.classList.add('has-cur');}
@@ -1022,8 +1307,9 @@ setTimeout(()=>scramble($('#tagScr')),350);
 const vio=new IntersectionObserver(es=>{for(const en of es){
   if(en.target===fbox)fVis=en.isIntersecting;
   if(en.target===obox)oVis=en.isIntersecting;
+  if(orbBox&&en.target===orbBox)orbVis=en.isIntersecting;
 }},{rootMargin:'80px'});
-vio.observe(fbox);vio.observe(obox);
+vio.observe(fbox);vio.observe(obox);if(orbBox)vio.observe(orbBox);
 
 /* magnetic buttons */
 if(FINE&&!RM)$$('.mag').forEach(b=>{
@@ -1072,6 +1358,26 @@ for(let i=0;i<14;i++){
   bars.appendChild(b);
 }
 
+/* orbit stats — live jitter + telemetry bars */
+const orbPorts=$('#orbPorts');
+if(orbPorts){
+  const portsList=[':4100',':4102',':4105',':4280',':4310',':4450'];
+  setInterval(()=>{
+    if(RM)return;
+    orbPorts.textContent=portsList[(Math.random()*portsList.length)|0];
+  },2200);
+}
+const orbitBars=$('#orbitBars');
+if(orbitBars){
+  for(let i=0;i<14;i++){
+    const b=document.createElement('i');
+    b.style.height=(5+Math.random()*17)+'px';
+    b.style.animationDuration=(.6+Math.random()*.8)+'s';
+    b.style.animationDelay=(-Math.random()*2).toFixed(2)+'s';
+    orbitBars.appendChild(b);
+  }
+}
+
 /* HUD telemetry — UTC clock, pointer RA/DEC, session uptime */
 const hudRa=$('#hudRa'),hudDec=$('#hudDec'),hudUtc=$('#hudUtc'),ftUp=$('#ftUp');
 const t0=Date.now();
@@ -1107,7 +1413,8 @@ skyResize();buildStars();nebTex=makeNebula();
 addEventListener('resize',()=>{skyResize();buildStars();});
 new ResizeObserver(forgeResize).observe(fbox);
 new ResizeObserver(oortResize).observe(obox);
-forgeResize();oortResize();
+if(orbBox)new ResizeObserver(orbitResize).observe(orbBox);
+forgeResize();oortResize();if(orbBox)orbitResize();
 
 /* pre-bake forge textures during idle time so scrolling never hitches */
 const warm=()=>{if(!fInit)forgeInit();};
@@ -1123,6 +1430,7 @@ function loop(t){
   skyFrame(tt,dt);
   if(fVis)forgeFrame(tt,dt);
   if(oVis)oortFrame(tt,dt);
+  if(orbVis)orbitFrame(tt,dt);
   uiFrame(t);
   requestAnimationFrame(loop);
 }

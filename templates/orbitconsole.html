@@ -82,33 +82,48 @@ body {
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   border: 1px solid transparent;
+  position: relative;
 }
 .nav-btn-ghost {
   background: rgba(255, 255, 255, 0.04);
   color: var(--text-dim);
-  border-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  backdrop-filter: blur(8px);
 }
 .nav-btn-ghost:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.55);
+  transform: translateY(-2px);
+  box-shadow: 0 0 18px rgba(56, 189, 248, 0.35), 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+.nav-btn-ghost:active {
+  transform: translateY(0);
 }
 .nav-btn-primary {
-  background: linear-gradient(135deg, #0284c7, #38bdf8);
+  background: linear-gradient(135deg, #0284c7 0%, #38bdf8 50%, #818cf8 100%);
+  background-size: 200% 200%;
   color: #fff;
-  box-shadow: 0 4px 16px rgba(56, 189, 248, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 16px rgba(56, 189, 248, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.4);
 }
 .nav-btn-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(56, 189, 248, 0.4);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 0 28px rgba(56, 189, 248, 0.7), 0 8px 25px rgba(0, 0, 0, 0.5), inset 0 1px 2px rgba(255, 255, 255, 0.6);
+  background-position: 100% 100%;
+}
+.nav-btn-primary:active {
+  transform: translateY(0) scale(0.99);
 }
 /* Container & Layout */
 .main-wrap {
   max-width: 1380px;
   margin: 0 auto;
   padding: 32px 32px 64px;
+  position: relative;
+  z-index: 10;
 }
 /* Stats Grid */
 .stats-grid {
@@ -127,6 +142,12 @@ body {
   flex-direction: column;
   gap: 6px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.stat-card:hover {
+  border-color: rgba(56, 189, 248, 0.35);
+  transform: translateY(-3px);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4), 0 0 24px rgba(56, 189, 248, 0.16);
 }
 .stat-label {
   font-size: 12.5px;
@@ -163,14 +184,14 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  transition: all 0.25s ease;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   overflow: hidden;
 }
 .app-card:hover {
-  border-color: rgba(56, 189, 248, 0.35);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
-  transform: translateY(-2px);
+  border-color: rgba(56, 189, 248, 0.45);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.5), 0 0 32px rgba(56, 189, 248, 0.2);
+  transform: translateY(-4px);
 }
 .app-card-header {
   display: flex;
@@ -280,21 +301,62 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.09);
   background: rgba(255, 255, 255, 0.03);
   color: var(--text-dim);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(4px);
+  text-decoration: none;
 }
-.btn-sm-action:hover {
-  background: rgba(255, 255, 255, 0.08);
+.btn-sm-action:hover, .btn-sm-action.act-logs:hover, .btn-sm-action.act-rebuild:hover {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.55);
+  transform: translateY(-2px);
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.45), 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+.btn-sm-action.act-restart:hover, .btn-sm-action.act-start:hover {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.6);
+  transform: translateY(-2px);
+  box-shadow: 0 0 18px rgba(16, 185, 129, 0.45), 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+.btn-sm-action.act-stop:hover {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.6);
+  transform: translateY(-2px);
+  box-shadow: 0 0 18px rgba(245, 158, 11, 0.45), 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+.btn-sm-action.act-backup:hover {
+  background: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+  border-color: rgba(168, 85, 247, 0.6);
+  transform: translateY(-2px);
+  box-shadow: 0 0 18px rgba(168, 85, 247, 0.45), 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+.btn-sm-action.act-open {
+  color: var(--accent-cyan);
+  border-color: rgba(56, 189, 248, 0.3);
+}
+.btn-sm-action.act-open:hover {
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.3), rgba(56, 189, 248, 0.25));
   color: #fff;
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: #38bdf8;
+  transform: translateY(-2px);
+  box-shadow: 0 0 22px rgba(56, 189, 248, 0.6), 0 4px 14px rgba(0, 0, 0, 0.35);
 }
 .btn-sm-action.danger:hover {
-  background: rgba(239, 68, 68, 0.15);
+  background: rgba(239, 68, 68, 0.2);
   color: #f87171;
-  border-color: rgba(239, 68, 68, 0.35);
+  border-color: rgba(239, 68, 68, 0.6);
+  transform: translateY(-2px);
+  box-shadow: 0 0 18px rgba(239, 68, 68, 0.45), 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+.btn-sm-action:active {
+  transform: translateY(0);
 }
 /* Modal Styles */
 .modal-overlay {
@@ -343,18 +405,40 @@ body {
 }
 .tab-btn {
   background: transparent;
-  border: none;
+  border: 1px solid transparent;
   color: var(--text-muted);
   font-size: 13.5px;
   font-weight: 600;
   padding: 6px 14px;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.tab-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  transform: translateY(-1px);
 }
 .tab-btn.active {
-  background: rgba(56, 189, 248, 0.12);
+  background: rgba(56, 189, 248, 0.15);
   color: var(--accent-cyan);
+  border-color: rgba(56, 189, 248, 0.35);
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.25);
+}
+.template-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.template-card:hover {
+  background: rgba(56, 189, 248, 0.08);
+  border-color: rgba(56, 189, 248, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.25);
 }
 .form-group {
   display: flex;
@@ -420,6 +504,7 @@ body {
 </style>
 </head>
 <body>
+<canvas id="orbitSpaceCanvas" style="position:fixed;inset:0;pointer-events:none;z-index:0;width:100%;height:100%;"></canvas>
 
 <!-- Header -->
 <header class="orbit-header">
@@ -665,24 +750,24 @@ async function loadApplications() {
         <!-- Actions -->
         <div class="app-card-actions">
           <div style="display: flex; gap: 6px;">
-            <button class="btn-sm-action" onclick="openAppLogs('${app.app_id}', '${escapeHTML(app.name)}')">
+            <button class="btn-sm-action act-logs" onclick="openAppLogs('${app.app_id}', '${escapeHTML(app.name)}')">
               <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
               Logs
             </button>
             ${isRunning ? `
-              <button class="btn-sm-action" onclick="appAction('${app.app_id}', 'restart')">Restart</button>
-              <button class="btn-sm-action" onclick="appAction('${app.app_id}', 'stop')">Stop</button>
+              <button class="btn-sm-action act-restart" onclick="appAction('${app.app_id}', 'restart')">Restart</button>
+              <button class="btn-sm-action act-stop" onclick="appAction('${app.app_id}', 'stop')">Stop</button>
             ` : `
-              <button class="btn-sm-action" style="color:#34d399;" onclick="appAction('${app.app_id}', 'start')">Start</button>
-              <button class="btn-sm-action" onclick="appAction('${app.app_id}', 'rebuild')">Rebuild</button>
+              <button class="btn-sm-action act-start" style="color:#34d399;" onclick="appAction('${app.app_id}', 'start')">Start</button>
+              <button class="btn-sm-action act-rebuild" onclick="appAction('${app.app_id}', 'rebuild')">Rebuild</button>
             `}
           </div>
           <div style="display: flex; gap: 6px;">
-            <button class="btn-sm-action" title="Backup container snapshot to Oort S3" onclick="backupAppToOort('${app.app_id}')">
+            <button class="btn-sm-action act-backup" title="Backup container snapshot to Oort S3" onclick="backupAppToOort('${app.app_id}')">
               <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
               Backup S3
             </button>
-            <a href="${app.proxy_url}" target="_blank" class="btn-sm-action" style="color:var(--accent-cyan); border-color:rgba(56,189,248,0.3);">
+            <a href="${app.proxy_url}" target="_blank" class="btn-sm-action act-open">
               Open App ↗
             </a>
             <button class="btn-sm-action danger" onclick="deleteApp('${app.app_id}', '${escapeHTML(app.name)}')">✕</button>
@@ -794,7 +879,7 @@ async function loadStarterTemplates() {
   const res = await api('/orbit/api/templates');
   if (res && res.templates) {
     list.innerHTML = res.templates.map(t => `
-      <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:12px; cursor:pointer; transition:0.2s;"
+      <div class="template-card"
            onclick="selectTemplate('${escapeHTML(t.name)}', '${t.repo_url}', '${t.branch}')">
         <div style="font-weight:700; color:#fff; font-size:13px; margin-bottom:4px;">${escapeHTML(t.name)}</div>
         <div style="font-size:11.5px; color:var(--text-dim); line-height:1.4;">${escapeHTML(t.description)}</div>
@@ -907,6 +992,92 @@ async function refreshCurrentLogs() {
 loadApplications();
 // Auto refresh fleet telemetry every 8 seconds
 setInterval(loadApplications, 8000);
+
+// Background ambient particle mesh animation
+(function initOrbitSpaceCanvas() {
+  const cv = document.getElementById('orbitSpaceCanvas');
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  let w = 0, h = 0, pts = [];
+  let mouse = { x: -1000, y: -1000, active: false };
+
+  function resize() {
+    w = cv.width = window.innerWidth;
+    h = cv.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  for (let i = 0; i < 70; i++) {
+    pts.push({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      vx: (Math.random() - 0.5) * 0.45,
+      vy: (Math.random() - 0.5) * 0.45,
+      r: Math.random() < 0.25 ? 2.2 : 1.2,
+      color: Math.random() > 0.45 ? 'rgba(56,189,248,' : 'rgba(168,85,247,',
+      alpha: 0.25 + Math.random() * 0.5
+    });
+  }
+
+  window.addEventListener('mousemove', e => {
+    mouse.x = e.clientX;
+    mouse.y = e.clientY;
+    mouse.active = true;
+  });
+  window.addEventListener('mouseleave', () => { mouse.active = false; });
+
+  function draw() {
+    ctx.clearRect(0, 0, w, h);
+
+    // Dynamic constellation links
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        const dx = pts[i].x - pts[j].x;
+        const dy = pts[i].y - pts[j].y;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        if (d < 125) {
+          const a = (1 - d / 125) * 0.16;
+          ctx.strokeStyle = `rgba(56, 189, 248, ${a})`;
+          ctx.lineWidth = 0.8;
+          ctx.beginPath();
+          ctx.moveTo(pts[i].x, pts[i].y);
+          ctx.lineTo(pts[j].x, pts[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Drifting particles with mouse interaction
+    for (const p of pts) {
+      p.x += p.vx;
+      p.y += p.vy;
+      if (p.x < 0) p.x = w;
+      if (p.x > w) p.x = 0;
+      if (p.y < 0) p.y = h;
+      if (p.y > h) p.y = 0;
+
+      if (mouse.active) {
+        const mdx = mouse.x - p.x;
+        const mdy = mouse.y - p.y;
+        const md = Math.sqrt(mdx * mdx + mdy * mdy);
+        if (md < 150) {
+          const force = (1 - md / 150) * 0.08;
+          p.x -= (mdx / md) * force * 15;
+          p.y -= (mdy / md) * force * 15;
+        }
+      }
+
+      ctx.fillStyle = p.color + p.alpha + ')';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
 </script>
 </body>
 </html>
