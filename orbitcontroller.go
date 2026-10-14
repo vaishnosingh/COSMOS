@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/minio/minio-go/v7"
 )
 
 // OrbitApp represents an application managed by Orbit.
@@ -485,6 +486,11 @@ func handleOrbitSubRouter(w http.ResponseWriter, r *http.Request) {
 		case strings.HasPrefix(apiPath, "apps/") && r.Method == http.MethodGet:
 			appID := strings.TrimPrefix(apiPath, "apps/")
 			handleOrbitGetApp(w, r, appID)
+		case strings.HasPrefix(apiPath, "apps/") && strings.HasSuffix(apiPath, "/backup-to-oort") && r.Method == http.MethodPost:
+			appID := strings.TrimSuffix(strings.TrimPrefix(apiPath, "apps/"), "/backup-to-oort")
+			handleOrbitBackupToOort(w, r, appID)
+		case apiPath == "webhook/forge":
+			handleOrbitForgeWebhook(w, r)
 		case apiPath == "forge/repos":
 			handleOrbitListForgeRepos(w, r)
 		case apiPath == "templates":
@@ -913,4 +919,137 @@ func handleOrbitProxy(w http.ResponseWriter, r *http.Request, path string) {
 	r.Header.Set("X-Real-IP", r.RemoteAddr)
 
 	proxy.ServeHTTP(w, r)
+}
+
+// handleOrbitBackupToOort exports container filesystem snapshot and uploads directly into the user's Oort S3 bucket.
+func handleOrbitBackupToOort(w http.ResponseWriter, r *http.Request, appID string) {
+	cookie, err := r.Cookie("oort_session")
+	if err != nil || cookie.Value == "" {
+		cookie, err = r.Cookie("orbit_session")
+	}
+	if err != nil || cookie.Value == "" {
+		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+
+	_, ak, sk, defaultBucket, err := lookupBySession("oort", cookie.Value)
+	if err != nil || ak == "" {
+		http.Error(w, `{"error":"failed to authenticate S3 storage credentials"}`, http.StatusUnauthorized)
+		return
+	}
+
+	var app OrbitApp
+	err = scyllaSession.Query(`SELECT app_id, name, container_id FROM cosmos.orbit_apps WHERE app_id = ?`, appID).
+		Scan(&app.AppID, &app.Name, &app.ContainerID)
+	if err != nil || app.AppID == "" {
+		http.Error(w, `{"error":"app not found"}`, http.StatusNotFound)
+		return
+	}
+
+	if app.ContainerID == "" {
+		http.Error(w, `{"error":"container is not running"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Call Docker API to export container filesystem tar
+	client := DockerClient()
+	exportURL := fmt.Sprintf("http://localhost/v1.45/containers/%s/export", url.PathEscape(app.ContainerID))
+	req, err := http.NewRequestWithContext(r.Context(), "GET", exportURL, nil)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"failed to create export request: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+	resp, err := client.Do(req)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		http.Error(w, `{"error":"failed to export container filesystem from Docker"}`, http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	mc, err := minioClient(ak, sk)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"failed to initialize MinIO client: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	// Upload to Oort bucket
+	objKey := fmt.Sprintf("orbit-backups/%s-%d.tar", app.AppID, time.Now().Unix())
+	tempFile, err := os.CreateTemp("", "orbit-backup-*.tar")
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"temp file creation failed: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+	defer os.Remove(tempFile.Name())
+	defer tempFile.Close()
+
+	written, err := io.Copy(tempFile, resp.Body)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"failed to write backup archive: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+	tempFile.Seek(0, 0)
+
+	_, err = mc.PutObject(r.Context(), defaultBucket, objKey, tempFile, written, minio.PutObjectOptions{
+		ContentType: "application/x-tar",
+	})
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"failed to upload backup to Oort S3: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":    true,
+		"bucket":     defaultBucket,
+		"object_key": objKey,
+		"size_bytes": written,
+		"message":    fmt.Sprintf("Backup saved to Oort bucket '%s' as '%s'", defaultBucket, objKey),
+	})
+}
+
+// handleOrbitForgeWebhook processes push event webhooks from Forge (Gitea) to auto-redeploy.
+func handleOrbitForgeWebhook(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var payload struct {
+		Ref        string `json:"ref"`
+		Repository struct {
+			CloneURL string `json:"clone_url"`
+			HTMLURL  string `json:"html_url"`
+			SSHURL   string `json:"ssh_url"`
+		} `json:"repository"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		http.Error(w, "invalid webhook payload", http.StatusBadRequest)
+		return
+	}
+
+	branch := strings.TrimPrefix(payload.Ref, "refs/heads/")
+	cloneURL := payload.Repository.CloneURL
+	if cloneURL == "" {
+		cloneURL = payload.Repository.HTMLURL
+	}
+
+	iter := scyllaSession.Query(`SELECT app_id, repo_url, branch FROM cosmos.orbit_apps`).Iter()
+	var appID, repoURL, appBranch string
+	var triggered []string
+
+	for iter.Scan(&appID, &repoURL, &appBranch) {
+		if (strings.EqualFold(repoURL, cloneURL) || strings.EqualFold(repoURL, payload.Repository.HTMLURL)) &&
+			(appBranch == "" || appBranch == branch) {
+			go deployAppAsync(appID)
+			triggered = append(triggered, appID)
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":   true,
+		"triggered": triggered,
+		"count":     len(triggered),
+	})
 }
