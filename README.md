@@ -101,9 +101,25 @@ For detailed CQL schema definitions, IAM access policies, and memory models, see
 
 <br/>
 
-### Option A: Launch with Docker Compose (Recommended)
+### ⚡ Automated One-Click Installer (Fastest & Interactive)
 
-Turn your old PC into a running workstation in under 2 minutes:
+Run the automated installer on your Linux PC. It performs system diagnostics, memory/port verification, interactive configuration, and provisions the entire workstation:
+
+```bash
+# Direct one-line execution:
+curl -fsSL https://raw.githubusercontent.com/vaishnosingh/COSMOS/main/install.sh | bash
+```
+
+Or clone and run interactively:
+```bash
+git clone https://github.com/vaishnosingh/COSMOS.git
+cd COSMOS
+chmod +x install.sh && ./install.sh
+```
+
+---
+
+### Option A: Launch with Docker Compose Manually
 
 ```bash
 # 1. Clone this repository

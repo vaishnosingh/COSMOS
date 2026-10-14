@@ -15,9 +15,25 @@ This guide details how to turn an old desktop PC, home server, or cloud instance
 
 ---
 
-## 🚀 Option 1: Quick Start with Docker Compose (Recommended)
+## ⚡ Method 1: Automated One-Click Installer (Recommended)
 
-The fastest method to deploy the entire stack on an old PC is using Docker and Docker Compose.
+The automated installer script handles system pre-flight checks, verifies hardware compatibility, guides you through interactive configuration, and deploys the entire workstation with zero manual steps:
+
+```bash
+# Direct execution:
+curl -fsSL https://raw.githubusercontent.com/vaishnosingh/COSMOS/main/install.sh | bash
+
+# Or via git:
+git clone https://github.com/vaishnosingh/COSMOS.git cosmos
+cd cosmos
+./install.sh
+```
+
+---
+
+## 🚀 Method 2: Manual Docker Compose Stack
+
+If you prefer to configure every container manually using Docker:
 
 ### Step 1: Install Docker & Docker Compose
 ```bash
