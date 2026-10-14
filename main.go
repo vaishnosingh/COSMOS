@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -144,7 +145,32 @@ func lookupBySession(service, sid string) (name, ak, sk, bucket string, err erro
 	return
 }
 
+func checkAndProxyOrbitDomain(w http.ResponseWriter, r *http.Request) bool {
+	host := r.Host
+	if h, _, err := net.SplitHostPort(host); err == nil {
+		host = h
+	}
+	host = strings.ToLower(strings.TrimSpace(host))
+	if host == "localhost" || host == "127.0.0.1" {
+		return false
+	}
+	if scyllaSession == nil {
+		return false
+	}
+	var appID string
+	var portNum int
+	var status string
+	if err := scyllaSession.Query(`SELECT app_id, exposed_port, status FROM cosmos.orbit_apps WHERE custom_domain = ? ALLOW FILTERING`, host).Scan(&appID, &portNum, &status); err == nil && appID != "" {
+		handleOrbitDomainRouteProxy(w, r)
+		return true
+	}
+	return false
+}
+
 func handleIndex(w http.ResponseWriter, r *http.Request) {
+	if checkAndProxyOrbitDomain(w, r) {
+		return
+	}
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
 		return
