@@ -1,0 +1,32 @@
+# Binaries
+portals
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Environment variables & local secrets
+.env
+.env.local
+*.secret
+*.pem
+*.key
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+
+# Temporary & policy files
+tmp/
+/tmp/
+*.log

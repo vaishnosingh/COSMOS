@@ -1,0 +1,19 @@
+[Unit]
+Description=Cosmos Workstation Core Service
+After=network.target scylla-server.service minio.service
+
+[Service]
+Type=simple
+User=cosmos
+WorkingDirectory=/opt/cosmos
+ExecStart=/opt/cosmos/portals
+Restart=always
+RestartSec=5s
+EnvironmentFile=-/opt/cosmos/.env
+
+# Security Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  # ─── ScyllaDB Persistence Layer ─────────────────────────────────────────────
+  scylla:
+    image: scylladb/scylla:5.4
+    container_name: cosmos-scylla
+    restart: unless-stopped
+    command: --smp 1 --memory 1G --overprovisioned 1 --api-address 0.0.0.0
+    volumes:
+      - scylla-data:/var/lib/scylla
+    ports:
+      - "9042:9042"
+
+  # ─── MinIO S3 Object Storage ────────────────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: cosmos-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-miniopassword123}
+    volumes:
+      - minio-data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+  # ─── Gitea Git Engine ───────────────────────────────────────────────────────
+  gitea:
+    image: gitea/gitea:latest
+    container_name: cosmos-gitea
+    restart: unless-stopped
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+      - GITEA__database__DB_TYPE=sqlite3
+      - GITEA__database__PATH=/data/gitea/gitea.db
+      - GITEA__server__ROOT_URL=http://localhost:3000/
+      - GITEA__security__INSTALL_LOCK=true
+    volumes:
+      - gitea-data:/data
+    ports:
+      - "3000:3000"
+      - "2222:22"
+
+  # ─── Cosmos Workstation Unified Backend ─────────────────────────────────────
+  cosmos:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: cosmos-core
+    restart: unless-stopped
+    depends_on:
+      - scylla
+      - minio
+      - gitea
+    environment:
+      - PORT=8080
+      - COSMOS_DOMAIN=${COSMOS_DOMAIN:-localhost}
+      - COSMOS_BASE_URL=${COSMOS_BASE_URL:-http://localhost:8080}
+      - SCYLLA_HOST=scylla
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-miniopassword123}
+      - COSMOS_EMAIL_FROM=${COSMOS_EMAIL_FROM:-noreply@example.com}
+      - COSMOS_ADMIN_EMAIL=${COSMOS_ADMIN_EMAIL:-admin@example.com}
+    ports:
+      - "8080:8080"
+
+volumes:
+  scylla-data:
+  minio-data:
+  gitea-data:
