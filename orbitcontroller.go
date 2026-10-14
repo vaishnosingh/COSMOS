@@ -247,10 +247,13 @@ func detectAndInjectDockerfile(dirPath string) (buildType string, internalPort i
 
 	// 1. Go
 	if _, err := os.Stat(filepath.Join(dirPath, "go.mod")); err == nil {
-		dockerfile := `FROM golang:1.24-alpine AS builder
+		dockerfile := `FROM golang:alpine AS builder
 WORKDIR /app
+ENV GOTOOLCHAIN=auto
 COPY . .
-RUN CGO_ENABLED=0 go build -o /app/server .
+RUN CGO_ENABLED=0 go build -o /app/server . 2>/dev/null || \
+    CGO_ENABLED=0 go build -o /app/server $(find . -maxdepth 3 -name "main.go" -exec dirname {} \; | head -1) 2>/dev/null || \
+    CGO_ENABLED=0 go build -o /app/server ./...
 FROM alpine:latest
 WORKDIR /app
 COPY --from=builder /app/server /app/server
@@ -289,10 +292,10 @@ CMD ["python", "%s"]
 
 	// 3. Node.js — only if package.json has a "start" script
 	if _, errPkg := os.Stat(filepath.Join(dirPath, "package.json")); errPkg == nil && hasNpmStart() {
-		dockerfile := `FROM node:20-alpine
+		dockerfile := `FROM node:22-alpine
 WORKDIR /app
 COPY package*.json ./
-RUN npm install --omit=dev 2>/dev/null || npm install
+RUN npm install --omit=dev --legacy-peer-deps 2>/dev/null || npm install --legacy-peer-deps 2>/dev/null || npm install 2>/dev/null || true
 COPY . .
 EXPOSE 3000
 CMD ["npm", "start"]
@@ -358,6 +361,19 @@ EXPOSE 80
 }
 
 
+// normalizeGitURL standardizes Git clone URLs for local Gitea and external Git repos.
+func normalizeGitURL(rawURL string) string {
+	u := strings.TrimSpace(rawURL)
+	if strings.Contains(u, "127.0.0.1:3000/source/") {
+		u = strings.Replace(u, "127.0.0.1:3000/source/", "127.0.0.1:3000/", 1)
+	}
+	if strings.Contains(u, "vshno.linuxguy.space/source/") {
+		u = strings.Replace(u, "https://vshno.linuxguy.space/source/", "http://127.0.0.1:3000/", 1)
+		u = strings.Replace(u, "http://vshno.linuxguy.space/source/", "http://127.0.0.1:3000/", 1)
+	}
+	return u
+}
+
 // deployAppAsync handles cloning, building, and running an application container in background.
 func deployAppAsync(appID string) {
 	orbitActiveBuild.Store(appID, true)
@@ -388,16 +404,17 @@ func deployAppAsync(appID string) {
 	defer os.RemoveAll(scratchDir)
 
 	// Step 1: Git clone
+	cloneURL := normalizeGitURL(app.RepoURL)
 	branch := app.Branch
 	if branch == "" {
 		branch = "main"
 	}
 	fmt.Fprintf(logBuf, "[GIT] Cloning repository...\n")
-	cmd := exec.Command("git", "clone", "--depth", "1", "-b", branch, app.RepoURL, scratchDir)
+	cmd := exec.Command("git", "clone", "--depth", "1", "-b", branch, cloneURL, scratchDir)
 	cmdOut, err := cmd.CombinedOutput()
 	if err != nil {
 		// Retry without branch if default branch differs (e.g. master)
-		cmd = exec.Command("git", "clone", "--depth", "1", app.RepoURL, scratchDir)
+		cmd = exec.Command("git", "clone", "--depth", "1", cloneURL, scratchDir)
 		cmdOut, err = cmd.CombinedOutput()
 		if err != nil {
 			fmt.Fprintf(logBuf, "[GIT ERROR] Failed to clone: %s\n", string(cmdOut))
@@ -972,31 +989,31 @@ func handleOrbitListTemplates(w http.ResponseWriter, r *http.Request) {
 			"name":        "Node.js & Express API",
 			"description": "High-performance Node.js REST server with JSON routing",
 			"icon":        "nodejs",
-			"repo_url":    "https://github.com/expressjs/express.git",
-			"branch":      "master",
+			"repo_url":    "http://127.0.0.1:3000/admin/node-express-starter.git",
+			"branch":      "main",
 		},
 		{
 			"id":          "go-server",
 			"name":        "Go Lightweight Web Server",
 			"description": "Ultra-fast compiled HTTP server in under 15MB container",
 			"icon":        "go",
-			"repo_url":    "https://github.com/gin-gonic/examples.git",
-			"branch":      "master",
+			"repo_url":    "http://127.0.0.1:3000/admin/go-web-starter.git",
+			"branch":      "main",
 		},
 		{
 			"id":          "python-fastapi",
 			"name":        "Python FastAPI",
 			"description": "Modern asynchronous web framework with automatic OpenAPI docs",
 			"icon":        "python",
-			"repo_url":    "https://github.com/tiangolo/fastapi.git",
-			"branch":      "master",
+			"repo_url":    "http://127.0.0.1:3000/admin/python-fastapi-starter.git",
+			"branch":      "main",
 		},
 		{
 			"id":          "static-landing",
 			"name":        "Static HTML5 / CSS3 Portal",
 			"description": "Nginx Alpine container hosting static documentation or landing pages",
 			"icon":        "html",
-			"repo_url":    "https://github.com/h5bp/html5-boilerplate.git",
+			"repo_url":    "http://127.0.0.1:3000/admin/static-landing-portal.git",
 			"branch":      "main",
 		},
 	}
