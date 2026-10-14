@@ -227,23 +227,25 @@ func detectAndInjectDockerfile(dirPath string) (buildType string, internalPort i
 		return "dockerfile", internalPort, nil
 	}
 
-	// 1. Node.js
-	if _, err := os.Stat(filepath.Join(dirPath, "package.json")); err == nil {
-		dockerfile := `FROM node:20-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm install --omit=dev 2>/dev/null || npm install
-COPY . .
-EXPOSE 3000
-CMD ["npm", "start"]
-`
-		if err := os.WriteFile(dockerfilePath, []byte(dockerfile), 0644); err != nil {
-			return "", 0, err
+	// Helper: check if package.json has a "start" script
+	hasNpmStart := func() bool {
+		data, err := os.ReadFile(filepath.Join(dirPath, "package.json"))
+		if err != nil {
+			return false
 		}
-		return "pack-node", 3000, nil
+		var pkg map[string]interface{}
+		if err := json.Unmarshal(data, &pkg); err != nil {
+			return false
+		}
+		scripts, ok := pkg["scripts"].(map[string]interface{})
+		if !ok {
+			return false
+		}
+		_, hasStart := scripts["start"]
+		return hasStart
 	}
 
-	// 2. Go
+	// 1. Go
 	if _, err := os.Stat(filepath.Join(dirPath, "go.mod")); err == nil {
 		dockerfile := `FROM golang:1.24-alpine AS builder
 WORKDIR /app
@@ -261,36 +263,98 @@ CMD ["/app/server"]
 		return "pack-go", 8080, nil
 	}
 
-	// 3. Python
+	// 2. Python
 	if _, err := os.Stat(filepath.Join(dirPath, "requirements.txt")); err == nil {
-		dockerfile := `FROM python:3.11-slim
+		// Check if there's a better entrypoint
+		entry := "main.py"
+		for _, f := range []string{"app.py", "wsgi.py", "run.py", "server.py", "main.py"} {
+			if _, e := os.Stat(filepath.Join(dirPath, f)); e == nil {
+				entry = f
+				break
+			}
+		}
+		dockerfile := fmt.Sprintf(`FROM python:3.11-slim
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt || true
 COPY . .
 EXPOSE 8000
-CMD ["python", "main.py"]
-`
+CMD ["python", "%s"]
+`, entry)
 		if err := os.WriteFile(dockerfilePath, []byte(dockerfile), 0644); err != nil {
 			return "", 0, err
 		}
 		return "pack-python", 8000, nil
 	}
 
-	// 4. Static HTML
-	if _, err := os.Stat(filepath.Join(dirPath, "index.html")); err == nil {
-		dockerfile := `FROM nginx:alpine
+	// 3. Node.js — only if package.json has a "start" script
+	if _, errPkg := os.Stat(filepath.Join(dirPath, "package.json")); errPkg == nil && hasNpmStart() {
+		dockerfile := `FROM node:20-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install --omit=dev 2>/dev/null || npm install
+COPY . .
+EXPOSE 3000
+CMD ["npm", "start"]
+`
+		if err := os.WriteFile(dockerfilePath, []byte(dockerfile), 0644); err != nil {
+			return "", 0, err
+		}
+		return "pack-node", 3000, nil
+	}
+
+	// 4. Static HTML (index.html present, or package.json without start script)
+	_, hasIndex := os.Stat(filepath.Join(dirPath, "index.html"))
+	_, hasPkg := os.Stat(filepath.Join(dirPath, "package.json"))
+	if hasIndex == nil || hasPkg == nil {
+		// Use nginx to serve static files
+		// Build static assets first if there's a build script
+		buildCmd := ""
+		if hasPkg == nil {
+			data, _ := os.ReadFile(filepath.Join(dirPath, "package.json"))
+			var pkg map[string]interface{}
+			_ = json.Unmarshal(data, &pkg)
+			if scripts, ok := pkg["scripts"].(map[string]interface{}); ok {
+				if _, hasBuild := scripts["build"]; hasBuild {
+					buildCmd = "RUN npm install && npm run build 2>/dev/null || true\n"
+					buildCmd += "RUN test -d dist && cp -r dist/* /usr/share/nginx/html/ 2>/dev/null || test -d build && cp -r build/* /usr/share/nginx/html/ 2>/dev/null || true\n"
+				}
+			}
+		}
+		var dockerfile string
+		if buildCmd != "" {
+			// Multi-stage: build then serve with nginx
+			dockerfile = `FROM node:22-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm install --legacy-peer-deps 2>/dev/null || npm install || true
+COPY . .
+RUN npm run build 2>/dev/null || true
+FROM nginx:alpine
+WORKDIR /usr/share/nginx/html
+RUN rm -rf ./*
+COPY --from=builder /app/dist ./  2>/dev/null || true
+COPY --from=builder /app/build ./ 2>/dev/null || true
+COPY --from=builder /app/public ./ 2>/dev/null || true
+COPY --from=builder /app/out ./ 2>/dev/null || true
+COPY --from=builder /app ./ 2>/dev/null || true
+EXPOSE 80
+`
+		} else {
+			dockerfile = `FROM nginx:alpine
 COPY . /usr/share/nginx/html
 EXPOSE 80
 `
+		}
 		if err := os.WriteFile(dockerfilePath, []byte(dockerfile), 0644); err != nil {
 			return "", 0, err
 		}
 		return "pack-static", 80, nil
 	}
 
-	return "unknown", 8080, fmt.Errorf("no Dockerfile, package.json, go.mod, requirements.txt, or index.html found")
+	return "unknown", 8080, fmt.Errorf("no Dockerfile, package.json (with start script), go.mod, requirements.txt, or index.html found in repository root")
 }
+
 
 // deployAppAsync handles cloning, building, and running an application container in background.
 func deployAppAsync(appID string) {
@@ -338,6 +402,7 @@ func deployAppAsync(appID string) {
 			_ = scyllaSession.Query(`UPDATE cosmos.orbit_apps SET status = 'failed', updated_at = ? WHERE app_id = ?`,
 				time.Now().Unix(), appID).Exec()
 			saveDeploymentRecord(appID, "failed", int(time.Since(startTime).Seconds()), logBuf.String())
+			orbitBuildLogs.Delete(appID)
 			return
 		}
 	}
@@ -350,6 +415,7 @@ func deployAppAsync(appID string) {
 		_ = scyllaSession.Query(`UPDATE cosmos.orbit_apps SET status = 'failed', updated_at = ? WHERE app_id = ?`,
 			time.Now().Unix(), appID).Exec()
 		saveDeploymentRecord(appID, "failed", int(time.Since(startTime).Seconds()), logBuf.String())
+		orbitBuildLogs.Delete(appID)
 		return
 	}
 	fmt.Fprintf(logBuf, "[DETECT] Architecture resolved: %s (internal port %d)\n", buildType, intPort)
@@ -362,6 +428,7 @@ func deployAppAsync(appID string) {
 		_ = scyllaSession.Query(`UPDATE cosmos.orbit_apps SET status = 'failed', updated_at = ? WHERE app_id = ?`,
 			time.Now().Unix(), appID).Exec()
 		saveDeploymentRecord(appID, "failed", int(time.Since(startTime).Seconds()), logBuf.String())
+		orbitBuildLogs.Delete(appID)
 		return
 	}
 
@@ -376,6 +443,7 @@ func deployAppAsync(appID string) {
 		_ = scyllaSession.Query(`UPDATE cosmos.orbit_apps SET status = 'failed', updated_at = ? WHERE app_id = ?`,
 			time.Now().Unix(), appID).Exec()
 		saveDeploymentRecord(appID, "failed", int(time.Since(startTime).Seconds()), logBuf.String())
+		orbitBuildLogs.Delete(appID)
 		return
 	}
 	fmt.Fprintf(logBuf, "[DOCKER] Image %s built successfully.\n", imageTag)
@@ -412,17 +480,22 @@ func deployAppAsync(appID string) {
 		_ = scyllaSession.Query(`UPDATE cosmos.orbit_apps SET status = 'failed', updated_at = ? WHERE app_id = ?`,
 			time.Now().Unix(), appID).Exec()
 		saveDeploymentRecord(appID, "failed", int(time.Since(startTime).Seconds()), logBuf.String())
+		orbitBuildLogs.Delete(appID)
 		return
 	}
 
 	fmt.Fprintf(logBuf, "[ORCHESTRATOR] Container %s is active and healthy.\n", containerID[:12])
-	fmt.Fprintf(logBuf, "[ORBIT] Deployment completed in %s.\n", time.Since(startTime).Round(time.Millisecond))
+	fmt.Fprintf(logBuf, "[ORBIT] Deployment completed in %s. Container is now running.\n", time.Since(startTime).Round(time.Millisecond))
+	fmt.Fprintf(logBuf, "[ORBIT] Access via proxy: /orbit/proxy/%s/\n", appID)
 
 	// Step 7: Update DB to 'running'
 	_ = scyllaSession.Query(`UPDATE cosmos.orbit_apps SET status = 'running', container_id = ?, image_tag = ?, internal_port = ?, build_type = ?, updated_at = ? WHERE app_id = ?`,
 		containerID, imageTag, intPort, buildType, time.Now().Unix(), appID).Exec()
 
 	saveDeploymentRecord(appID, "success", int(time.Since(startTime).Seconds()), logBuf.String())
+	// Clear in-memory build log — live container logs will be served from Docker from now on
+	time.Sleep(2 * time.Second) // let any pending log reads finish
+	orbitBuildLogs.Delete(appID)
 }
 
 // saveDeploymentRecord stores build log in ScyllaDB.
@@ -735,29 +808,51 @@ func handleOrbitAppLogs(w http.ResponseWriter, r *http.Request, appID string) {
 		return
 	}
 
+	// Set headers so UI can poll-detect completion
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("X-App-Status", app.Status)
 
-	// If app is currently building, stream from in-memory build log buffer
+	// 1. If currently building: serve live in-memory build log
 	if val, ok := orbitBuildLogs.Load(appID); ok {
 		buf := val.(*bytes.Buffer)
-		w.Write(buf.Bytes())
+		logText := buf.String()
+		w.Header().Set("X-App-Status", "building")
+		w.Write([]byte(logText))
 		return
 	}
 
-	// Otherwise, fetch latest deployment build log or container logs
-	if app.ContainerID != "" && app.Status == "running" {
-		_ = StreamDockerLogs(r.Context(), app.ContainerID, "300", false, w)
-		return
+	// 2. If running: stream live container stdout/stderr
+	if app.Status == "running" && app.ContainerID != "" {
+		// Try container logs first
+		err2 := StreamDockerLogs(r.Context(), app.ContainerID, "500", false, w)
+		if err2 == nil {
+			return
+		}
+		// Fallback: last deployment log
 	}
 
+	// 3. For stopped/failed or if container stream failed: return stored build log
 	var latestLog string
-	_ = scyllaSession.Query(`SELECT build_log FROM cosmos.orbit_deployments WHERE app_id = ? LIMIT 1 ALLOW FILTERING`, appID).
-		Scan(&latestLog)
+	iter := scyllaSession.Query(
+		`SELECT build_log, created_at FROM cosmos.orbit_deployments WHERE app_id = ? ALLOW FILTERING`,
+		appID,
+	).Iter()
+	var buildLog string
+	var createdAt int64
+	var newestAt int64
+	for iter.Scan(&buildLog, &createdAt) {
+		if createdAt > newestAt {
+			newestAt = createdAt
+			latestLog = buildLog
+		}
+	}
+	_ = iter.Close()
+
 	if latestLog != "" {
 		w.Write([]byte(latestLog))
 	} else {
-		w.Write([]byte("[ORBIT] No logs recorded yet."))
+		w.Write([]byte("[ORBIT] No logs recorded yet.\n[ORBIT] Deploy an application to see build and runtime logs here."))
 	}
 }
 

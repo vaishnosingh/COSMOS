@@ -1475,22 +1475,63 @@ function openLogs(appID, name) {
   activeAppID = appID;
   document.getElementById('logs-title').textContent = `${name} — Logs`;
   document.getElementById('logs-sub').textContent = `app_id: ${appID}`;
-  document.getElementById('terminal-out').textContent = 'Connecting to log stream…';
+  document.getElementById('terminal-out').innerHTML = '<span style="color:#64748b">Connecting to log stream…</span>';
   openModal('modal-logs');
-  refreshLogs();
   clearInterval(logsInterval);
-  logsInterval = setInterval(refreshLogs, 2500);
+  refreshLogs();
+  logsInterval = setInterval(refreshLogs, 2000);
+}
+
+function colorizeLog(text) {
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\[ORBIT\]/g, '<span style="color:#38bdf8;font-weight:700">[ORBIT]</span>')
+    .replace(/\[GIT\]/g, '<span style="color:#a78bfa;font-weight:700">[GIT]</span>')
+    .replace(/\[DETECT\]/g, '<span style="color:#34d399;font-weight:700">[DETECT]</span>')
+    .replace(/\[TAR\]/g, '<span style="color:#94a3b8">[TAR]</span>')
+    .replace(/\[DOCKER\]/g, '<span style="color:#38bdf8;font-weight:700">[DOCKER]</span>')
+    .replace(/\[ORCHESTRATOR\]/g, '<span style="color:#10b981;font-weight:700">[ORCHESTRATOR]</span>')
+    .replace(/\[GIT ERROR\]/g, '<span style="color:#f87171;font-weight:700">[GIT ERROR]</span>')
+    .replace(/\[BUILD ERROR\]/g, '<span style="color:#f87171;font-weight:700">[BUILD ERROR]</span>')
+    .replace(/\[DOCKER ERROR\]/g, '<span style="color:#f87171;font-weight:700">[DOCKER ERROR]</span>')
+    .replace(/\[ORCHESTRATOR ERROR\]/g, '<span style="color:#f87171;font-weight:700">[ORCHESTRATOR ERROR]</span>')
+    .replace(/\[TAR ERROR\]/g, '<span style="color:#f87171;font-weight:700">[TAR ERROR]</span>')
+    .replace(/(completed|successfully|healthy|running)/gi, '<span style="color:#34d399">$1</span>')
+    .replace(/(failed|error|refused)/gi, '<span style="color:#f87171">$1</span>')
+    .replace(/(Step \d+\/\d+)/g, '<span style="color:#fbbf24">$1</span>');
 }
 
 async function refreshLogs() {
   if (!activeAppID) return;
   try {
     const res = await fetch(`/orbit/api/apps/${activeAppID}/logs`);
+    const appStatus = res.headers.get('X-App-Status') || '';
     const text = await res.text();
     const el = document.getElementById('terminal-out');
-    el.textContent = text || '[ORBIT] No output yet.';
+    el.innerHTML = colorizeLog(text || '[ORBIT] No output yet.');
     el.scrollTop = el.scrollHeight;
-  } catch(e) {}
+
+    // Update sub-label with current status
+    const statusColors = { running:'#34d399', failed:'#f87171', stopped:'#94a3b8', building:'#fbbf24' };
+    const col = statusColors[appStatus] || '#94a3b8';
+    document.getElementById('logs-sub').innerHTML =
+      `app_id: ${activeAppID} &nbsp;·&nbsp; <span style="color:${col};font-weight:700">${appStatus||'…'}</span>`;
+
+    // Stop polling when build/deploy is done (not actively building)
+    if (appStatus && appStatus !== 'building') {
+      clearInterval(logsInterval);
+      logsInterval = null;
+      // Refresh app list to show new status
+      await loadApps();
+      if (appStatus === 'running') {
+        toast('Deployment successful! Application is running.', 'success');
+      } else if (appStatus === 'failed') {
+        toast('Deployment failed. Check the logs for details.', 'error');
+      }
+    }
+  } catch(e) {
+    console.error('Log fetch error:', e);
+  }
 }
 
 /* ─── ENV VARS ────────────────────────────────────────────── */
