@@ -37,6 +37,7 @@ type OrbitApp struct {
 	ImageTag     string            `json:"image_tag"`
 	InternalPort int               `json:"internal_port"`
 	ExposedPort  int               `json:"exposed_port"`
+	CustomDomain string            `json:"custom_domain,omitempty"`
 	EnvVars      map[string]string `json:"env_vars"`
 	CreatedAt    int64             `json:"created_at"`
 	UpdatedAt    int64             `json:"updated_at"`
@@ -72,6 +73,7 @@ func initOrbitDB() {
 		image_tag     text,
 		internal_port int,
 		exposed_port  int,
+		custom_domain text,
 		env_vars      map<text, text>,
 		created_at    bigint,
 		updated_at    bigint,
@@ -80,6 +82,9 @@ func initOrbitDB() {
 	if err != nil {
 		log.Printf("[ORBIT] Warning: failed to create orbit_apps table: %v", err)
 	}
+
+	// Add custom_domain column if it doesn't exist (migration for existing tables)
+	_ = scyllaSession.Query(`ALTER TABLE cosmos.orbit_apps ADD custom_domain text`).Exec()
 
 	_ = scyllaSession.Query(`CREATE INDEX IF NOT EXISTS orbit_owner_idx ON cosmos.orbit_apps (owner_email)`).Exec()
 
@@ -493,6 +498,9 @@ func handleOrbitSubRouter(w http.ResponseWriter, r *http.Request) {
 		case strings.HasPrefix(apiPath, "apps/") && strings.HasSuffix(apiPath, "/backup-to-oort") && r.Method == http.MethodPost:
 			appID := strings.TrimSuffix(strings.TrimPrefix(apiPath, "apps/"), "/backup-to-oort")
 			handleOrbitBackupToOort(w, r, appID)
+		case strings.HasPrefix(apiPath, "apps/") && strings.HasSuffix(apiPath, "/domain"):
+			appID := strings.TrimSuffix(strings.TrimPrefix(apiPath, "apps/"), "/domain")
+			handleOrbitDomainUpdate(w, r, appID)
 		case apiPath == "webhook/forge":
 			handleOrbitForgeWebhook(w, r)
 		case apiPath == "forge/repos":
@@ -516,11 +524,11 @@ func handleOrbitListApps(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	iter := scyllaSession.Query(`SELECT app_id, owner_email, name, description, repo_url, branch, build_type, status, container_id, image_tag, internal_port, exposed_port, env_vars, created_at, updated_at FROM cosmos.orbit_apps WHERE owner_email = ? ALLOW FILTERING`, email).Iter()
+	iter2 := scyllaSession.Query(`SELECT app_id, owner_email, name, description, repo_url, branch, build_type, status, container_id, image_tag, internal_port, exposed_port, custom_domain, env_vars, created_at, updated_at FROM cosmos.orbit_apps WHERE owner_email = ? ALLOW FILTERING`, email).Iter()
 
 	var apps []OrbitApp
 	var app OrbitApp
-	for iter.Scan(&app.AppID, &app.OwnerEmail, &app.Name, &app.Description, &app.RepoURL, &app.Branch, &app.BuildType, &app.Status, &app.ContainerID, &app.ImageTag, &app.InternalPort, &app.ExposedPort, &app.EnvVars, &app.CreatedAt, &app.UpdatedAt) {
+	for iter2.Scan(&app.AppID, &app.OwnerEmail, &app.Name, &app.Description, &app.RepoURL, &app.Branch, &app.BuildType, &app.Status, &app.ContainerID, &app.ImageTag, &app.InternalPort, &app.ExposedPort, &app.CustomDomain, &app.EnvVars, &app.CreatedAt, &app.UpdatedAt) {
 		app.ProxyURL = fmt.Sprintf("/orbit/proxy/%s/", app.AppID)
 
 		// Fetch live stats if container is running
@@ -532,9 +540,17 @@ func handleOrbitListApps(w http.ResponseWriter, r *http.Request) {
 		apps = append(apps, app)
 	}
 
+	if apps == nil {
+		apps = []OrbitApp{}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"apps": apps,
+		"apps":        apps,
+		"total_apps":  len(apps),
+		"port_quota":  10,
+		"ports_used":  len(apps),
+		"ports_free":  10 - len(apps),
 	})
 }
 
@@ -572,6 +588,16 @@ func handleOrbitCreateApp(w http.ResponseWriter, r *http.Request) {
 		req.EnvVars = make(map[string]string)
 	}
 
+	// Enforce 10-app limit per user
+	var appCount int
+	iter := scyllaSession.Query(`SELECT COUNT(app_id) FROM cosmos.orbit_apps WHERE owner_email = ? ALLOW FILTERING`, email).Iter()
+	iter.Scan(&appCount)
+	_ = iter.Close()
+	if appCount >= 10 {
+		http.Error(w, `{"error":"port_limit_exceeded","message":"You have reached the maximum of 10 deployed applications. Delete an existing app to deploy a new one."}`, http.StatusForbidden)
+		return
+	}
+
 	// Allocate free host port
 	port, err := allocateOrbitPort()
 	if err != nil {
@@ -582,8 +608,8 @@ func handleOrbitCreateApp(w http.ResponseWriter, r *http.Request) {
 	appID := strings.ToLower(uuid.New().String()[:8])
 	now := time.Now().Unix()
 
-	err = scyllaSession.Query(`INSERT INTO cosmos.orbit_apps (app_id, owner_email, name, description, repo_url, branch, build_type, status, container_id, image_tag, internal_port, exposed_port, env_vars, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		appID, email, req.Name, req.Description, req.RepoURL, req.Branch, "detecting", "building", "", "", 0, port, req.EnvVars, now, now).Exec()
+	err = scyllaSession.Query(`INSERT INTO cosmos.orbit_apps (app_id, owner_email, name, description, repo_url, branch, build_type, status, container_id, image_tag, internal_port, exposed_port, custom_domain, env_vars, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		appID, email, req.Name, req.Description, req.RepoURL, req.Branch, "detecting", "building", "", "", 0, port, "", req.EnvVars, now, now).Exec()
 	if err != nil {
 		http.Error(w, fmt.Sprintf(`{"error":"failed to create app record: %v"}`, err), http.StatusInternalServerError)
 		return
@@ -611,8 +637,8 @@ func handleOrbitGetApp(w http.ResponseWriter, r *http.Request, appID string) {
 	}
 
 	var app OrbitApp
-	err = scyllaSession.Query(`SELECT app_id, owner_email, name, description, repo_url, branch, build_type, status, container_id, image_tag, internal_port, exposed_port, env_vars, created_at, updated_at FROM cosmos.orbit_apps WHERE app_id = ?`, appID).
-		Scan(&app.AppID, &app.OwnerEmail, &app.Name, &app.Description, &app.RepoURL, &app.Branch, &app.BuildType, &app.Status, &app.ContainerID, &app.ImageTag, &app.InternalPort, &app.ExposedPort, &app.EnvVars, &app.CreatedAt, &app.UpdatedAt)
+	err = scyllaSession.Query(`SELECT app_id, owner_email, name, description, repo_url, branch, build_type, status, container_id, image_tag, internal_port, exposed_port, custom_domain, env_vars, created_at, updated_at FROM cosmos.orbit_apps WHERE app_id = ?`, appID).
+		Scan(&app.AppID, &app.OwnerEmail, &app.Name, &app.Description, &app.RepoURL, &app.Branch, &app.BuildType, &app.Status, &app.ContainerID, &app.ImageTag, &app.InternalPort, &app.ExposedPort, &app.CustomDomain, &app.EnvVars, &app.CreatedAt, &app.UpdatedAt)
 	if err != nil || app.AppID == "" || app.OwnerEmail != email {
 		http.Error(w, `{"error":"app not found"}`, http.StatusNotFound)
 		return
@@ -1056,4 +1082,92 @@ func handleOrbitForgeWebhook(w http.ResponseWriter, r *http.Request) {
 		"triggered": triggered,
 		"count":     len(triggered),
 	})
+}
+
+// handleOrbitDomainUpdate sets or removes a custom domain for an app.
+// POST /orbit/api/apps/:id/domain  body: {"domain":"example.com"} or {"domain":""}
+func handleOrbitDomainUpdate(w http.ResponseWriter, r *http.Request, appID string) {
+	email, err := getSessionUser(r)
+	if err != nil {
+		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+
+	var req struct {
+		Domain string `json:"domain"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"invalid request payload"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Verify app ownership
+	var ownerEmail string
+	if err := scyllaSession.Query(`SELECT owner_email FROM cosmos.orbit_apps WHERE app_id = ?`, appID).Scan(&ownerEmail); err != nil || ownerEmail != email {
+		http.Error(w, `{"error":"app not found"}`, http.StatusNotFound)
+		return
+	}
+
+	domain := strings.TrimSpace(strings.ToLower(req.Domain))
+
+	// If setting a non-empty domain, check for collisions across all apps
+	if domain != "" {
+		var existingID string
+		if err2 := scyllaSession.Query(`SELECT app_id FROM cosmos.orbit_apps WHERE custom_domain = ? ALLOW FILTERING`, domain).Scan(&existingID); err2 == nil && existingID != "" && existingID != appID {
+			http.Error(w, `{"error":"domain_conflict","message":"This domain is already mapped to another application."}`, http.StatusConflict)
+			return
+		}
+	}
+
+	_ = scyllaSession.Query(`UPDATE cosmos.orbit_apps SET custom_domain = ?, updated_at = ? WHERE app_id = ?`,
+		domain, time.Now().Unix(), appID).Exec()
+
+	w.Header().Set("Content-Type", "application/json")
+	if domain == "" {
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "message": "Custom domain removed."})
+	} else {
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"domain":  domain,
+			"message": fmt.Sprintf("Domain '%s' mapped. Point a CNAME record to this server's hostname to activate it.", domain),
+			"cname_instructions": map[string]string{
+				"type":   "CNAME",
+				"name":   domain,
+				"value":  r.Host,
+				"ttl":    "300",
+				"note":   "Also set an A record if CNAME is not supported at apex. SSL is handled automatically once DNS propagates.",
+			},
+		})
+	}
+}
+
+// handleOrbitDomainRouteProxy handles incoming requests on custom domains by looking up the app and proxying.
+// This is called from main.go when a Host: header doesn't match known subpaths.
+func handleOrbitDomainRouteProxy(w http.ResponseWriter, r *http.Request) {
+	host := r.Host
+	// Strip port if present
+	if h, _, err := net.SplitHostPort(host); err == nil {
+		host = h
+	}
+	host = strings.ToLower(strings.TrimSpace(host))
+
+	var appID string
+	var portNum int
+	var status string
+	if err := scyllaSession.Query(`SELECT app_id, exposed_port, status FROM cosmos.orbit_apps WHERE custom_domain = ? ALLOW FILTERING`, host).Scan(&appID, &portNum, &status); err != nil || appID == "" {
+		http.Error(w, "Domain not mapped to any Orbit application", http.StatusNotFound)
+		return
+	}
+
+	if status != "running" || portNum <= 0 {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		fmt.Fprintf(w, `<!DOCTYPE html><html><body style="background:#090d16;color:#e2eaf2;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="text-align:center;"><h2>Application is %s</h2><p style="color:#64748b;">Start the container from the Orbit console to access it.</p><a href="/orbit" style="display:inline-block;margin-top:16px;color:#38bdf8;text-decoration:none;padding:8px 16px;border:1px solid rgba(56,189,248,0.3);border-radius:8px;">Open Orbit Console</a></div></body></html>`, status)
+		return
+	}
+
+	targetURL, _ := url.Parse(fmt.Sprintf("http://127.0.0.1:%d", portNum))
+	proxy := httputil.NewSingleHostReverseProxy(targetURL)
+	r.Header.Set("X-Forwarded-Host", host)
+	r.Header.Set("X-Real-IP", r.RemoteAddr)
+	proxy.ServeHTTP(w, r)
 }
