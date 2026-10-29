@@ -367,6 +367,10 @@ func normalizeGitURL(rawURL string) string {
 	if strings.Contains(u, "127.0.0.1:3000/source/") {
 		u = strings.Replace(u, "127.0.0.1:3000/source/", "127.0.0.1:3000/", 1)
 	}
+	if strings.Contains(u, "cosmos.linuxguy.space/source/") {
+		u = strings.Replace(u, "https://cosmos.linuxguy.space/source/", "http://127.0.0.1:3000/", 1)
+		u = strings.Replace(u, "http://cosmos.linuxguy.space/source/", "http://127.0.0.1:3000/", 1)
+	}
 	if strings.Contains(u, "vshno.linuxguy.space/source/") {
 		u = strings.Replace(u, "https://vshno.linuxguy.space/source/", "http://127.0.0.1:3000/", 1)
 		u = strings.Replace(u, "http://vshno.linuxguy.space/source/", "http://127.0.0.1:3000/", 1)
