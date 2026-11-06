@@ -812,10 +812,8 @@ var STATIONS = [
 /* Total Z depth the camera travels */
 var TOTAL_Z = 19000;
 
-/* The scroll spacer height determines scroll-to-Z mapping.
-   More height = slower scrolling through Z. Each station
-   gets a "dwell" zone where the camera barely moves. */
-var SCROLL_HEIGHT = 30000; /* px of scroll - generous depth prevents skipping */
+/* The scroll spacer height matches station progression */
+var SCROLL_HEIGHT = (STATIONS.length - 1) * 1000;
 document.getElementById('scroll-spacer').style.height = SCROLL_HEIGHT + 'px';
 
 /* Station visibility range: +/- this many Z-units from station center */
@@ -827,6 +825,12 @@ var FADE_RANGE = 600;
 var scrollY = 0;
 var smoothZ = 0;
 var targetZ = 0;
+var currentStationIdx = 0;
+var targetStationIdx = 0;
+var navCooldown = 700; /* ms between station transitions */
+var lastNavTime = 0;
+var wheelAccum = 0;
+var wheelDecay = null;
 var rafPending = false;
 
 /* ─── DOM REFS ─── */
@@ -836,6 +840,93 @@ var labelEl  = document.getElementById('sect-id');
 var navEl    = document.getElementById('nav');
 var footerEl = document.getElementById('ft');
 var stationEls = STATIONS.map(function(s){ return document.getElementById(s.id); });
+
+/* ═══════════════════════════════════════════════
+   STATION-WISE CONTROLS
+   Each scroll action smoothly travels to the next/prev
+   station, coming to a complete, stable pause at each one.
+═══════════════════════════════════════════════════ */
+function goToStation(idx){
+  idx = CL(Math.round(idx), 0, STATIONS.length - 1);
+  targetStationIdx = idx;
+  currentStationIdx = idx;
+  targetZ = STATIONS[idx].z;
+  lastNavTime = Date.now();
+
+  var maxScroll = Math.max(1, SCROLL_HEIGHT - window.innerHeight);
+  var targetY = (idx / (STATIONS.length - 1)) * maxScroll;
+  window.scrollTo(0, targetY);
+  scrollY = targetY;
+}
+
+function nextStation(){
+  if(targetStationIdx < STATIONS.length - 1){
+    goToStation(targetStationIdx + 1);
+  }
+}
+
+function prevStation(){
+  if(targetStationIdx > 0){
+    goToStation(targetStationIdx - 1);
+  }
+}
+
+/* Expose to window for inline onclick handlers */
+window.goToStation = goToStation;
+window.nextStation = nextStation;
+window.prevStation = prevStation;
+
+/* Wheel gesture: one flick = one station transition + pause */
+window.addEventListener('wheel', function(e){
+  e.preventDefault();
+  wheelAccum += e.deltaY;
+  var now = Date.now();
+  if(Math.abs(wheelAccum) > 25 && (now - lastNavTime) > navCooldown){
+    if(wheelAccum > 0){
+      nextStation();
+    } else {
+      prevStation();
+    }
+    wheelAccum = 0;
+    lastNavTime = now;
+  }
+  clearTimeout(wheelDecay);
+  wheelDecay = setTimeout(function(){ wheelAccum = 0; }, 120);
+}, {passive: false});
+
+/* Touch gestures: swipe up/down */
+var touchStartY = 0;
+window.addEventListener('touchstart', function(e){
+  touchStartY = e.touches[0].clientY;
+}, {passive: true});
+
+window.addEventListener('touchend', function(e){
+  var dy = touchStartY - e.changedTouches[0].clientY;
+  var now = Date.now();
+  if(Math.abs(dy) > 35 && (now - lastNavTime) > navCooldown){
+    if(dy > 0){
+      nextStation();
+    } else {
+      prevStation();
+    }
+    lastNavTime = now;
+  }
+}, {passive: true});
+
+/* Keyboard: arrows, space, page down/up */
+window.addEventListener('keydown', function(e){
+  if(e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' '){
+    e.preventDefault();
+    nextStation();
+  } else if(e.key === 'ArrowUp' || e.key === 'PageUp'){
+    e.preventDefault();
+    prevStation();
+  } else if(e.key === 'Home'){
+    goToStation(0);
+  } else if(e.key === 'End'){
+    goToStation(STATIONS.length - 1);
+  }
+});
 
 /* ═══════════════════════════════════════════════
    MANIFESTO WORDS
@@ -848,46 +939,6 @@ if(mqEl){
     return '<span class="word">'+(w==='\u2014'?'<em>'+w+'</em>':w)+'</span>';
   }).join(' ');
   wordEls = Array.from(mqEl.querySelectorAll('.word'));
-}
-
-/* ═══════════════════════════════════════════════
-   CORE SCROLL → Z MAPPING
-
-   The magic: we define "stations" at specific scroll
-   positions. Between stations, Z moves fast (the
-   "travel" phase). Near stations, Z changes slowly
-   (the "dwell" phase), creating the pause effect.
-
-   Each station "owns" a range of scroll progress.
-   Within that range, the first 20% is approach,
-   middle 60% is dwell (slow Z), last 20% is depart.
-═══════════════════════════════════════════════════ */
-
-/* Build scroll-to-Z mapping with generous dwell zones */
-var numGaps = STATIONS.length - 1; /* 7 segments connecting 8 stations */
-
-function scrollToZ(scrollFraction){
-  if(scrollFraction <= 0) return STATIONS[0].z;
-  if(scrollFraction >= 1) return STATIONS[STATIONS.length - 1].z;
-
-  /* Find which station segment we're in */
-  var seg = scrollFraction * numGaps;
-  var segIdx = Math.min(Math.floor(seg), numGaps - 1);
-  var segFrac = seg - segIdx; /* 0→1 within this segment */
-
-  var curZ = STATIONS[segIdx].z;
-  var nextZ = STATIONS[segIdx + 1].z;
-
-  /* First 50% of the segment is pure dwell (camera rests at station)
-     Remaining 50% is smooth transit with smoothstep easing */
-  var dwellFrac = 0.50;
-  if(segFrac <= dwellFrac){
-    return curZ;
-  } else {
-    var t = (segFrac - dwellFrac) / (1 - dwellFrac);
-    var easeT = t * t * (3 - 2 * t);
-    return curZ + (nextZ - curZ) * easeT;
-  }
 }
 
 /* ═══════════════════════════════════════════════
@@ -916,8 +967,8 @@ function updateStations(camZ){
 
   /* Manifesto word reveal: based on distance from station 1 */
   if(wordEls.length){
-    var manifDist = camZ - STATIONS[1].z; /* negative = past it, positive = before it */
-    var manifProg = CL(1 - Math.abs(manifDist) / VISIBLE_RANGE, 0, 1); /* 0→1 proximity */
+    var manifDist = camZ - STATIONS[1].z;
+    var manifProg = CL(1 - Math.abs(manifDist) / VISIBLE_RANGE, 0, 1);
     wordEls.forEach(function(w, i){
       var threshold = (i / wordEls.length) * 0.85;
       w.classList.toggle('lit', manifProg > threshold + 0.15);
@@ -979,15 +1030,10 @@ function tickData(){
 function onFrame(){
   rafPending = false;
 
-  /* Compute target Z from scroll position */
-  var maxScroll = Math.max(1, SCROLL_HEIGHT - window.innerHeight);
-  var scrollFrac = CL(scrollY / maxScroll, 0, 1);
-  targetZ = scrollToZ(scrollFrac);
+  /* Smooth lerp to target station Z */
+  smoothZ += (targetZ - smoothZ) * 0.085;
 
-  /* Smooth lerp to target */
-  smoothZ += (targetZ - smoothZ) * 0.08;
-
-  /* Move the tunnel in Z — this is the core 3D scroll mechanism */
+  /* Move the tunnel in Z */
   tunnel.style.transform = 'translateZ(' + (-smoothZ) + 'px)';
 
   /* Update station visibility */
@@ -995,26 +1041,23 @@ function onFrame(){
   updateLabel(smoothZ);
 
   /* Nav scroll state */
-  if(navEl) navEl.classList.toggle('stuck', scrollY > 50);
+  if(navEl) navEl.classList.toggle('stuck', currentStationIdx > 0);
 
   /* Progress bar */
-  if(progBar) progBar.style.transform = 'scaleX(' + scrollFrac + ')';
+  if(progBar) progBar.style.transform = 'scaleX(' + (currentStationIdx / (STATIONS.length - 1)) + ')';
 
   /* Footer at end */
-  if(footerEl) footerEl.classList.toggle('show', scrollFrac > 0.96);
+  if(footerEl) footerEl.classList.toggle('show', currentStationIdx === (STATIONS.length - 1));
 }
 
-/* Continuous RAF for smooth lerp */
+/* Continuous RAF for silky smooth station transitions */
 function loop(){
   requestAnimationFrame(loop);
-  /* Always lerp even without scroll events for smooth motion */
-  var delta = Math.abs(targetZ - smoothZ);
-  if(delta > 0.5) onFrame();
+  onFrame();
 }
 
 window.addEventListener('scroll', function(){
-  scrollY = window.scrollY;
-  if(!rafPending){ rafPending = true; requestAnimationFrame(onFrame); }
+  /* Keep scroll position in sync with station */
 }, {passive:true});
 
 /* ═══════════════════════════════════════════════
@@ -1083,7 +1126,7 @@ window.addEventListener('scroll', function(){
   heroGrp.position.set(0, 0, 0);
   scene.add(heroGrp);
 
-  /* ── FORGE PLANET (Three.js z = -40, aligned with station 2 ratio) ── */
+  /* ── FORGE PLANET (Station 2: camZ ≈ -1, planet at perfect distance z = -33) ── */
   var forgeGrp = new T.Group();
   var forgeMat = new T.MeshStandardMaterial({color:0x250400,emissive:0xff3300,emissiveIntensity:.55,metalness:.2,roughness:.88});
   forgeGrp.add(new T.Mesh(new T.SphereGeometry(5.5,64,64), forgeMat));
@@ -1094,10 +1137,10 @@ window.addEventListener('scroll', function(){
     g.setAttribute('position',new T.BufferAttribute(p,3));
     forgeGrp.add(new T.Points(g,new T.PointsMaterial({color:0xff6b35,size:.12,transparent:true,opacity:.72,blending:T.AdditiveBlending})));
   })();
-  forgeGrp.position.set(-10, -4, -60);
+  forgeGrp.position.set(14.0, 7.0, -30);
   scene.add(forgeGrp);
 
-  /* ── OORT PLANET (Three.js z = -100) ── */
+  /* ── OORT PLANET (Station 3: camZ ≈ -30, planet at perfect distance z = -58) ── */
   var oortGrp = new T.Group();
   var oortMat = new T.MeshStandardMaterial({color:0x020b18,emissive:0x38bdf8,emissiveIntensity:.35,metalness:.7,roughness:.3});
   oortGrp.add(new T.Mesh(new T.SphereGeometry(5,64,64), oortMat));
@@ -1107,10 +1150,10 @@ window.addEventListener('scroll', function(){
   oRng2.rotation.x=Math.PI/4.5;
   oortGrp.add(oRng, oRng2);
   oortGrp.add(new T.Mesh(new T.SphereGeometry(6.2,32,32),new T.MeshBasicMaterial({color:0x1a8fff,transparent:true,opacity:.05,side:T.BackSide,blending:T.AdditiveBlending})));
-  oortGrp.position.set(10, 3, -100);
+  oortGrp.position.set(-14.0, 6.5, -58);
   scene.add(oortGrp);
 
-  /* ── ORBIT CORE (Three.js z = -140) ── */
+  /* ── ORBIT CORE (Station 4: camZ ≈ -58, core at perfect distance z = -86) ── */
   var orbitGrp = new T.Group();
   var orbitMat = new T.MeshStandardMaterial({color:0x0a001e,emissive:0xa855f7,emissiveIntensity:.7,metalness:.92,roughness:.1});
   var orbitMesh = new T.Mesh(new T.OctahedronGeometry(3.5,2), orbitMat);
@@ -1123,7 +1166,7 @@ window.addEventListener('scroll', function(){
     g.setAttribute('position',new T.BufferAttribute(p,3));
     orbitGrp.add(new T.Points(g,new T.PointsMaterial({color:0xcc88ff,size:.09,transparent:true,opacity:.78,blending:T.AdditiveBlending})));
   })();
-  orbitGrp.position.set(0, -4, -140);
+  orbitGrp.position.set(14.0, 6.0, -86);
   scene.add(orbitGrp);
 
   /* ── DEBRIS ── */
@@ -1151,8 +1194,8 @@ window.addEventListener('scroll', function(){
     var dt = clock.getDelta();
     var t  = clock.getElapsedTime();
 
-    /* Camera Z tracks the CSS tunnel position */
-    var threeZ = 50 - smoothZ * Z_SCALE;
+    /* Camera Z tracks the CSS tunnel position forward */
+    var threeZ = 50 + smoothZ * Z_SCALE;
     cam3.position.z = threeZ;
     cam3.position.x = Math.sin(t * 0.04) * 1.5;
     cam3.position.y = Math.cos(t * 0.03) * 0.8;
