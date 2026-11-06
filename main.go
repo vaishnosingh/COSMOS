@@ -538,7 +538,7 @@ h1{font-size:48px;font-weight:700;margin-bottom:8px}
 
 func provisionMinIO(ak, sk, bucket string) {
 	log.Printf("[MinIO] Provisioning %s", ak)
-	exec.Command("mc", "alias", "set", "cosmos", "http://127.0.0.1:9000", "unityadmin", "UnityAdmin2026!").Run()
+	exec.Command("mc", "alias", "set", "cosmos", "http://127.0.0.1:9010", "unityadmin", "UnityAdmin2026!").Run()
 	exec.Command("mc", "admin", "user", "add", "cosmos", ak, sk).Run()
 	exec.Command("mc", "mb", "--ignore-existing", "cosmos/"+bucket).Run()
 	exec.Command("mc", "version", "enable", "cosmos/"+bucket).Run()

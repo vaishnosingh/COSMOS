@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -25,7 +26,7 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
-const minioEndpoint = "127.0.0.1:9000"
+const minioEndpoint = "127.0.0.1:9010"
 const publicMinioEndpoint = "cosmos.linuxguy.space"
 
 // authS3Console validates the session and returns (accessKey, secretKey, bucket).
@@ -134,6 +135,8 @@ func RegisterS3ConsoleRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/oort/api/password", handleS3Password)
 	mux.HandleFunc("/oort/api/objects/move", handleS3Move)
 	mux.HandleFunc("/oort/api/buckets/rename", handleS3RenameBucket)
+	mux.HandleFunc("/oort/api/nas/info", handleMornyeNASInfo)
+	mux.HandleFunc("/oort/api/nas/enable-streaming", handleMornyeNASEnableStreaming)
 }
 
 // ─── Console HTML page ────────────────────────────────────────────────────────
@@ -1160,16 +1163,161 @@ var proxyTransport = &http.Transport{
 }
 
 
+type MornyeTrackItem struct {
+	Key          string `json:"key"`
+	Name         string `json:"name"`
+	Title        string `json:"title"`
+	Size         int64  `json:"size"`
+	Format       string `json:"format"`
+	StreamURL    string `json:"stream_url"`
+	LastModified string `json:"last_modified"`
+}
+
+func handleMornyeNASInfo(w http.ResponseWriter, r *http.Request) {
+	ak, sk, defBucket, ok := authS3Console(r)
+	if !ok {
+		jsonErr(w, "unauthorized", 401)
+		return
+	}
+	var username, name string
+	scyllaSession.Query(`SELECT username, name FROM cosmos.users WHERE service='git' AND email=?`, ak).Scan(&username, &name)
+	if username == "" {
+		username = strings.Split(ak, "@")[0]
+	}
+
+	var defDisp string
+	scyllaSession.Query(`SELECT bucket_display_name FROM cosmos.users WHERE service='git' AND email=?`, ak).Scan(&defDisp)
+	if defDisp == "" {
+		defDisp = "mybucket"
+	}
+
+	type NASBucketInfo struct {
+		Name        string `json:"name"`
+		DisplayName string `json:"display_name"`
+		IsDefault   bool   `json:"is_default"`
+		IsPublic    bool   `json:"is_public"`
+		NASUrl      string `json:"nas_url"`
+		PlaylistUrl string `json:"playlist_url"`
+		TrackCount  int    `json:"track_count"`
+		MusicBytes  int64  `json:"music_bytes"`
+	}
+
+	var bucketList []NASBucketInfo
+	rawBuckets := []struct{ name, disp string }{ {defBucket, defDisp} }
+
+	iter := scyllaSession.Query(`SELECT bucket_name, display_name FROM cosmos.buckets WHERE owner_email = ?`, ak).Iter()
+	var b, disp string
+	for iter.Scan(&b, &disp) {
+		if disp == "" { disp = b }
+		rawBuckets = append(rawBuckets, struct{ name, disp string }{b, disp})
+	}
+	iter.Close()
+
+	mc, _ := minioClient(ak, sk)
+	ctx := context.Background()
+
+	for i, rb := range rawBuckets {
+		if rb.name == "" { continue }
+		
+		cmd := exec.Command("mc", "anonymous", "get", "cosmos/"+rb.name)
+		out, _ := cmd.CombinedOutput()
+		isPub := strings.Contains(string(out), "download") || strings.Contains(string(out), "public")
+
+		trackCount := 0
+		var musicBytes int64 = 0
+		if mc != nil {
+			for obj := range mc.ListObjects(ctx, rb.name, minio.ListObjectsOptions{Recursive: true}) {
+				if obj.Err == nil && !strings.HasSuffix(obj.Key, "/") {
+					lower := strings.ToLower(obj.Key)
+					if strings.HasSuffix(lower, ".flac") || strings.HasSuffix(lower, ".mp3") ||
+					   strings.HasSuffix(lower, ".wav") || strings.HasSuffix(lower, ".m4a") ||
+					   strings.HasSuffix(lower, ".aac") || strings.HasSuffix(lower, ".ogg") ||
+					   strings.HasSuffix(lower, ".opus") || strings.HasSuffix(lower, ".alac") {
+						trackCount++
+						musicBytes += obj.Size
+					}
+				}
+			}
+		}
+
+		bucketList = append(bucketList, NASBucketInfo{
+			Name:        rb.name,
+			DisplayName: rb.disp,
+			IsDefault:   (i == 0),
+			IsPublic:    isPub,
+			NASUrl:      fmt.Sprintf("https://cosmos.linuxguy.space/oort/%s/%s/", username, rb.disp),
+			PlaylistUrl: fmt.Sprintf("https://cosmos.linuxguy.space/oort/%s/%s/playlist.m3u", username, rb.disp),
+			TrackCount:  trackCount,
+			MusicBytes:  musicBytes,
+		})
+	}
+
+	jsonOK(w, map[string]any{
+		"username":       username,
+		"name":           name,
+		"email":          ak,
+		"secret_key":     sk,
+		"s3_endpoint":    "https://cosmos.linuxguy.space",
+		"default_bucket": defBucket,
+		"buckets":        bucketList,
+	})
+}
+
+func handleMornyeNASEnableStreaming(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		jsonErr(w, "method not allowed", 405)
+		return
+	}
+	ak, _, defBucket, ok := authS3Console(r)
+	if !ok {
+		jsonErr(w, "unauthorized", 401)
+		return
+	}
+	var req struct {
+		Bucket string `json:"bucket"`
+	}
+	json.NewDecoder(r.Body).Decode(&req)
+	if req.Bucket == "" { req.Bucket = defBucket }
+
+	isOwner := false
+	if req.Bucket == defBucket {
+		isOwner = true
+	} else {
+		var owner string
+		if err := scyllaSession.Query(`SELECT owner_email FROM cosmos.buckets WHERE bucket_name=?`, req.Bucket).Scan(&owner); err == nil && owner == ak {
+			isOwner = true
+		}
+	}
+	if !isOwner {
+		jsonErr(w, "forbidden", 403)
+		return
+	}
+
+	cmd := exec.Command("mc", "anonymous", "set", "download", "cosmos/"+req.Bucket)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		log.Printf("[NAS] enable streaming error for %s: %v | %s", req.Bucket, err, string(out))
+		jsonErr(w, "failed to enable streaming", 500)
+		return
+	}
+	jsonOK(w, map[string]any{"success": true, "bucket": req.Bucket, "status": "streaming_enabled"})
+}
+
 func handleS3PublicProxy(w http.ResponseWriter, r *http.Request, username, path string) {
-	idx := strings.Index(path, "/")
-	if idx == -1 {
+	trimmed := strings.Trim(path, "/")
+	var displayBucket, objectKey string
+	if idx := strings.Index(trimmed, "/"); idx != -1 {
+		displayBucket = trimmed[:idx]
+		objectKey = trimmed[idx+1:]
+	} else {
+		displayBucket = trimmed
+		objectKey = ""
+	}
+	if displayBucket == "" {
 		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(404)
 		w.Write([]byte("<html><body><h1>404 - Not Found</h1></body></html>"))
 		return
 	}
-	displayBucket := path[:idx]
-	objectKey := path[idx+1:]
 
 	cacheKey := username + ":" + displayBucket
 	var actualBucket string
@@ -1218,9 +1366,93 @@ func handleS3PublicProxy(w http.ResponseWriter, r *http.Request, username, path 
 		publicBucketCache.Store(cacheKey, actualBucket)
 	}
 
+	// Check if this is a Mornye NAS root, index.json, or playlist.m3u request
+	isPlaylist := objectKey == "playlist.m3u" || objectKey == "mornye.m3u" || r.URL.Query().Get("format") == "m3u"
+	isJSON := objectKey == "index.json" || objectKey == "mornye.json" || r.URL.Query().Get("format") == "json" || strings.Contains(r.Header.Get("Accept"), "application/json")
+	isRoot := (objectKey == "")
+
+	if isRoot || isPlaylist || isJSON {
+		mc, err := minio.New(minioEndpoint, &minio.Options{
+			Creds:  credentials.NewStaticV4("unityadmin", "UnityAdmin2026!", ""),
+			Secure: false,
+		})
+		if err != nil {
+			http.Error(w, "NAS storage backend error", 500)
+			return
+		}
+
+		var tracks []MornyeTrackItem
+		var totalBytes int64 = 0
+
+		ctx := context.Background()
+		for obj := range mc.ListObjects(ctx, actualBucket, minio.ListObjectsOptions{Recursive: true}) {
+			if obj.Err == nil && !strings.HasSuffix(obj.Key, "/") {
+				lower := strings.ToLower(obj.Key)
+				ext := strings.TrimPrefix(filepath.Ext(lower), ".")
+				name := filepath.Base(obj.Key)
+				title := strings.TrimSuffix(name, filepath.Ext(name))
+				displayTitle := strings.ReplaceAll(title, "_", " ")
+
+				isAudio := ext == "flac" || ext == "mp3" || ext == "wav" || ext == "m4a" || ext == "aac" || ext == "ogg" || ext == "opus" || ext == "alac"
+				if isAudio || isRoot {
+					streamURL := fmt.Sprintf("https://cosmos.linuxguy.space/oort/%s/%s/%s", username, displayBucket, url.PathEscape(obj.Key))
+					tracks = append(tracks, MornyeTrackItem{
+						Key:          obj.Key,
+						Name:         name,
+						Title:        displayTitle,
+						Size:         obj.Size,
+						Format:       strings.ToUpper(ext),
+						StreamURL:    streamURL,
+						LastModified: obj.LastModified.Format(time.RFC3339),
+					})
+					totalBytes += obj.Size
+				}
+			}
+		}
+
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS")
+
+		if isPlaylist {
+			w.Header().Set("Content-Type", "audio/x-mpegurl; charset=utf-8")
+			w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=\"%s-mornye.m3u\"", displayBucket))
+			var buf strings.Builder
+			buf.WriteString("#EXTM3U\n")
+			buf.WriteString(fmt.Sprintf("#PLAYLIST:Mornye NAS - %s - %s\n\n", username, displayBucket))
+			for _, t := range tracks {
+				buf.WriteString(fmt.Sprintf("#EXTINF:-1,%s\n%s\n", t.Title, t.StreamURL))
+			}
+			w.Write([]byte(buf.String()))
+			return
+		}
+
+		if isJSON {
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			json.NewEncoder(w).Encode(map[string]any{
+				"service":      "Mornye NAS",
+				"version":      "2.0",
+				"status":       "online",
+				"account":      username,
+				"bucket":       displayBucket,
+				"nas_url":      fmt.Sprintf("https://cosmos.linuxguy.space/oort/%s/%s/", username, displayBucket),
+				"playlist_url": fmt.Sprintf("https://cosmos.linuxguy.space/oort/%s/%s/playlist.m3u", username, displayBucket),
+				"s3_endpoint":  "https://cosmos.linuxguy.space",
+				"tracks_count": len(tracks),
+				"total_bytes":  totalBytes,
+				"tracks":       tracks,
+			})
+			return
+		}
+
+		// Web player page
+		renderMornyeNASWebPlayer(w, username, displayBucket, tracks, totalBytes)
+		return
+	}
+
 	targetPath := fmt.Sprintf("/%s/%s", actualBucket, objectKey)
 
-	targetUrl, _ := url.Parse("http://127.0.0.1:9000")
+	targetUrl, _ := url.Parse("http://127.0.0.1:9010")
 	proxy := httputil.NewSingleHostReverseProxy(targetUrl)
 	proxy.Transport = proxyTransport
 	
@@ -1230,9 +1462,35 @@ func handleS3PublicProxy(w http.ResponseWriter, r *http.Request, username, path 
 	proxy.ModifyResponse = func(resp *http.Response) error {
 		if resp.StatusCode == 403 {
 			resp.StatusCode = 403
-			resp.Body = io.NopCloser(strings.NewReader("<html><body><h1>403 - Access Denied</h1><p>Public access is not enabled for this bucket.</p></body></html>"))
-			resp.Header.Set("Content-Length", fmt.Sprintf("%d", len("<html><body><h1>403 - Access Denied</h1><p>Public access is not enabled for this bucket.</p></body></html>")))
+			resp.Body = io.NopCloser(strings.NewReader("<html><body><h1>403 - Access Denied</h1><p>Public streaming access is not enabled for this Mornye NAS bucket. Enable public streaming in Oort NAS Console.</p></body></html>"))
+			resp.Header.Set("Content-Length", fmt.Sprintf("%d", len("<html><body><h1>403 - Access Denied</h1><p>Public streaming access is not enabled for this Mornye NAS bucket. Enable public streaming in Oort NAS Console.</p></body></html>")))
 			resp.Header.Set("Content-Type", "text/html")
+			return nil
+		}
+		resp.Header.Set("Access-Control-Allow-Origin", "*")
+		resp.Header.Set("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS")
+		resp.Header.Set("Access-Control-Allow-Headers", "Range, Authorization, Content-Type")
+		resp.Header.Set("Access-Control-Expose-Headers", "Content-Range, Content-Length, Accept-Ranges")
+		resp.Header.Set("Accept-Ranges", "bytes")
+
+		lowerKey := strings.ToLower(objectKey)
+		switch {
+		case strings.HasSuffix(lowerKey, ".flac"):
+			resp.Header.Set("Content-Type", "audio/flac")
+		case strings.HasSuffix(lowerKey, ".mp3"):
+			resp.Header.Set("Content-Type", "audio/mpeg")
+		case strings.HasSuffix(lowerKey, ".wav"):
+			resp.Header.Set("Content-Type", "audio/wav")
+		case strings.HasSuffix(lowerKey, ".m4a"):
+			resp.Header.Set("Content-Type", "audio/mp4")
+		case strings.HasSuffix(lowerKey, ".aac"):
+			resp.Header.Set("Content-Type", "audio/aac")
+		case strings.HasSuffix(lowerKey, ".ogg"):
+			resp.Header.Set("Content-Type", "audio/ogg")
+		case strings.HasSuffix(lowerKey, ".opus"):
+			resp.Header.Set("Content-Type", "audio/opus")
+		case strings.HasSuffix(lowerKey, ".lrc"):
+			resp.Header.Set("Content-Type", "text/plain; charset=utf-8")
 		}
 		return nil
 	}
@@ -1241,6 +1499,229 @@ func handleS3PublicProxy(w http.ResponseWriter, r *http.Request, username, path 
 	proxy.ServeHTTP(tw, r)
 	recordHit(actualBucket, tw.statusCode, tw.bytes, false, r.Header.Get("CF-IPCountry"), "read")
 }
+
+func renderMornyeNASWebPlayer(w http.ResponseWriter, username, displayBucket string, tracks []MornyeTrackItem, totalBytes int64) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	nasURL := fmt.Sprintf("https://cosmos.linuxguy.space/oort/%s/%s/", username, displayBucket)
+	playlistURL := fmt.Sprintf("https://cosmos.linuxguy.space/oort/%s/%s/playlist.m3u", username, displayBucket)
+	jsonURL := fmt.Sprintf("https://cosmos.linuxguy.space/oort/%s/%s/index.json", username, displayBucket)
+
+	var sizeStr string
+	tb := float64(totalBytes)
+	if tb > 1024*1024*1024 {
+		sizeStr = fmt.Sprintf("%.2f GB", tb/(1024*1024*1024))
+	} else {
+		sizeStr = fmt.Sprintf("%.1f MB", tb/(1024*1024))
+	}
+
+	tracksJSON, _ := json.Marshal(tracks)
+
+	html := fmt.Sprintf(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mornye NAS · @%s / %s</title>
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%%23a855f7" d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>'>
+<style>
+:root{--bg:#030712;--surface:rgba(255,255,255,0.035);--border:rgba(255,255,255,0.09);--accent:#a855f7;--accent-cyan:#38bdf8;--text:#f3f4f6;--dim:#9ca3af;--mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;min-height:100vh;padding:24px 16px 120px;}
+.container{max-width:980px;margin:0 auto;}
+.glass{background:var(--surface);border:1px solid var(--border);border-radius:16px;backdrop-filter:blur(16px);padding:24px;margin-bottom:20px;}
+.header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:20px;}
+.brand{display:flex;align-items:center;gap:12px;}
+.icon-box{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#a855f7,#4f46e5);display:flex;align-items:center;justify-content:center;box-shadow:0 0 20px rgba(168,85,247,0.35);}
+.title{font-size:20px;font-weight:700;letter-spacing:-0.5px;}
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-family:var(--mono);text-transform:uppercase;padding:4px 10px;border-radius:99px;background:rgba(56,189,248,0.1);color:var(--accent-cyan);border:1px solid rgba(56,189,248,0.25);}
+.dot{width:6px;height:6px;border-radius:50%%;background:#22c55e;box-shadow:0 0 8px #22c55e;}
+.nas-box{background:rgba(0,0,0,0.5);border:1px solid rgba(168,85,247,0.3);border-radius:12px;padding:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.url-val{font-family:var(--mono);font-size:13px;color:#e9d5ff;flex:1;min-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.btn{cursor:pointer;background:linear-gradient(135deg,#a855f7,#6366f1);color:#fff;border:none;padding:9px 18px;border-radius:10px;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:0.2s;}
+.btn:hover{filter:brightness(1.15);transform:translateY(-1px);}
+.btn-ghost{background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--text);}
+.btn-ghost:hover{background:rgba(255,255,255,0.12);}
+.player-card{position:fixed;bottom:16px;left:50%%;transform:translateX(-50%%);width:calc(100%% - 32px);max-width:980px;background:rgba(15,23,42,0.95);border:1px solid rgba(168,85,247,0.4);border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,0.7);padding:14px 20px;z-index:9999;backdrop-filter:blur(20px);display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.track-table{width:100%%;border-collapse:collapse;margin-top:12px;font-size:13px;}
+.track-table th{text-align:left;color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:1px;padding:12px 14px;border-bottom:1px solid var(--border);}
+.track-table td{padding:14px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:middle;}
+.track-row:hover td{background:rgba(255,255,255,0.02);}
+.pill-format{font-size:10px;font-family:var(--mono);padding:2px 8px;border-radius:4px;font-weight:700;}
+.pill-FLAC{background:rgba(168,85,247,0.2);color:#d8b4fe;border:1px solid rgba(168,85,247,0.4);}
+.pill-MP3{background:rgba(34,197,94,0.2);color:#86efac;border:1px solid rgba(34,197,94,0.4);}
+.pill-WAV{background:rgba(56,189,248,0.2);color:#7dd3fc;border:1px solid rgba(56,189,248,0.4);}
+.pill-OTHER{background:rgba(255,255,255,0.1);color:#e2e8f0;border:1px solid rgba(255,255,255,0.2);}
+.vinyl{width:36px;height:36px;border-radius:50%%;background:#18181b;border:2px solid #3f3f46;display:flex;align-items:center;justify-content:center;position:relative;}
+.spinning{animation:spin 3s linear infinite;}
+@keyframes spin{100%%{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="glass">
+    <div class="header">
+      <div class="brand">
+        <div class="icon-box">
+          <svg width="22" height="22" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        </div>
+        <div>
+          <div class="title">Mornye NAS · Audio Stream Gateway</div>
+          <div style="font-size:13px;color:var(--dim);margin-top:2px;">Account: <strong style="color:#fff">@%s</strong> · Space: <strong style="color:var(--accent-cyan)">%s</strong></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <span class="badge"><span class="dot"></span>NAS Storage Online</span>
+        <a href="/oort/console" class="btn btn-ghost" style="text-decoration:none;">Oort Console →</a>
+      </div>
+    </div>
+
+    <div style="margin-bottom:16px;font-size:13px;color:var(--dim);">
+      Configure this dedicated URL into your <strong>Mornye Music Streaming App</strong> to access your network-attached library with lossless byte-range playback:
+    </div>
+
+    <div class="nas-box">
+      <div class="url-val" id="nasUrlVal">%s</div>
+      <button class="btn" onclick="copyText('%s','Mornye NAS URL copied!')">📋 Copy Mornye NAS URL</button>
+      <a href="%s" class="btn btn-ghost" style="text-decoration:none;" download>🎵 Playlist (.m3u)</a>
+      <a href="%s" class="btn btn-ghost" style="text-decoration:none;" target="_blank">JSON Metadata</a>
+    </div>
+
+    <div style="display:flex;gap:20px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border);font-size:13px;color:var(--dim);flex-wrap:wrap;">
+      <div>Tracks: <strong style="color:#fff">%d audio file(s)</strong></div>
+      <div>Library Size: <strong style="color:#fff">%s</strong></div>
+      <div>Protocol: <strong style="color:#38bdf8">RFC 7233 Byte-Range Streaming</strong></div>
+      <div>DAC / Hi-Res: <strong style="color:#a855f7">Bit-Perfect 24-bit/192kHz Ready</strong></div>
+    </div>
+  </div>
+
+  <div class="glass">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <h3 style="font-size:16px;font-weight:600;">Music Library</h3>
+      <button class="btn btn-ghost" onclick="playAll()">▶ Play All</button>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table class="track-table">
+        <thead>
+          <tr>
+            <th style="width:50px;">#</th>
+            <th>Track Name</th>
+            <th style="width:100px;">Format</th>
+            <th style="width:110px;">Size</th>
+            <th style="width:200px;text-align:right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="trackList">
+          <!-- Injected by JS -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="player-card" id="playerBar" style="display:none;">
+  <div class="vinyl spinning" id="disc">
+    <div style="width:10px;height:10px;border-radius:50%%;background:#a855f7;"></div>
+  </div>
+  <div style="flex:1;min-width:200px;">
+    <div id="nowPlayingTitle" style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">No track playing</div>
+    <div id="nowPlayingSub" style="font-size:11px;color:var(--dim);font-family:var(--mono);margin-top:2px;">Select a track to stream</div>
+  </div>
+  <audio id="audioEl" controls style="flex:2;min-width:260px;height:36px;outline:none;border-radius:8px;"></audio>
+  <button class="btn btn-ghost" onclick="playNext()" title="Next Track">⏭</button>
+</div>
+
+<script>
+const tracks = %s;
+let currentIndex = -1;
+const audio = document.getElementById('audioEl');
+const bar = document.getElementById('playerBar');
+const disc = document.getElementById('disc');
+const nowTitle = document.getElementById('nowPlayingTitle');
+const nowSub = document.getElementById('nowPlayingSub');
+
+function fmtBytes(b){
+  if(!b) return '0 B';
+  const u = ['B','KB','MB','GB'];
+  let i=0; while(b>=1024 && i<u.length-1){b/=1024; i++;}
+  return b.toFixed(1) + ' ' + u[i];
+}
+
+function renderTracks(){
+  const tb = document.getElementById('trackList');
+  if(!tracks || !tracks.length){
+    tb.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--dim);">No audio tracks uploaded yet. Open Oort Console to upload FLAC, MP3, or WAV files.</td></tr>';
+    return;
+  }
+  tb.innerHTML = tracks.map((t, idx) => {
+    const fmt = t.format || 'AUDIO';
+    const pillClass = 'pill-' + (['FLAC','MP3','WAV'].includes(fmt) ? fmt : 'OTHER');
+    return '<tr class="track-row">' +
+      '<td style="color:var(--dim);font-family:var(--mono);">' + (idx + 1) + '</td>' +
+      '<td><strong style="color:#fff;">' + escapeHtml(t.title) + '</strong><div style="font-size:11px;color:var(--dim);font-family:var(--mono);margin-top:2px;">' + escapeHtml(t.name) + '</div></td>' +
+      '<td><span class="pill-format ' + pillClass + '">' + fmt + '</span></td>' +
+      '<td style="color:var(--dim);font-family:var(--mono);">' + fmtBytes(t.size) + '</td>' +
+      '<td style="text-align:right;">' +
+        '<button class="btn" style="padding:6px 12px;margin-right:6px;font-size:12px;" onclick="playTrack(' + idx + ')">▶ Play</button>' +
+        '<a href="' + t.stream_url + '" download class="btn btn-ghost" style="padding:6px 10px;font-size:12px;text-decoration:none;margin-right:6px;">⬇</a>' +
+        '<button class="btn btn-ghost" style="padding:6px 10px;font-size:12px;" onclick="copyText(\'' + t.stream_url + '\',\'Direct stream URL copied!\')" title="Copy Link">🔗</button>' +
+      '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function escapeHtml(s){
+  if(!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function playTrack(idx){
+  if(idx < 0 || idx >= tracks.length) return;
+  currentIndex = idx;
+  const t = tracks[idx];
+  nowTitle.textContent = t.title || t.name;
+  nowSub.textContent = (t.format || 'AUDIO') + ' · ' + fmtBytes(t.size) + ' · Zero-Delay Stream';
+  audio.src = t.stream_url;
+  bar.style.display = 'flex';
+  audio.play();
+  disc.classList.add('spinning');
+}
+
+function playNext(){
+  if(tracks.length === 0) return;
+  const next = (currentIndex + 1) %% tracks.length;
+  playTrack(next);
+}
+
+function playAll(){
+  if(tracks.length > 0) playTrack(0);
+}
+
+audio.onended = () => { playNext(); };
+audio.onpause = () => { disc.classList.remove('spinning'); };
+audio.onplay  = () => { disc.classList.add('spinning'); };
+
+function copyText(txt, msg){
+  navigator.clipboard.writeText(txt).then(() => {
+    alert(msg || 'Copied to clipboard!');
+  }).catch(() => {
+    prompt('Copy this URL:', txt);
+  });
+}
+
+renderTracks();
+</script>
+</body>
+</html>`,
+		username, displayBucket,
+		username, displayBucket,
+		nasURL, nasURL, playlistURL, jsonURL,
+		len(tracks), sizeStr,
+		string(tracksJSON),
+	)
+	w.Write([]byte(html))
+}
+
 
 func handleS3BucketSettings(w http.ResponseWriter, r *http.Request) {
 	ak, _, defBucket, ok := authS3Console(r)
@@ -1713,7 +2194,7 @@ func handleS3CDNProxy(w http.ResponseWriter, r *http.Request) {
 	
 	targetPath := "/" + bucket + "/" + key
 
-	targetUrl, _ := url.Parse("http://127.0.0.1:9000")
+	targetUrl, _ := url.Parse("http://127.0.0.1:9010")
 	proxy := httputil.NewSingleHostReverseProxy(targetUrl)
 	proxy.Director = func(req *http.Request) {
 		req.URL.Scheme = targetUrl.Scheme
