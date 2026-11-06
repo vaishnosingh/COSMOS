@@ -815,7 +815,7 @@ var TOTAL_Z = 19000;
 /* The scroll spacer height determines scroll-to-Z mapping.
    More height = slower scrolling through Z. Each station
    gets a "dwell" zone where the camera barely moves. */
-var SCROLL_HEIGHT = 16000; /* px of scroll */
+var SCROLL_HEIGHT = 30000; /* px of scroll - generous depth prevents skipping */
 document.getElementById('scroll-spacer').style.height = SCROLL_HEIGHT + 'px';
 
 /* Station visibility range: +/- this many Z-units from station center */
@@ -863,41 +863,31 @@ if(mqEl){
    middle 60% is dwell (slow Z), last 20% is depart.
 ═══════════════════════════════════════════════════ */
 
-/* Build scroll-to-Z mapping with dwell zones */
-/* Each station gets equal scroll allocation */
-var stationScrollFrac = 1 / STATIONS.length; /* e.g., 0.125 each */
+/* Build scroll-to-Z mapping with generous dwell zones */
+var numGaps = STATIONS.length - 1; /* 7 segments connecting 8 stations */
 
 function scrollToZ(scrollFraction){
+  if(scrollFraction <= 0) return STATIONS[0].z;
+  if(scrollFraction >= 1) return STATIONS[STATIONS.length - 1].z;
+
   /* Find which station segment we're in */
-  var seg = CL(scrollFraction * STATIONS.length, 0, STATIONS.length - 0.001);
-  var segIdx = Math.floor(seg);
+  var seg = scrollFraction * numGaps;
+  var segIdx = Math.min(Math.floor(seg), numGaps - 1);
   var segFrac = seg - segIdx; /* 0→1 within this segment */
 
   var curZ = STATIONS[segIdx].z;
-  var nextZ = segIdx < STATIONS.length - 1 ? STATIONS[segIdx + 1].z : curZ;
+  var nextZ = STATIONS[segIdx + 1].z;
 
-  /* Within each segment:
-     0.00-0.15 = depart previous / approach (fast Z motion, ease in)
-     0.15-0.85 = DWELL (very slow Z motion — camera stays near station)
-     0.85-1.00 = depart (fast Z motion, ease out) */
-  var dwellStart = 0.15;
-  var dwellEnd   = 0.85;
-  var zFrac;
-
-  if(segFrac < dwellStart){
-    /* approach: ease in, move Z from ~5% to 0% of gap */
-    zFrac = (1 - EO(1 - segFrac / dwellStart)) * 0.05;
-  } else if(segFrac > dwellEnd){
-    /* depart: ease out, move Z from 0% to 95% of gap */
-    var departFrac = (segFrac - dwellEnd) / (1 - dwellEnd);
-    zFrac = 0.05 + EIO(departFrac) * 0.95;
+  /* First 50% of the segment is pure dwell (camera rests at station)
+     Remaining 50% is smooth transit with smoothstep easing */
+  var dwellFrac = 0.50;
+  if(segFrac <= dwellFrac){
+    return curZ;
   } else {
-    /* dwell: very slight Z drift (0→5% of gap) */
-    var dwellFrac = (segFrac - dwellStart) / (dwellEnd - dwellStart);
-    zFrac = dwellFrac * 0.05;
+    var t = (segFrac - dwellFrac) / (1 - dwellFrac);
+    var easeT = t * t * (3 - 2 * t);
+    return curZ + (nextZ - curZ) * easeT;
   }
-
-  return curZ + (nextZ - curZ) * zFrac;
 }
 
 /* ═══════════════════════════════════════════════
