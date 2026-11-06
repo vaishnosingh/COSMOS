@@ -1197,63 +1197,11 @@ window.addEventListener('scroll', function(){
     m.rotation.set(rx,ry,0); return m;
   }
 
-  /* ── HERO CORE (Three.js Z=0, world Z=0) ── */
+  /* ── PLANETS (Hidden to keep text 100% clear and unobstructed) ── */
   var heroGrp = new T.Group();
-  var icoMat = new T.MeshStandardMaterial({color:0x071428,emissive:0x8fd9ff,emissiveIntensity:.45,metalness:.95,roughness:.12});
-  var icoMesh = new T.Mesh(new T.IcosahedronGeometry(2.5,4), icoMat);
-  var wfMesh = new T.Mesh(new T.IcosahedronGeometry(2.55,4), new T.MeshBasicMaterial({color:0x8fd9ff,wireframe:true,transparent:true,opacity:.14}));
-  heroGrp.add(icoMesh, wfMesh);
-  heroGrp.add(new T.Mesh(new T.SphereGeometry(3.5,32,32), new T.MeshBasicMaterial({color:0x3a8fff,transparent:true,opacity:.06,side:T.BackSide,blending:T.AdditiveBlending})));
-  var hR1=mkRing(5,.028,0x8fd9ff,.6,Math.PI/2.8,0);
-  var hR2=mkRing(7,.02,0x43e5a0,.4,Math.PI/3.5,Math.PI/5);
-  var hR3=mkRing(9,.014,0xa855f7,.3,Math.PI/2,Math.PI/4);
-  var satM=new T.Mesh(new T.SphereGeometry(.16,8,8), new T.MeshBasicMaterial({color:0x43e5a0,blending:T.AdditiveBlending}));
-  heroGrp.add(hR1,hR2,hR3,satM);
-  heroGrp.position.set(0, 0, 0);
-  scene.add(heroGrp);
-
-  /* ── FORGE PLANET (Station 2: camZ ≈ -1, planet at perfect distance z = -33) ── */
   var forgeGrp = new T.Group();
-  var forgeMat = new T.MeshStandardMaterial({color:0x250400,emissive:0xff3300,emissiveIntensity:.55,metalness:.2,roughness:.88});
-  forgeGrp.add(new T.Mesh(new T.SphereGeometry(5.5,64,64), forgeMat));
-  forgeGrp.add(new T.Mesh(new T.SphereGeometry(7,32,32), new T.MeshBasicMaterial({color:0xff4422,transparent:true,opacity:.06,side:T.BackSide,blending:T.AdditiveBlending})));
-  (function(){
-    var g=new T.BufferGeometry(),p=new Float32Array(700*3);
-    for(var i=0;i<700;i++){var a=Math.random()*Math.PI*2,r=7+Math.random()*2.2,y=(Math.random()-.5)*.9;p[i*3]=Math.cos(a)*r;p[i*3+1]=y;p[i*3+2]=Math.sin(a)*r;}
-    g.setAttribute('position',new T.BufferAttribute(p,3));
-    forgeGrp.add(new T.Points(g,new T.PointsMaterial({color:0xff6b35,size:.12,transparent:true,opacity:.72,blending:T.AdditiveBlending})));
-  })();
-  forgeGrp.position.set(14.0, 7.0, -30);
-  scene.add(forgeGrp);
-
-  /* ── OORT PLANET (Station 3: camZ ≈ -30, planet at perfect distance z = -58) ── */
   var oortGrp = new T.Group();
-  var oortMat = new T.MeshStandardMaterial({color:0x020b18,emissive:0x38bdf8,emissiveIntensity:.35,metalness:.7,roughness:.3});
-  oortGrp.add(new T.Mesh(new T.SphereGeometry(5,64,64), oortMat));
-  var oRng=new T.Mesh(new T.TorusGeometry(8,1.4,2,200),new T.MeshBasicMaterial({color:0x8fd9ff,transparent:true,opacity:.2,blending:T.AdditiveBlending,side:T.DoubleSide}));
-  oRng.rotation.x=Math.PI/4.5;
-  var oRng2=new T.Mesh(new T.TorusGeometry(10.5,.4,2,200),new T.MeshBasicMaterial({color:0x4dd4ff,transparent:true,opacity:.11,blending:T.AdditiveBlending,side:T.DoubleSide}));
-  oRng2.rotation.x=Math.PI/4.5;
-  oortGrp.add(oRng, oRng2);
-  oortGrp.add(new T.Mesh(new T.SphereGeometry(6.2,32,32),new T.MeshBasicMaterial({color:0x1a8fff,transparent:true,opacity:.05,side:T.BackSide,blending:T.AdditiveBlending})));
-  oortGrp.position.set(-14.0, 6.5, -58);
-  scene.add(oortGrp);
-
-  /* ── ORBIT CORE (Station 4: camZ ≈ -58, core at perfect distance z = -86) ── */
   var orbitGrp = new T.Group();
-  var orbitMat = new T.MeshStandardMaterial({color:0x0a001e,emissive:0xa855f7,emissiveIntensity:.7,metalness:.92,roughness:.1});
-  var orbitMesh = new T.Mesh(new T.OctahedronGeometry(3.5,2), orbitMat);
-  var orbitWf = new T.Mesh(new T.OctahedronGeometry(3.6,2), new T.MeshBasicMaterial({color:0xa855f7,wireframe:true,transparent:true,opacity:.2}));
-  orbitGrp.add(orbitMesh, orbitWf);
-  orbitGrp.add(new T.Mesh(new T.SphereGeometry(5.5,32,32),new T.MeshBasicMaterial({color:0xa855f7,transparent:true,opacity:.05,side:T.BackSide,blending:T.AdditiveBlending})));
-  (function(){
-    var g=new T.BufferGeometry(),p=new Float32Array(450*3);
-    for(var i=0;i<450;i++){var r=5+Math.random()*2,th=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1);p[i*3]=r*Math.sin(ph)*Math.cos(th);p[i*3+1]=r*Math.sin(ph)*Math.sin(th);p[i*3+2]=r*Math.cos(ph);}
-    g.setAttribute('position',new T.BufferAttribute(p,3));
-    orbitGrp.add(new T.Points(g,new T.PointsMaterial({color:0xcc88ff,size:.09,transparent:true,opacity:.78,blending:T.AdditiveBlending})));
-  })();
-  orbitGrp.position.set(14.0, 6.0, -86);
-  scene.add(orbitGrp);
 
   /* ── DEBRIS ── */
   var debGrp = new T.Group();
@@ -1285,41 +1233,6 @@ window.addEventListener('scroll', function(){
     cam3.position.z = threeZ;
     cam3.position.x = Math.sin(t * 0.04) * 1.5;
     cam3.position.y = Math.cos(t * 0.03) * 0.8;
-
-    /* Hero Core: active only at Station 0. Dissolve smoothly so camera never collides with it */
-    var heroDist = Math.abs(smoothZ);
-    if(heroDist < 2200){
-      heroGrp.visible = true;
-      var heroScale = Math.max(0.001, 1 - heroDist / 1900);
-      heroGrp.scale.setScalar(heroScale);
-
-      icoMesh.rotation.y += dt*.22; icoMesh.rotation.z += dt*.08;
-      wfMesh.rotation.copy(icoMesh.rotation);
-      hR1.rotation.z += dt*.36;
-      hR2.rotation.x += dt*.22; hR2.rotation.z += dt*.1;
-      hR3.rotation.y += dt*.28; hR3.rotation.x += dt*.14;
-      var sa = t*.6;
-      satM.position.set(Math.cos(sa)*8,Math.sin(sa*.35)*2,Math.sin(sa)*8);
-    } else {
-      heroGrp.visible = false;
-    }
-
-    /* Forge rotation */
-    forgeGrp.children[0].rotation.y = t*.1;
-    if(forgeGrp.children[2]) forgeGrp.children[2].rotation.y = t*.35;
-    forgeMat.emissiveIntensity = .45 + .15*Math.sin(t*1.6);
-
-    /* Oort */
-    oortGrp.children[0].rotation.y = t*.08;
-    oRng.rotation.z = t*.04;
-    oRng2.rotation.z = -t*.025;
-    oortMat.emissiveIntensity = .28 + .1*Math.sin(t*1.2);
-
-    /* Orbit */
-    orbitMesh.rotation.y += dt*.2; orbitMesh.rotation.x += dt*.08;
-    orbitWf.rotation.copy(orbitMesh.rotation);
-    if(orbitGrp.children[3]) orbitGrp.children[3].rotation.y = t*.16;
-    orbitMat.emissiveIntensity = .6 + .15*Math.sin(t*1.9);
 
     /* Debris */
     debGrp.children.forEach(function(d){
