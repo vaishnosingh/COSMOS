@@ -2,1439 +2,1237 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cosmos — Private Infrastructure</title>
-<meta name="description" content="Self-hosted infrastructure that answers to you alone. Private code, infinite storage, zero compromises.">
-<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="6" fill="%23eef3f8"/><ellipse cx="16" cy="16" rx="14" ry="5.5" fill="none" stroke="%238fd9ff" stroke-width="1.5" transform="rotate(-24 16 16)"/></svg>'>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Cosmos — Sovereign Cloud Platform</title>
+<meta name="description" content="Self-hosted Git, infinite storage, container orchestration. Your infrastructure. Zero compromises.">
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="5" fill="%23eef3f8"/><ellipse cx="16" cy="16" rx="14" ry="5" fill="none" stroke="%238fd9ff" stroke-width="1.5" transform="rotate(-28 16 16)"/></svg>'>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@300;400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="/three.min.js"></script>
 <style>
-/* ─────────────────────────────── FOUNDATION ─────────────────────────────── */
+/* ═══════════════ RESET + TOKENS ═══════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#020308;
   --ink:#eef3f8;
-  --dim:rgba(226,234,242,.55);
-  --faint:rgba(226,234,242,.3);
-  --line:rgba(226,234,242,.08);
+  --dim:rgba(238,243,248,.5);
+  --faint:rgba(238,243,248,.18);
+  --line:rgba(238,243,248,.07);
+  --ac:#8fd9ff;
   --ok:#43e5a0;
-  --mono:'JetBrains Mono',ui-monospace,monospace;
-  --disp:'Space Grotesk',sans-serif;
-  --serif:'Instrument Serif',serif;
-  --pad:clamp(24px,5vw,84px);
-  --ez:cubic-bezier(.16,1,.3,1);
+  --ember:#ff6b35;
+  --violet:#a855f7;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'Space Grotesk',system-ui,sans-serif;
+  --serif:'Instrument Serif',Georgia,serif;
+  --pad:clamp(20px,5vw,80px);
+  --ease:cubic-bezier(.16,1,.3,1);
 }
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
-body{
-  font-family:var(--disp);
+html{
   background:var(--bg);color:var(--ink);
+  overflow-x:hidden;
+}
+body{
+  font-family:var(--sans);background:var(--bg);
   overflow-x:hidden;-webkit-font-smoothing:antialiased;
-  animation:bootIn 1.1s ease both;
 }
-@keyframes bootIn{from{opacity:0}to{opacity:1}}
-::selection{background:rgba(255,171,77,.28)}
-::-webkit-scrollbar{width:10px}
-::-webkit-scrollbar-track{background:var(--bg)}
-::-webkit-scrollbar-thumb{background:#141b28;border:3px solid var(--bg);border-radius:6px}
-a:focus-visible,button:focus-visible{outline:1px solid rgba(238,243,248,.55);outline-offset:4px;border-radius:4px}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+::selection{background:rgba(143,217,255,.25)}
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#1c2640;border-radius:2px}
 
-/* ─── DEPTH LAYERS ─── */
-#sky{position:fixed;inset:0;z-index:0;pointer-events:none}
+/* ═══════════════ THREE.JS CANVAS ═══════════════ */
+#cvs{
+  position:fixed;inset:0;width:100%;height:100%;
+  z-index:0;pointer-events:none;
+}
+
+/* ═══════════════ FILM GRAIN + VIGNETTE ═══════════════ */
 .grain{
-  position:fixed;inset:-8%;z-index:2;pointer-events:none;opacity:.05;
-  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size:180px 180px;
-  animation:grain .9s steps(3) infinite;
+  position:fixed;inset:0;z-index:1;pointer-events:none;
+  opacity:.028;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:200px;
 }
-@keyframes grain{0%,100%{transform:translate(0,0)}33%{transform:translate(-1.4%,1%)}66%{transform:translate(1%,-1.4%)}}
-.vig{position:fixed;inset:0;z-index:2;pointer-events:none;
-  background:radial-gradient(ellipse at 50% 42%,transparent 55%,rgba(1,2,8,.55) 100%)}
+.vignette{
+  position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:radial-gradient(ellipse 85% 70% at 50% 45%,transparent 30%,rgba(2,3,8,.6) 70%,#020308 100%);
+}
 
-/* ─── CUSTOM CURSOR ─── */
-.cur{position:fixed;top:0;left:0;z-index:300;pointer-events:none;opacity:0;transition:opacity .3s}
-body.cur-vis .cur{opacity:1}
-#curDot{width:4px;height:4px;margin:-2px 0 0 -2px;border-radius:50%;background:var(--ink)}
-#curRing{width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;
-  border:1px solid rgba(238,243,248,.4);display:flex;align-items:center;justify-content:center;
-  transition:width .3s var(--ez),height .3s var(--ez),margin .3s var(--ez),border-color .3s,background .3s}
-#curRing span{font-family:var(--mono);font-size:7.5px;letter-spacing:.28em;text-indent:.28em;color:var(--ink);opacity:0;transition:opacity .25s}
-#curRing.act{width:52px;height:52px;margin:-26px 0 0 -26px;border-color:rgba(238,243,248,.75)}
-#curRing.drag{width:68px;height:68px;margin:-34px 0 0 -34px;border-color:rgba(143,216,255,.85);background:rgba(143,216,255,.05)}
-#curRing.drag span{opacity:.9}
-body.has-cur,body.has-cur a,body.has-cur button,body.has-cur canvas{cursor:none}
+/* ═══════════════ 3D WORLD CONTAINER ═══════════════
+   This is the key:
+   - perspective creates the 3D vanishing point
+   - preserve-3d lets children exist in 3D space
+   - stations are placed at different translateZ depths
+   - scrolling drives translateZ on the world wrapper
+═══════════════════════════════════════════════════ */
+#world{
+  position:fixed;inset:0;
+  z-index:3;
+  perspective:1200px;
+  perspective-origin:50% 50%;
+  overflow:hidden;
+  pointer-events:none;
+}
+#tunnel{
+  position:absolute;
+  width:100%;height:100%;
+  transform-style:preserve-3d;
+  will-change:transform;
+  pointer-events:none;
+}
 
-/* ─── NAV ─── */
-nav{
-  position:fixed;top:0;left:0;right:0;z-index:100;height:68px;
-  display:flex;align-items:center;justify-content:space-between;
+/* Each station is positioned at a Z-depth in the tunnel */
+.station{
+  position:absolute;
+  left:0;top:0;right:0;bottom:0;
+  display:flex;align-items:center;justify-content:center;
+  transform-style:preserve-3d;
+  pointer-events:none;
+  opacity:0;
+  transition:opacity .15s ease-out;
+}
+.station.active{
+  opacity:1;
+  pointer-events:auto;
+}
+/* Station inner layout */
+.st-inner{
+  width:100%;max-width:1200px;
   padding:0 var(--pad);
-  background:rgba(2,3,8,.42);
-  backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);
-  border-bottom:1px solid rgba(226,234,242,.05);
-  transition:background .4s,border-color .4s;
-  animation:navIn 1.1s .05s var(--ez) both;
+  transform-style:preserve-3d;
 }
-@keyframes navIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
-nav.scrolled{background:rgba(2,3,8,.84);border-bottom-color:rgba(226,234,242,.09)}
-.logo{display:flex;align-items:center;gap:11px;text-decoration:none;color:var(--ink);font-size:16.5px;font-weight:600;letter-spacing:-.02em}
-.mark{width:30px;height:30px;flex:none;animation:markSpin 16s linear infinite}
-@keyframes markSpin{to{transform:rotate(360deg)}}
-.nav-links{display:flex;gap:38px}
-.nav-links a{position:relative;text-decoration:none;color:var(--dim);font-size:13.5px;font-weight:500;letter-spacing:.01em;padding:4px 0;transition:color .25s}
-.nav-links a i{font-style:normal;font-family:var(--mono);font-size:8.5px;color:rgba(226,234,242,.3);margin-right:7px;vertical-align:2px;letter-spacing:.1em}
-.nav-links a::after{content:'';position:absolute;left:0;bottom:-2px;height:1px;width:100%;background:var(--ink);transform:scaleX(0);transform-origin:left;transition:transform .45s var(--ez)}
-.nav-links a:hover{color:#fff}
-.nav-links a:hover::after{transform:scaleX(1)}
-.nav-right{display:flex;align-items:center;gap:20px}
-.nav-status{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:9.5px;letter-spacing:.24em;color:rgba(110,225,175,.75)}
-.nav-status i,.ft-status i,.live i{width:5px;height:5px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok);animation:dotPulse 2.4s ease infinite;flex:none}
-@keyframes dotPulse{0%,100%{opacity:1}50%{opacity:.35}}
-.nav-btn{font-size:13px;font-weight:600;color:var(--ink);text-decoration:none;padding:9px 20px;border-radius:9px;
-  border:1px solid rgba(226,234,242,.14);background:rgba(226,234,242,.03)}
-.nav-btn:hover{background:rgba(226,234,242,.09);border-color:rgba(226,234,242,.32)}
 
-/* magnetic elements */
-.mag{will-change:transform;transition:transform .45s var(--ez),background .3s,border-color .3s,color .3s,box-shadow .4s}
+/* ═══════════════ 3D DEPTH LAYERS ═══════════════
+   Elements within a station are offset on Z for parallax
+═══════════════════════════════════════════════════ */
+.d0{transform:translateZ(0px)}
+.d1{transform:translateZ(40px)}
+.d2{transform:translateZ(80px)}
+.d3{transform:translateZ(120px)}
+.d4{transform:translateZ(160px)}
+.d-1{transform:translateZ(-60px)}
+.d-2{transform:translateZ(-140px)}
+.d-3{transform:translateZ(-240px)}
 
-/* burger + mobile menu */
-.burger{display:none;width:42px;height:42px;flex-direction:column;justify-content:center;align-items:center;gap:6px;background:none;border:0;padding:0}
-.burger span{display:block;width:20px;height:1.5px;background:var(--ink);transition:transform .35s var(--ez)}
-body.m-open .burger span:first-child{transform:translateY(3.75px) rotate(45deg)}
-body.m-open .burger span:last-child{transform:translateY(-3.75px) rotate(-45deg)}
-.mmenu{position:fixed;inset:0;z-index:90;background:rgba(2,3,8,.9);
-  backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
-  display:flex;flex-direction:column;justify-content:center;gap:6px;
-  padding:0 clamp(28px,8vw,60px);
-  opacity:0;visibility:hidden;transition:opacity .4s var(--ez),visibility .4s}
-body.m-open .mmenu{opacity:1;visibility:visible}
-.mmenu a{display:flex;align-items:baseline;gap:16px;text-decoration:none;color:var(--ink);
-  font-size:clamp(36px,9vw,52px);font-weight:600;letter-spacing:-.03em;padding:14px 0;
-  border-bottom:1px solid var(--line);transform:translateY(26px);opacity:0;
-  transition:transform .6s var(--ez),opacity .6s}
-.mmenu a i{font-style:normal;font-family:var(--mono);font-size:11px;color:rgba(226,234,242,.3);letter-spacing:.2em}
-body.m-open .mmenu a{transform:none;opacity:1}
-body.m-open .mmenu a:nth-child(1){transition-delay:.08s}
-body.m-open .mmenu a:nth-child(2){transition-delay:.16s}
-body.m-open .mmenu a:nth-child(3){transition-delay:.24s}
-
-/* ─── HERO ─── */
-.hero{position:relative;z-index:10;min-height:100vh;min-height:100svh;
-  display:flex;align-items:center;justify-content:center;text-align:center;
-  padding:120px var(--pad) 110px}
-.hero-inner{display:flex;flex-direction:column;align-items:center}
-.hud{position:absolute;z-index:5;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;
-  color:rgba(226,234,242,.32);text-transform:uppercase;line-height:2.1;pointer-events:none}
-.hud-bl{left:var(--pad);bottom:30px;display:flex;flex-direction:column;text-align:left}
-.hud-br{right:var(--pad);bottom:30px;display:flex;align-items:center;gap:10px}
-.hud-br em{font-style:normal;color:rgba(226,234,242,.16)}
-.hud-r{right:calc(var(--pad)/2.6);top:50%;transform:translateY(-50%);
-  writing-mode:vertical-rl;letter-spacing:.36em;font-size:8.5px;color:rgba(226,234,242,.16)}
-.hero-tag{display:inline-flex;align-items:center;gap:9px;padding:7px 16px;border-radius:99px;
-  border:1px solid rgba(143,216,255,.18);background:rgba(143,216,255,.04);
-  font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;color:rgba(170,220,250,.82);
-  margin-bottom:44px;animation:softUp .9s .12s var(--ez) both}
-.tag-dot{width:5px;height:5px;border-radius:50%;background:#8fd9ff;box-shadow:0 0 10px #8fd9ff;animation:dotPulse 2.6s ease infinite}
-.hero-title{font-size:clamp(56px,10.8vw,158px);font-weight:600;letter-spacing:-.045em;line-height:.97;
-  margin-bottom:34px;text-shadow:0 0 90px rgba(230,240,255,.06)}
-.hero-title em{font-family:var(--serif);font-style:italic;font-weight:400;font-size:1.04em;letter-spacing:-.015em}
-.msk{display:block;overflow:hidden;will-change:transform}
-.msk-in{display:inline-block;will-change:transform}
-.hero .msk-in{animation:mskUp 1.15s var(--ez) both}
-.hero .d1{animation-delay:.28s}.hero .d2{animation-delay:.42s}.hero .d3{animation-delay:.56s}
-@keyframes mskUp{from{transform:translateY(118%)}to{transform:none}}
-@keyframes softUp{from{opacity:0;transform:translateY(26px);filter:blur(6px)}to{opacity:1;transform:none;filter:blur(0)}}
-.hero-sub{max-width:470px;font-size:clamp(15px,1.7vw,17px);line-height:1.8;color:var(--dim);margin-bottom:50px;animation:softUp .9s .68s var(--ez) both}
-.hero-actions{display:flex;gap:13px;flex-wrap:wrap;justify-content:center;animation:softUp .9s .82s var(--ez) both}
-.btn{display:inline-flex;align-items:center;gap:10px;padding:14px 28px;border-radius:11px;
-  font-size:14.5px;font-weight:600;letter-spacing:-.01em;text-decoration:none}
-.btn svg{transition:transform .3s var(--ez)}
-.btn-p{background:#fff;color:#04060d;box-shadow:0 8px 40px rgba(255,255,255,.08)}
-.btn-p:hover{box-shadow:0 14px 60px rgba(255,255,255,.17)}
-.btn-p:hover svg{transform:translateY(2px)}
-.btn-g{border:1px solid rgba(226,234,242,.16);color:var(--dim);background:rgba(226,234,242,.02)}
-.btn-g:hover{color:#fff;border-color:rgba(226,234,242,.36)}
-.scroll-cue{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);
-  display:flex;flex-direction:column;align-items:center;gap:12px;animation:softUp 1s 1.4s var(--ez) both}
-.scroll-cue>span:first-child{font-family:var(--mono);font-size:8.5px;letter-spacing:.34em;color:rgba(226,234,242,.28)}
-.track{width:1px;height:54px;background:rgba(226,234,242,.08);position:relative;overflow:hidden;display:block}
-.track i{position:absolute;left:0;top:-40%;width:100%;height:40%;display:block;
-  background:linear-gradient(to bottom,transparent,rgba(143,216,255,.85),transparent);
-  animation:cueFlow 2.2s var(--ez) infinite}
-@keyframes cueFlow{to{top:130%}}
-
-/* ─── TICKER ─── */
-.ticker{position:relative;z-index:10;overflow:hidden;border-block:1px solid var(--line);
-  padding:13px 0;background:rgba(2,3,8,.42);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
-.tk{display:flex;width:max-content;animation:tick 46s linear infinite;will-change:transform}
-.ticker:hover .tk{animation-play-state:paused}
-.tk-half{display:flex;align-items:center;gap:44px;padding-right:44px}
-.tk-half span{font-family:var(--mono);font-size:10.5px;letter-spacing:.24em;white-space:nowrap;
-  text-transform:uppercase;color:rgba(226,234,242,.36)}
-.tk-half .ts{color:rgba(226,234,242,.14)}
-@keyframes tick{to{transform:translateX(-50%)}}
-
-/* ─── DIVIDERS ─── */
-.divider{position:relative;z-index:10;height:1px;background:rgba(226,234,242,.06);margin:0 var(--pad);overflow:visible}
-.divider::after{content:'';position:absolute;top:0;height:1px;width:110px;left:-130px;opacity:.8;
-  background:linear-gradient(90deg,transparent,rgba(143,216,255,.8),transparent);
-  animation:packet 8.5s linear infinite}
-.divider.d-ember::after{background:linear-gradient(90deg,transparent,rgba(255,171,77,.75),transparent)}
-.divider.d-violet::after{background:linear-gradient(90deg,transparent,rgba(168,85,247,.85),transparent)}
-@keyframes packet{to{left:calc(100% + 130px)}}
-
-/* ─── MODULE SECTIONS ─── */
-.module{position:relative;z-index:10;padding:clamp(90px,11vw,170px) var(--pad);scroll-margin-top:70px}
-.m-forge{--ac:255,171,77}
-.m-oort{--ac:143,216,255}
-.m-orbit{--ac:168,85,247}
-.module-inner{max-width:1260px;margin:0 auto;display:grid;grid-template-columns:1.02fr 1fr;
-  gap:clamp(48px,7vw,110px);align-items:center}
-.module-inner.flip .m-text{order:2}
-.module-inner.flip .m-visual{order:1}
-
-.m-index{display:inline-flex;align-items:center;gap:12px;font-family:var(--mono);font-size:9.5px;
-  letter-spacing:.3em;text-transform:uppercase;color:rgba(var(--ac),.7);margin-bottom:22px}
-.m-index::before{content:'';width:26px;height:1px;background:rgba(var(--ac),.55)}
-.m-name{font-size:clamp(58px,7.6vw,116px);font-weight:600;letter-spacing:-.04em;line-height:.95;margin-bottom:26px}
-.m-desc{font-size:clamp(15px,1.6vw,16.5px);line-height:1.8;color:var(--dim);max-width:430px;margin-bottom:38px}
-.caps{list-style:none;border-top:1px solid var(--line);margin-bottom:42px}
-.cap{display:flex;align-items:center;gap:14px;padding:12px 2px;border-bottom:1px solid var(--line);
-  font-size:14px;color:rgba(226,234,242,.58);transition:color .3s}
-.cap:hover{color:#fff}
-.tick{width:17px;height:17px;flex:none;border-radius:5px;display:grid;place-items:center;
-  border:1px solid rgba(var(--ac),.32);background:rgba(var(--ac),.07);color:rgb(var(--ac));
-  transition:box-shadow .3s,background .3s}
-.cap:hover .tick{background:rgba(var(--ac),.15);box-shadow:0 0 14px rgba(var(--ac),.3)}
-.m-cta{display:inline-flex;align-items:center;gap:12px;padding:15px 28px;border-radius:12px;
-  font-size:14.5px;font-weight:600;text-decoration:none;color:rgb(var(--ac));
-  background:rgba(var(--ac),.07);border:1px solid rgba(var(--ac),.28);
-  box-shadow:inset 0 1px 0 rgba(var(--ac),.14),0 0 36px rgba(var(--ac),.05)}
-.m-cta:hover{background:rgba(var(--ac),.13);border-color:rgba(var(--ac),.62);
-  box-shadow:inset 0 1px 0 rgba(var(--ac),.22),0 16px 50px rgba(var(--ac),.15),0 0 90px rgba(var(--ac),.06)}
-.m-cta svg{transition:transform .35s cubic-bezier(.2,.9,.35,1.3)}
-.m-cta:hover svg{transform:translate(3px,-3px)}
-
-/* staggered cap reveal */
-[data-reveal] .cap{opacity:0;transform:translateX(-12px);transition:opacity .7s var(--ez),transform .7s var(--ez),color .3s}
-[data-reveal].in .cap{opacity:1;transform:none}
-[data-reveal].in .cap:nth-child(1){transition-delay:.12s}
-[data-reveal].in .cap:nth-child(2){transition-delay:.2s}
-[data-reveal].in .cap:nth-child(3){transition-delay:.28s}
-[data-reveal].in .cap:nth-child(4){transition-delay:.36s}
-
-/* ─── MODULE VISUALS ─── */
-.m-visual{position:relative;aspect-ratio:1/1;width:100%;max-width:560px;margin-inline:auto}
-.m-visual canvas{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:1}
-.m-ghost{position:absolute;top:50%;left:50%;transform:translate(-50%,-53%);z-index:0;
-  font-family:var(--disp);font-weight:700;font-size:clamp(130px,15vw,230px);line-height:1;
-  color:rgba(var(--ac),.07);pointer-events:none;user-select:none}
-@supports(-webkit-text-stroke:1px red){
-  .m-ghost{color:transparent;-webkit-text-stroke:1.3px rgba(var(--ac),.16)}
+/* ═══════════════ SCROLL SPACER ═══════════════
+   Invisible tall element that gives us scroll height
+═══════════════════════════════════════════════════ */
+#scroll-spacer{
+  position:relative;z-index:-1;
+  width:100%;pointer-events:none;
 }
-.m-oort canvas,.m-orbit canvas{touch-action:pan-y}
-body:not(.has-cur) .m-oort canvas,body:not(.has-cur) .m-orbit canvas{cursor:grab}
-body:not(.has-cur).grabbing .m-oort canvas,body:not(.has-cur).grabbing .m-orbit canvas{cursor:grabbing}
 
-/* glass panels */
-.glass{position:absolute;z-index:5;background:rgba(5,9,18,.72);
-  border:1px solid rgba(226,234,242,.09);border-radius:13px;
-  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
-  box-shadow:0 26px 70px rgba(0,0,4,.55)}
-.term{left:max(-3.5%,-26px);bottom:5%;padding:15px 18px 17px;min-width:296px;overflow:hidden}
-.term-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;
-  font-family:var(--mono);font-size:8.5px;letter-spacing:.22em;text-transform:uppercase;color:rgba(226,234,242,.32)}
-.term-head .th-r{color:rgba(255,171,77,.55)}
-.term pre{font-family:var(--mono);font-size:11.5px;line-height:2;color:rgba(226,234,242,.5);
-  white-space:pre-wrap;min-height:92px;margin:0}
-.term pre::after{content:'▊';color:rgba(255,171,77,.9);animation:blink 1.06s steps(1) infinite}
-@keyframes blink{50%{opacity:0}}
-.t-tp{color:#ffab4d}.t-tw{color:#eef3f8}.t-tc{color:rgba(196,210,224,.52)}
-.t-ta{color:#8fd9ff}.t-to{color:#7ee2a8}
-.term::after{content:'';position:absolute;left:0;right:0;height:1px;pointer-events:none;
-  background:rgba(255,171,77,.22);animation:sweep 5.5s linear infinite}
-@keyframes sweep{0%{top:0;opacity:0}8%{opacity:1}88%{opacity:1}100%{top:100%;opacity:0}}
-
-.stat{right:max(-3.5%,-26px);top:4%;padding:16px 18px 14px;min-width:214px}
-.m-orbit .stat{left:max(-3.5%,-26px);bottom:5%;top:auto;right:auto;min-width:236px}
-.srow{display:flex;align-items:baseline;gap:10px;padding:5.5px 0}
-.srow span{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:rgba(226,234,242,.34)}
-.srow b{font-family:var(--mono);font-size:14px;font-weight:500;color:#cfeafc;margin-left:auto}
-.srow em{font-style:normal;font-family:var(--mono);font-size:9px;color:rgba(143,216,255,.55);letter-spacing:.08em}
-.m-orbit .srow b{color:#f1f5f9}
-.m-orbit .srow em{color:rgba(168,85,247,.85)}
-.bars{display:flex;gap:3px;height:22px;align-items:flex-end;margin-top:12px}
-.bars i{width:3px;border-radius:1px;background:rgba(143,216,255,.55);
-  animation:bar 1s ease-in-out infinite alternate;transform-origin:bottom}
-.m-orbit .bars i{background:linear-gradient(to top, rgba(168,85,247,.65), rgba(56,189,248,.85))}
-@keyframes bar{from{transform:scaleY(.12)}to{transform:scaleY(1)}}
-
-/* ─── FOOTER ─── */
-footer{position:relative;z-index:10;border-top:1px solid var(--line);
-  padding:32px var(--pad);display:flex;align-items:center;justify-content:space-between;gap:22px;flex-wrap:wrap}
-.ft-logo{display:flex;align-items:center;gap:9px;text-decoration:none;color:var(--ink);font-weight:600;font-size:15px;letter-spacing:-.02em}
-.ft-logo .mark{width:20px;height:20px}
-.ft-l p{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:rgba(226,234,242,.26);margin-top:7px;text-transform:uppercase}
-.ft-m{display:flex;flex-direction:column;gap:5px;font-family:var(--mono);font-size:9.5px;
-  letter-spacing:.16em;color:rgba(226,234,242,.26);text-align:center;text-transform:uppercase}
-.ft-status{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;
-  letter-spacing:.18em;color:rgba(110,225,175,.7);text-transform:uppercase}
-
-/* ─── SCROLL REVEAL ─── */
-[data-reveal]{opacity:0;transform:translateY(34px);transition:opacity 1s var(--ez),transform 1s var(--ez)}
-[data-reveal].in{opacity:1;transform:none}
-.module .msk-in{transform:translateY(118%);transition:transform 1.15s var(--ez)}
-.module .in .msk-in{transform:none}
-
-/* ─── RESPONSIVE ─── */
-@media(max-width:1000px){.hud-r{display:none}}
-@media(max-width:820px){
-  .nav-links,.nav-status{display:none}
-  .burger{display:flex}
-  .hud-bl,.hud-br{display:none}
-  .module-inner{grid-template-columns:1fr;gap:56px}
-  .module-inner .m-visual{order:-1!important}
-  .m-visual{max-width:420px}
-  .glass{position:static;margin:16px auto 0;width:fit-content;max-width:100%}
-  .module{padding:90px var(--pad)}
-  footer{flex-direction:column;text-align:center}
+/* ═══════════════ PROGRESS BAR ═══════════════ */
+#prog{
+  position:fixed;top:0;left:0;width:100%;height:1.5px;z-index:900;
+  transform-origin:left;transform:scaleX(0);
+  background:linear-gradient(90deg,var(--ac),var(--ok),var(--violet));
+  pointer-events:none;
 }
-@media(max-width:480px){
-  .hero-actions{flex-direction:column;width:100%}
-  .btn{justify-content:center}
+
+/* ═══════════════ SECTION ID ═══════════════ */
+#sect-id{
+  position:fixed;right:24px;bottom:24px;z-index:800;
+  font-family:var(--mono);font-size:9px;letter-spacing:.18em;
+  color:rgba(238,243,248,.25);text-transform:uppercase;
+  pointer-events:none;
 }
-@media(prefers-reduced-motion:reduce){
-  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
-  .msk-in{transform:none!important}
-  [data-reveal]{opacity:1!important;transform:none!important}
+
+/* ═══════════════ NAV ═══════════════ */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:850;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px var(--pad);
+  transition:padding .4s,background .4s,backdrop-filter .4s,border-color .4s;
+  border-bottom:1px solid transparent;
+}
+nav.stuck{
+  padding:12px var(--pad);
+  background:rgba(2,3,8,.85);
+  backdrop-filter:blur(28px);
+  border-color:var(--line);
+}
+.nav-logo{
+  display:flex;align-items:center;gap:11px;
+  font-weight:600;font-size:16px;letter-spacing:-.02em;
+}
+.nav-logo svg{width:28px;height:28px;animation:spin-slow 28s linear infinite}
+@keyframes spin-slow{to{transform:rotate(360deg)}}
+.nav-logo em{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--ac)}
+.nav-r{display:flex;align-items:center;gap:4px}
+.nav-r a{
+  padding:7px 14px;font-size:13px;font-weight:500;
+  color:var(--dim);border-radius:8px;
+  transition:color .2s,background .2s;
+}
+.nav-r a:hover{color:var(--ink);background:rgba(238,243,248,.06)}
+.nav-cta{
+  background:#fff!important;color:#020308!important;
+  font-weight:700!important;padding:8px 20px!important;
+  border-radius:9px!important;
+  box-shadow:0 4px 22px rgba(255,255,255,.1)!important;
+  transition:transform .2s,box-shadow .2s!important;
+}
+.nav-cta:hover{transform:translateY(-1px)!important;box-shadow:0 7px 30px rgba(255,255,255,.2)!important}
+
+/* ═══════════════ HERO ═══════════════ */
+.hero-center{
+  text-align:center;
+  transform-style:preserve-3d;
+}
+.hero-tag{
+  font-family:var(--mono);font-size:10px;letter-spacing:.28em;
+  text-transform:uppercase;color:var(--ac);
+  display:flex;align-items:center;justify-content:center;gap:14px;
+  margin-bottom:40px;
+  transform:translateZ(100px);
+}
+.hero-tag::before,.hero-tag::after{
+  content:'';height:1px;width:36px;background:var(--ac);opacity:.4;
+}
+.hero-h1{
+  font-size:clamp(60px,10vw,150px);
+  font-weight:700;letter-spacing:-.05em;line-height:.9;
+  margin-bottom:32px;
+  transform:translateZ(60px);
+}
+.hero-h1 em{
+  font-family:var(--serif);font-style:italic;font-weight:400;
+  color:var(--ac);display:block;
+}
+.hero-sub{
+  font-size:clamp(16px,2vw,22px);color:var(--dim);
+  line-height:1.6;max-width:540px;margin:0 auto 48px;
+  transform:translateZ(30px);
+}
+.hero-btns{
+  display:flex;gap:12px;justify-content:center;flex-wrap:wrap;
+  transform:translateZ(80px);
+}
+.scroll-cue{
+  position:absolute;bottom:-140px;left:50%;
+  transform:translateX(-50%) translateZ(20px);
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+}
+.scroll-cue span{
+  font-family:var(--mono);font-size:9px;letter-spacing:.22em;
+  color:rgba(238,243,248,.25);text-transform:uppercase;
+}
+.scroll-line{
+  width:1px;height:50px;
+  background:linear-gradient(180deg,rgba(238,243,248,.28),transparent);
+  animation:scroll-pulse 2.4s ease-in-out infinite;
+}
+@keyframes scroll-pulse{
+  0%{transform:scaleY(0);transform-origin:top;opacity:1}
+  50%{transform:scaleY(1);transform-origin:top}
+  51%{transform-origin:bottom}
+  100%{transform:scaleY(0);transform-origin:bottom;opacity:0}
+}
+
+/* ═══════════════ BUTTONS ═══════════════ */
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:13px 28px;font-size:14px;font-weight:600;
+  border-radius:10px;font-family:var(--sans);
+  transition:transform .25s var(--ease),box-shadow .25s;
+  /* 3D button effect */
+  transform-style:preserve-3d;
+  position:relative;
+}
+.btn::after{
+  content:'';position:absolute;inset:0;border-radius:inherit;
+  background:inherit;filter:blur(18px);opacity:.35;z-index:-1;
+  transform:translateZ(-10px) scale(1.05);
+}
+.btn-w{background:#fff;color:#020308;box-shadow:0 5px 28px rgba(255,255,255,.12)}
+.btn-w:hover{transform:translateY(-2px) translateZ(8px);box-shadow:0 10px 36px rgba(255,255,255,.25)}
+.btn-o{
+  background:rgba(238,243,248,.04);color:var(--ink);
+  border:1px solid rgba(238,243,248,.18);
+  backdrop-filter:blur(10px);
+}
+.btn-o:hover{
+  border-color:rgba(238,243,248,.4);
+  transform:translateY(-2px) translateZ(8px);
+  background:rgba(238,243,248,.08);
+}
+
+/* ═══════════════ EYEBROW ═══════════════ */
+.ch-tag{
+  font-family:var(--mono);font-size:9px;letter-spacing:.24em;
+  text-transform:uppercase;color:rgba(238,243,248,.3);
+  margin-bottom:28px;display:block;
+  transform:translateZ(20px);
+}
+
+/* ═══════════════ MANIFESTO ═══════════════ */
+.manifesto-wrap{
+  max-width:900px;margin:0 auto;
+  transform-style:preserve-3d;
+}
+.manifesto-q{
+  font-size:clamp(32px,5.5vw,76px);
+  font-weight:600;letter-spacing:-.03em;line-height:1.08;
+  margin-bottom:52px;
+  transform:translateZ(50px);
+}
+.manifesto-q .word{
+  display:inline-block;
+  opacity:.08;transform:translateY(14px) translateZ(-30px);
+  transition:opacity .5s ease,transform .5s ease;
+  margin-right:.28em;
+}
+.manifesto-q .word.lit{
+  opacity:1;
+  transform:translateY(0) translateZ(0);
+}
+.manifesto-q em{font-family:var(--serif);font-style:italic;color:var(--ac);font-weight:400}
+.manifesto-body{
+  font-size:clamp(16px,1.6vw,20px);color:var(--dim);
+  line-height:1.75;max-width:620px;margin-bottom:56px;
+  transform:translateZ(25px);
+}
+.pillars{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:24px;
+  transform:translateZ(40px);
+}
+.pillar{
+  border-top:1px solid var(--line);padding-top:20px;
+  transform-style:preserve-3d;
+  transition:transform .4s var(--ease);
+}
+.pillar:hover{transform:translateZ(18px)}
+.pillar-n{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--ac);margin-bottom:10px}
+.pillar-h{font-size:16px;font-weight:600;margin-bottom:7px;letter-spacing:-.02em}
+.pillar-p{font-size:13px;color:var(--dim);line-height:1.6}
+
+/* ═══════════════ PRODUCT SECTIONS ═══════════════ */
+.prod-wrap{
+  display:grid;grid-template-columns:1fr 1fr;gap:80px;
+  align-items:center;width:100%;
+  transform-style:preserve-3d;
+}
+.prod-wrap.rev{direction:rtl}
+.prod-wrap.rev > *{direction:ltr}
+.prod-copy{transform-style:preserve-3d}
+.prod-h{
+  font-size:clamp(40px,5.5vw,82px);
+  font-weight:700;letter-spacing:-.04em;line-height:.96;
+  margin-bottom:24px;
+  transform:translateZ(50px);
+}
+.prod-h em{font-family:var(--serif);font-style:italic;font-weight:400;display:block}
+.prod-h .forge-em{color:var(--ember)}
+.prod-h .oort-em{color:var(--ac)}
+.prod-h .orbit-em{color:var(--violet)}
+.prod-p{
+  font-size:clamp(15px,1.4vw,18px);color:var(--dim);
+  line-height:1.7;margin-bottom:36px;max-width:460px;
+  transform:translateZ(25px);
+}
+.prod-stats{
+  display:flex;gap:32px;margin-bottom:40px;flex-wrap:wrap;
+  transform:translateZ(40px);
+}
+.pstat-v{
+  font-size:32px;font-weight:700;letter-spacing:-.04em;
+  font-family:var(--mono);line-height:1;
+}
+.pstat-v em{font-style:normal}
+.pstat-l{font-size:11px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;margin-top:4px}
+
+/* ═══════════════ 3D PANEL (live metrics) ═══════════════ */
+.panel-3d{
+  background:rgba(238,243,248,.025);
+  border:1px solid var(--line);
+  border-radius:20px;padding:28px;
+  min-height:380px;
+  display:flex;flex-direction:column;justify-content:space-between;
+  backdrop-filter:blur(8px);
+  position:relative;overflow:hidden;
+  /* 3D tilt effect */
+  transform:translateZ(70px) rotateY(-4deg) rotateX(2deg);
+  transform-style:preserve-3d;
+  transition:transform .5s var(--ease);
+}
+.panel-3d:hover{
+  transform:translateZ(90px) rotateY(-1deg) rotateX(0deg);
+}
+.panel-3d::before{
+  content:'';position:absolute;inset:0;border-radius:inherit;
+  pointer-events:none;
+}
+.forge-panel::before{background:radial-gradient(ellipse at 50% 0%,rgba(255,107,53,.07) 0%,transparent 55%)}
+.oort-panel::before{background:radial-gradient(ellipse at 50% 0%,rgba(143,217,255,.08) 0%,transparent 55%)}
+.orbit-panel::before{background:radial-gradient(ellipse at 50% 0%,rgba(168,85,247,.08) 0%,transparent 55%)}
+.panel-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.panel-chip{
+  font-family:var(--mono);font-size:9px;letter-spacing:.18em;
+  text-transform:uppercase;padding:5px 12px;
+  border-radius:100px;border:1px solid var(--line);color:var(--dim);
+}
+.panel-status{
+  display:flex;align-items:center;gap:6px;
+  font-family:var(--mono);font-size:10px;color:var(--ok);
+}
+.panel-status::before{
+  content:'';width:6px;height:6px;border-radius:50%;
+  background:var(--ok);box-shadow:0 0 10px var(--ok);
+  animation:blink 2s ease-in-out infinite;
+}
+@keyframes blink{50%{opacity:.3}}
+.panel-bars{display:flex;align-items:flex-end;gap:3px;height:80px;margin-bottom:18px}
+.bar{flex:1;border-radius:3px 3px 0 0;transition:height .5s var(--ease);min-height:3px}
+.bar-forge{background:linear-gradient(180deg,var(--ember),rgba(255,107,53,.25))}
+.bar-oort{background:linear-gradient(180deg,var(--ac),rgba(143,217,255,.25))}
+.bar-orbit{background:linear-gradient(180deg,var(--violet),rgba(168,85,247,.25))}
+.panel-metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.metric{
+  background:rgba(238,243,248,.035);border-radius:10px;
+  padding:14px;border:1px solid var(--line);
+  transform-style:preserve-3d;
+  transition:transform .3s var(--ease);
+}
+.metric:hover{transform:translateZ(12px)}
+.metric-v{font-family:var(--mono);font-size:18px;font-weight:500;letter-spacing:-.02em;margin-bottom:4px}
+.metric-l{font-size:11px;color:var(--dim)}
+.forge-m .metric-v{color:var(--ember)}
+.oort-m .metric-v{color:var(--ac)}
+.orbit-m .metric-v{color:var(--violet)}
+.panel-cta{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-top:18px;border-top:1px solid var(--line);padding-top:16px;
+}
+.panel-cta span{font-size:12px;color:var(--dim)}
+.panel-link{
+  font-size:13px;font-weight:600;color:var(--ac);
+  display:flex;align-items:center;gap:6px;transition:gap .2s;
+}
+.panel-link:hover{gap:12px}
+
+/* ═══════════════ SCALE SECTION ═══════════════ */
+.scale-wrap{
+  max-width:1200px;width:100%;
+  transform-style:preserve-3d;
+}
+.scale-h{
+  font-size:clamp(48px,6vw,90px);font-weight:700;
+  letter-spacing:-.04em;line-height:.95;margin-bottom:60px;
+  transform:translateZ(50px);
+}
+.scale-h em{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--ok)}
+.scale-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:1px;
+  background:var(--line);border-radius:16px;overflow:hidden;
+  transform:translateZ(30px);
+}
+.scale-item{
+  background:var(--bg);padding:40px 28px;
+  transform-style:preserve-3d;transition:transform .3s var(--ease),background .3s;
+}
+.scale-item:hover{background:rgba(238,243,248,.02);transform:translateZ(12px)}
+.scale-n{font-family:var(--mono);font-size:clamp(34px,4vw,56px);font-weight:500;letter-spacing:-.03em;margin-bottom:8px}
+.scale-n.ac{color:var(--ac)}.scale-n.ok{color:var(--ok)}.scale-n.em{color:var(--ember)}.scale-n.vi{color:var(--violet)}
+.scale-l{font-size:14px;color:var(--dim);line-height:1.5}
+
+/* ═══════════════ COMPARE TABLE ═══════════════ */
+.cmp-wrap{
+  max-width:1100px;width:100%;
+  transform-style:preserve-3d;
+}
+.cmp-h{
+  font-size:clamp(40px,5vw,74px);font-weight:700;
+  letter-spacing:-.04em;line-height:.98;margin-bottom:48px;
+  transform:translateZ(40px);
+}
+.cmp-h em{font-family:var(--serif);font-style:italic;color:var(--ac);font-weight:400}
+.cmp-tbl{
+  width:100%;border-collapse:collapse;
+  transform:translateZ(20px);
+}
+.cmp-tbl th,.cmp-tbl td{
+  padding:16px 18px;text-align:left;border-bottom:1px solid var(--line);font-size:14px;
+}
+.cmp-tbl th{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);font-weight:400}
+.cmp-tbl td:first-child{color:var(--dim);font-size:13px}
+.cmp-yes{color:var(--ok);font-weight:600}
+.cmp-no{color:rgba(238,243,248,.25)}
+.cmp-cosmos-th{background:rgba(143,217,255,.06);border:1px solid rgba(143,217,255,.15);border-radius:8px}
+
+/* ═══════════════ CTA ═══════════════ */
+.cta-wrap{
+  max-width:800px;margin:0 auto;text-align:center;
+  transform-style:preserve-3d;
+}
+.cta-h{
+  font-size:clamp(56px,8vw,120px);font-weight:700;
+  letter-spacing:-.045em;line-height:.93;margin-bottom:28px;
+  transform:translateZ(60px);
+}
+.cta-h em{font-family:var(--serif);font-style:italic;color:var(--ac);font-weight:400;display:block}
+.cta-p{
+  font-size:clamp(16px,1.8vw,20px);color:var(--dim);
+  line-height:1.65;max-width:500px;margin:0 auto 44px;
+  transform:translateZ(30px);
+}
+.cta-btns{transform:translateZ(70px)}
+.cta-note{
+  margin-top:28px;font-family:var(--mono);font-size:11px;
+  letter-spacing:.1em;color:rgba(238,243,248,.2);text-transform:uppercase;
+  transform:translateZ(10px);
+}
+
+/* ═══════════════ FOOTER ═══════════════ */
+footer{
+  position:fixed;bottom:0;left:0;right:0;z-index:4;
+  border-top:1px solid var(--line);
+  padding:32px var(--pad);
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:16px;
+  background:rgba(2,3,8,.9);backdrop-filter:blur(18px);
+  transform:translateY(100%);
+  transition:transform .6s var(--ease);
+}
+footer.show{transform:translateY(0)}
+.ft-logo{display:flex;align-items:center;gap:10px;font-weight:600;font-size:14px}
+.ft-links{display:flex;gap:20px}
+.ft-links a{font-size:13px;color:var(--dim);transition:color .2s}
+.ft-links a:hover{color:var(--ink)}
+.ft-right{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:rgba(238,243,248,.25);text-align:right}
+
+/* ═══════════════ RESPONSIVE ═══════════════ */
+@media(max-width:900px){
+  .prod-wrap{grid-template-columns:1fr;gap:40px}
+  .prod-wrap.rev{direction:ltr}
+  .pillars{grid-template-columns:1fr 1fr}
+  .scale-grid{grid-template-columns:1fr 1fr}
+  .nav-r a:not(.nav-cta){display:none}
+  .hero-h1{font-size:clamp(48px,13vw,90px)}
+  .panel-3d{transform:translateZ(40px) rotateY(0) rotateX(0)}
+}
+@media(max-width:600px){
+  .pillars{grid-template-columns:1fr}
+  .scale-grid{grid-template-columns:1fr}
+  .prod-stats{gap:18px}
 }
 </style>
 </head>
 <body>
 
-<canvas id="sky" aria-hidden="true"></canvas>
+<!-- THREE.JS canvas at z-index:0 -->
+<canvas id="cvs" aria-hidden="true"></canvas>
 <div class="grain" aria-hidden="true"></div>
-<div class="vig" aria-hidden="true"></div>
-<div class="cur" id="curDot" aria-hidden="true"></div>
-<div class="cur" id="curRing" aria-hidden="true"><span>DRAG</span></div>
+<div class="vignette" aria-hidden="true"></div>
+<div id="prog" aria-hidden="true"></div>
+<div id="sect-id">01 — COSMOS</div>
 
 <!-- NAV -->
 <nav id="nav">
-  <a class="logo" href="/" aria-label="Cosmos — home">
-    <svg class="mark" viewBox="0 0 34 34" aria-hidden="true">
-      <ellipse cx="17" cy="17" rx="14.5" ry="6" fill="none" stroke="rgba(238,243,248,.55)" stroke-width="1" transform="rotate(-24 17 17)"/>
-      <circle cx="17" cy="17" r="4.4" fill="#eef3f8"/>
-      <circle cx="27.4" cy="12.2" r="1.8" fill="#8fd9ff"/>
+  <a href="/" class="nav-logo">
+    <svg viewBox="0 0 34 34" aria-label="Cosmos">
+      <ellipse cx="17" cy="17" rx="14" ry="5.5" fill="none" stroke="rgba(238,243,248,.45)" stroke-width="1.1" transform="rotate(-28 17 17)"/>
+      <ellipse cx="17" cy="17" rx="14" ry="5.5" fill="none" stroke="rgba(143,217,255,.25)" stroke-width=".7" transform="rotate(28 17 17)"/>
+      <circle cx="17" cy="17" r="4.5" fill="#eef3f8"/>
+      <circle cx="28" cy="12" r="1.8" fill="#8fd9ff"/>
     </svg>
-    <span>Cosmos</span>
+    Cosmos<em>.</em>
   </a>
-  <div class="nav-links">
-    <a href="/git"><i>01</i>Forge</a>
-    <a href="/oort"><i>02</i>Oort</a>
-    <a href="/orbit"><i>03</i>Orbit</a>
-  </div>
-  <div class="nav-right">
-    <span class="nav-status"><i></i>NOMINAL</span>
-    <a class="nav-btn mag" href="/oort/login">Sign In</a>
-    <button class="burger" id="burger" aria-label="Open menu"><span></span><span></span></button>
+  <div class="nav-r">
+    <a href="/git">Forge</a>
+    <a href="/oort">Oort</a>
+    <a href="/orbit">Orbit</a>
+    <a href="/oort/login" class="nav-cta">Get Started</a>
   </div>
 </nav>
 
-<!-- MOBILE MENU -->
-<div class="mmenu" id="mmenu">
-  <a href="/git"><i>01</i>Forge</a>
-  <a href="/oort"><i>02</i>Oort</a>
-  <a href="/orbit"><i>03</i>Orbit</a>
-  <a href="/oort/login"><i>→</i>Sign In</a>
-</div>
+<!-- ══════════════════════════════════════════════
+  3D WORLD — all content lives inside this perspective container.
+  #tunnel is translated on Z based on scroll position.
+  Each .station is at a specific translateZ() depth.
+═══════════════════════════════════════════════════ -->
+<div id="world">
+<div id="tunnel">
 
-<!-- HERO -->
-<section class="hero">
-  <div class="hud hud-bl">
-    <span id="hudRa">RA 00h 00m 00s</span>
-    <span id="hudDec">DEC +00° 00′ 00″</span>
-  </div>
-  <div class="hud hud-br">
-    <span class="live"><i></i></span>
-    <span id="hudUtc">00:00:00 UTC</span>
-    <em>·</em>
-    <span>ALL SYSTEMS NOMINAL</span>
-  </div>
-  <div class="hud hud-r">ORBITAL PLATFORM — INCLINATION 27.4° — SUN-SYNCHRONOUS</div>
-
-  <div class="hero-inner">
-    <div class="hero-tag">
-      <span class="tag-dot"></span>
-      <span id="tagScr" data-scr>PRIVATE INFRASTRUCTURE · SYSTEM v2.0</span>
-    </div>
-    <h1 class="hero-title">
-      <span class="msk"><span class="msk-in d1">Built for</span></span>
-      <span class="msk"><span class="msk-in d2"><em>the void.</em></span></span>
-      <span class="msk"><span class="msk-in d3">Your cosmos.</span></span>
-    </h1>
-    <p class="hero-sub">Self-hosted infrastructure that answers to you alone. Private code, infinite storage, zero compromises.</p>
-    <div class="hero-actions">
-      <a class="btn btn-p mag" href="#modules">
-        Explore Modules
-        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
-      </a>
-      <a class="btn btn-g mag" href="/oort/login">Open Console</a>
-    </div>
-  </div>
-
-  <div class="scroll-cue">
-    <span>SCROLL</span>
-    <span class="track"><i></i></span>
-  </div>
-</section>
-
-<!-- TICKER -->
-<div class="ticker" aria-hidden="true">
-  <div class="tk">
-    <div class="tk-half">
-      <span>Private by design</span><span class="ts">//</span>
-      <span>Self-hosted core</span><span class="ts">//</span>
-      <span>S3-compatible API</span><span class="ts">//</span>
-      <span>Zero third-party exposure</span><span class="ts">//</span>
-      <span>99.99% uptime</span><span class="ts">//</span>
-      <span>SSH &amp; HTTPS access</span><span class="ts">//</span>
-      <span>End-to-end isolation</span><span class="ts">//</span>
-      <span>Versioned object storage</span><span class="ts">//</span>
-    </div>
-    <div class="tk-half">
-      <span>Private by design</span><span class="ts">//</span>
-      <span>Self-hosted core</span><span class="ts">//</span>
-      <span>S3-compatible API</span><span class="ts">//</span>
-      <span>Zero third-party exposure</span><span class="ts">//</span>
-      <span>99.99% uptime</span><span class="ts">//</span>
-      <span>SSH &amp; HTTPS access</span><span class="ts">//</span>
-      <span>End-to-end isolation</span><span class="ts">//</span>
-      <span>Versioned object storage</span><span class="ts">//</span>
-    </div>
-  </div>
-</div>
-
-<!-- FORGE MODULE -->
-<section id="modules" class="module m-forge">
-  <div class="module-inner">
-    <div class="m-text" data-reveal>
-      <p class="m-index" data-scr>MODULE 01 · SOURCE CONTROL</p>
-      <h2 class="m-name"><span class="msk"><span class="msk-in">Forge</span></span></h2>
-      <p class="m-desc">Self-hosted Git infrastructure engineered for teams that can't afford exposure. Full isolation, zero third-party dependency.</p>
-      <ul class="caps">
-        <li class="cap"><span class="tick"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span>Branch protection &amp; merge request workflows</li>
-        <li class="cap"><span class="tick"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span>SSH &amp; HTTPS access with team ACL</li>
-        <li class="cap"><span class="tick"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span>Webhook integrations &amp; CI pipeline support</li>
-        <li class="cap"><span class="tick"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span>Private repos — no external data exposure</li>
-      </ul>
-      <a href="/git" class="m-cta mag">
-        Access Forge
-        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 17L17 7M17 7H7M17 7v10"/></svg>
-      </a>
-    </div>
-    <div class="m-visual" data-reveal>
-      <span class="m-ghost" aria-hidden="true">01</span>
-      <canvas id="forgeCv" aria-hidden="true"></canvas>
-      <div class="glass term">
-        <div class="term-head"><span>forge · deploy log</span><span class="th-r">TTY-01</span></div>
-        <pre id="termBody"></pre>
+  <!-- ★ STATION 0 — HERO  (Z = 0) -->
+  <div class="station" id="st0" style="transform:translateZ(0px)" data-label="01 — COSMOS">
+    <div class="st-inner">
+      <div class="hero-center">
+        <div class="hero-tag">Sovereign Cloud Platform</div>
+        <h1 class="hero-h1">Your sky.<em>Your rules.</em></h1>
+        <p class="hero-sub">
+          Self-hosted Git, infinite object storage, container orchestration —
+          encrypted, isolated, no third-party ever.
+        </p>
+        <div class="hero-btns">
+          <a href="/oort/signup" class="btn btn-w">Create Account</a>
+          <a href="/oort" class="btn btn-o">Explore Platform ↗</a>
+        </div>
+        <div class="scroll-cue" aria-hidden="true">
+          <span>Scroll to explore</span>
+          <div class="scroll-line"></div>
+        </div>
       </div>
     </div>
   </div>
-</section>
 
-<div class="divider d-ember"></div>
-
-<!-- OORT MODULE -->
-<section class="module m-oort">
-  <div class="module-inner flip">
-    <div class="m-text" data-reveal>
-      <p class="m-index" data-scr>MODULE 02 · OBJECT STORAGE</p>
-      <h2 class="m-name"><span class="msk"><span class="msk-in">Oort</span></span></h2>
-      <p class="m-desc">S3-compatible object storage at warp speed. Buckets, versioning, real-time analytics, custom domains — all under your sky.</p>
-      <ul class="caps">
-        <li class="cap"><span class="tick"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span>S3-compatible API — AWS SDK drop-in</li>
-        <li class="cap"><span class="tick"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span>Bucket versioning &amp; object lifecycle</li>
-        <li class="cap"><span class="tick"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span>High-throughput MinIO S3 storage engine</li>
-        <li class="cap"><span class="tick"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span>Custom domains with real-time analytics</li>
-      </ul>
-      <a href="/oort" class="m-cta mag">
-        Enter Oort
-        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 17L17 7M17 7H7M17 7v10"/></svg>
-      </a>
-    </div>
-    <div class="m-visual" data-reveal data-cursor="drag">
-      <span class="m-ghost" aria-hidden="true">02</span>
-      <canvas id="oortCv" aria-hidden="true"></canvas>
-      <div class="glass stat">
-        <div class="srow"><span>throughput</span><b id="stRps">32,418</b><em>req/s</em></div>
-        <div class="srow"><span>cache latency</span><b id="stLat">3.68</b><em>ms</em></div>
-        <div class="srow"><span>uptime</span><b>99.99</b><em>%</em></div>
-        <div class="bars" id="bars"></div>
+  <!-- ★ STATION 1 — MANIFESTO  (Z = -2400) -->
+  <div class="station" id="st1" style="transform:translateZ(-2400px)" data-label="00 — SOVEREIGNTY">
+    <div class="st-inner">
+      <div class="manifesto-wrap">
+        <span class="ch-tag">00 — Sovereignty</span>
+        <h2 class="manifesto-q" id="mq" aria-label="Your cloud should obey you. Not the other way around."></h2>
+        <p class="manifesto-body">
+          The cloud promised freedom and delivered surveillance.
+          Every file you store, every commit you push, every container you spin —
+          recorded, indexed, monetised.
+          Cosmos was built to end that.
+        </p>
+        <div class="pillars">
+          <div class="pillar"><div class="pillar-n">01</div><div class="pillar-h">Zero telemetry</div><p class="pillar-p">Nothing phones home. No analytics, no crash reports, no data leaving your hardware.</p></div>
+          <div class="pillar"><div class="pillar-n">02</div><div class="pillar-h">End-to-end encryption</div><p class="pillar-p">AES-256 at rest, mutual TLS in transit. Keys never leave your server.</p></div>
+          <div class="pillar"><div class="pillar-n">03</div><div class="pillar-h">Air-gap capable</div><p class="pillar-p">Runs entirely offline. No external DNS, no CDN, no cloud dependencies.</p></div>
+          <div class="pillar"><div class="pillar-n">04</div><div class="pillar-h">You own the keys</div><p class="pillar-p">Root access guaranteed. Export, migrate, delete — no lock-in, no permission needed.</p></div>
+        </div>
       </div>
     </div>
   </div>
-</section>
 
-<div class="divider d-violet"></div>
-
-<!-- ORBIT MODULE -->
-<section class="module m-orbit">
-  <div class="module-inner">
-    <div class="m-text" data-reveal>
-      <p class="m-index" data-scr>MODULE 03 · APPLICATION PLATFORM</p>
-      <h2 class="m-name"><span class="msk"><span class="msk-in">Orbit</span></span></h2>
-      <p class="m-desc">Self-hosted application platform &amp; container runtime. 1-click deploy from Forge Git, smart zero-config buildpacks, dynamic reverse proxying, and live telemetry.</p>
-      <ul class="caps">
-        <li class="cap"><span class="tick"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span>1-Click deployment directly from Forge Git repositories</li>
-        <li class="cap"><span class="tick"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span>Zero-config detection for Node.js, Go, Python &amp; Dockerfile</li>
-        <li class="cap"><span class="tick"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span>Live streaming build logs &amp; container telemetry (CPU/RAM)</li>
-        <li class="cap"><span class="tick"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span>Dynamic internal reverse proxy &amp; port isolation (:4100–:4999)</li>
-      </ul>
-      <a href="/orbit" class="m-cta mag">
-        Launch Orbit
-        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 17L17 7M17 7H7M17 7v10"/></svg>
-      </a>
-    </div>
-    <div class="m-visual" data-reveal data-cursor="drag">
-      <span class="m-ghost" aria-hidden="true">03</span>
-      <canvas id="orbitCv" aria-hidden="true"></canvas>
-      <div class="glass stat">
-        <div class="srow"><span>container engine</span><b>Docker</b><em>v1.45</em></div>
-        <div class="srow"><span>active runtime</span><b id="orbPorts">:4100</b><em>proxy</em></div>
-        <div class="srow"><span>orchestrator</span><b id="orbHealth">Healthy</b><em>100%</em></div>
-        <div class="bars" id="orbitBars"></div>
+  <!-- ★ STATION 2 — FORGE  (Z = -5400) -->
+  <div class="station" id="st2" style="transform:translateZ(-5400px)" data-label="01 — FORGE">
+    <div class="st-inner">
+      <div class="prod-wrap">
+        <div class="prod-copy">
+          <span class="ch-tag">01 — Forge</span>
+          <h2 class="prod-h">Private Git.<br><em class="forge-em">Infinite repos.</em></h2>
+          <p class="prod-p">
+            Full-featured self-hosted Git forge. Code review, CI pipelines,
+            protected branches, SSH and HTTPS — none of the surveillance.
+          </p>
+          <div class="prod-stats">
+            <div><div class="pstat-v"><em id="fCommits" style="color:var(--ember)">1,218</em></div><div class="pstat-l">Commits today</div></div>
+            <div><div class="pstat-v"><em style="color:var(--ember)">∞</em></div><div class="pstat-l">Repositories</div></div>
+            <div><div class="pstat-v"><em style="color:var(--ember)">0</em></div><div class="pstat-l">Third parties</div></div>
+          </div>
+          <a href="/git" class="btn btn-w" style="transform:translateZ(60px)">Open Forge ↗</a>
+        </div>
+        <div class="panel-3d forge-panel">
+          <div class="panel-top"><span class="panel-chip">forge · live</span><span class="panel-status">Nominal</span></div>
+          <div class="panel-bars" id="forge-bars"></div>
+          <div class="panel-metrics">
+            <div class="metric forge-m"><div class="metric-v" id="fC2">1,218</div><div class="metric-l">Commits / day</div></div>
+            <div class="metric forge-m"><div class="metric-v" id="fK">12</div><div class="metric-l">SSH keys</div></div>
+            <div class="metric forge-m"><div class="metric-v">4.1ms</div><div class="metric-l">Clone latency</div></div>
+            <div class="metric forge-m"><div class="metric-v">99.99%</div><div class="metric-l">Uptime (90d)</div></div>
+          </div>
+          <div class="panel-cta"><span>Git-compatible · Gitea-powered</span><a href="/git" class="panel-link">Open Forge →</a></div>
+        </div>
       </div>
     </div>
   </div>
-</section>
 
-<!-- FOOTER -->
-<footer data-reveal>
-  <div class="ft-l">
-    <a class="ft-logo" href="/">
-      <svg class="mark" viewBox="0 0 34 34" aria-hidden="true">
-        <ellipse cx="17" cy="17" rx="14.5" ry="6" fill="none" stroke="rgba(238,243,248,.55)" stroke-width="1" transform="rotate(-24 17 17)"/>
-        <circle cx="17" cy="17" r="4.4" fill="#eef3f8"/>
-        <circle cx="27.4" cy="12.2" r="1.8" fill="#8fd9ff"/>
-      </svg>
-      Cosmos
-    </a>
-    <p>Self-hosted &amp; private. No third parties, no exceptions.</p>
+  <!-- ★ STATION 3 — OORT  (Z = -8400) -->
+  <div class="station" id="st3" style="transform:translateZ(-8400px)" data-label="02 — OORT">
+    <div class="st-inner">
+      <div class="prod-wrap rev">
+        <div class="prod-copy">
+          <span class="ch-tag">02 — Oort</span>
+          <h2 class="prod-h">S3 storage.<br><em class="oort-em">Your hardware.</em></h2>
+          <p class="prod-p">
+            S3-compatible object storage built on MinIO.
+            Versioning, lifecycle policies, multipart uploads —
+            every S3 API call, zero cloud bills.
+          </p>
+          <div class="prod-stats">
+            <div><div class="pstat-v"><em id="oRps" style="color:var(--ac)">34,210</em></div><div class="pstat-l">Req / second</div></div>
+            <div><div class="pstat-v"><em id="oLat" style="color:var(--ac)">3.8</em>ms</div><div class="pstat-l">p99 latency</div></div>
+            <div><div class="pstat-v"><em id="oStore" style="color:var(--ac)">4.7</em>TB</div><div class="pstat-l">Data stored</div></div>
+          </div>
+          <a href="/oort" class="btn btn-w" style="transform:translateZ(60px)">Open Oort ↗</a>
+        </div>
+        <div class="panel-3d oort-panel">
+          <div class="panel-top"><span class="panel-chip">oort · live</span><span class="panel-status">Nominal</span></div>
+          <div class="panel-bars" id="oort-bars"></div>
+          <div class="panel-metrics">
+            <div class="metric oort-m"><div class="metric-v" id="oR2">34,210</div><div class="metric-l">Req / s</div></div>
+            <div class="metric oort-m"><div class="metric-v" id="oL2">3.8ms</div><div class="metric-l">p99 latency</div></div>
+            <div class="metric oort-m"><div class="metric-v" id="oS2">4.7TB</div><div class="metric-l">Stored</div></div>
+            <div class="metric oort-m"><div class="metric-v">AES-256</div><div class="metric-l">Encryption</div></div>
+          </div>
+          <div class="panel-cta"><span>S3-compatible · MinIO-powered</span><a href="/oort" class="panel-link">Open Oort →</a></div>
+        </div>
+      </div>
+    </div>
   </div>
-  <div class="ft-m">
-    <span>51.4778° N · 0.0015° W</span>
-    <span id="ftUp">SESSION T+00:00:00</span>
+
+  <!-- ★ STATION 4 — ORBIT  (Z = -11400) -->
+  <div class="station" id="st4" style="transform:translateZ(-11400px)" data-label="03 — ORBIT">
+    <div class="st-inner">
+      <div class="prod-wrap">
+        <div class="prod-copy">
+          <span class="ch-tag">03 — Orbit</span>
+          <h2 class="prod-h">Container cloud.<br><em class="orbit-em">No AWS needed.</em></h2>
+          <p class="prod-p">
+            Deploy, scale, and monitor containers from a single dashboard.
+            Real-time logs, resource metrics, reverse-proxy routing —
+            on your own server.
+          </p>
+          <div class="prod-stats">
+            <div><div class="pstat-v"><em id="orbP" style="color:var(--violet)">:4109</em></div><div class="pstat-l">Live port</div></div>
+            <div><div class="pstat-v"><em id="orbC" style="color:var(--violet)">7</em></div><div class="pstat-l">Containers</div></div>
+            <div><div class="pstat-v"><em style="color:var(--violet)">0</em></div><div class="pstat-l">Cold starts</div></div>
+          </div>
+          <a href="/orbit" class="btn btn-w" style="transform:translateZ(60px)">Open Orbit ↗</a>
+        </div>
+        <div class="panel-3d orbit-panel">
+          <div class="panel-top"><span class="panel-chip">orbit · live</span><span class="panel-status">Nominal</span></div>
+          <div class="panel-bars" id="orbit-bars"></div>
+          <div class="panel-metrics">
+            <div class="metric orbit-m"><div class="metric-v" id="oP2">:4109</div><div class="metric-l">Live port</div></div>
+            <div class="metric orbit-m"><div class="metric-v" id="oC2">7</div><div class="metric-l">Containers</div></div>
+            <div class="metric orbit-m"><div class="metric-v">0.4%</div><div class="metric-l">CPU overhead</div></div>
+            <div class="metric orbit-m"><div class="metric-v">mTLS</div><div class="metric-l">Inter-container</div></div>
+          </div>
+          <div class="panel-cta"><span>Docker-compatible · ScyllaDB-backed</span><a href="/orbit" class="panel-link">Open Orbit →</a></div>
+        </div>
+      </div>
+    </div>
   </div>
-  <div class="ft-r"><span class="ft-status"><i></i>All systems nominal</span></div>
+
+  <!-- ★ STATION 5 — SCALE  (Z = -14000) -->
+  <div class="station" id="st5" style="transform:translateZ(-14000px)" data-label="04 — SCALE">
+    <div class="st-inner">
+      <div class="scale-wrap">
+        <span class="ch-tag">04 — Scale</span>
+        <h2 class="scale-h">Built to<br><em>never slow down.</em></h2>
+        <div class="scale-grid">
+          <div class="scale-item"><div class="scale-n ac">99.99</div><div class="scale-l">% uptime SLA<br>trailing 90 days</div></div>
+          <div class="scale-item"><div class="scale-n ok">∞</div><div class="scale-l">Storage capacity<br>limited by hardware</div></div>
+          <div class="scale-item"><div class="scale-n em">0</div><div class="scale-l">Third-party access<br>no vendors, ever</div></div>
+          <div class="scale-item"><div class="scale-n vi">34,200</div><div class="scale-l">Requests / second<br>Oort peak throughput</div></div>
+          <div class="scale-item"><div class="scale-n ac">3.8ms</div><div class="scale-l">p99 object latency<br>on commodity NVMe</div></div>
+          <div class="scale-item"><div class="scale-n ok">AES-256</div><div class="scale-l">Encryption at rest<br>keys never leave server</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ★ STATION 6 — COMPARE  (Z = -16500) -->
+  <div class="station" id="st6" style="transform:translateZ(-16500px)" data-label="05 — COMPARISON">
+    <div class="st-inner">
+      <div class="cmp-wrap">
+        <span class="ch-tag">05 — Comparison</span>
+        <h2 class="cmp-h">Why not<br><em>the cloud?</em></h2>
+        <table class="cmp-tbl"><thead><tr>
+          <th></th><th class="cmp-cosmos-th">Cosmos</th><th>AWS</th><th>GCP</th><th>Azure</th>
+        </tr></thead><tbody>
+          <tr><td>Data ownership</td><td class="cmp-yes">✓ You own it</td><td class="cmp-no">✗ Their TOS</td><td class="cmp-no">✗ Their TOS</td><td class="cmp-no">✗ Their TOS</td></tr>
+          <tr><td>Monthly cost</td><td class="cmp-yes">✓ Fixed</td><td class="cmp-no">$ Variable</td><td class="cmp-no">$ Variable</td><td class="cmp-no">$ Variable</td></tr>
+          <tr><td>Private Git</td><td class="cmp-yes">✓ Built-in</td><td class="cmp-no">✗ Extra cost</td><td class="cmp-no">✗ Cloud Source</td><td class="cmp-no">✗ DevOps add-on</td></tr>
+          <tr><td>S3 storage</td><td class="cmp-yes">✓ Included</td><td class="cmp-no">$ Per GB</td><td class="cmp-no">$ Per GB</td><td class="cmp-no">$ Per GB</td></tr>
+          <tr><td>Containers</td><td class="cmp-yes">✓ Included</td><td class="cmp-no">$ ECS/EKS</td><td class="cmp-no">$ GKE</td><td class="cmp-no">$ AKS</td></tr>
+          <tr><td>Vendor lock-in</td><td class="cmp-yes">✓ None</td><td class="cmp-no">✗ High</td><td class="cmp-no">✗ High</td><td class="cmp-no">✗ High</td></tr>
+        </tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ★ STATION 7 — CTA  (Z = -19000) -->
+  <div class="station" id="st7" style="transform:translateZ(-19000px)" data-label="06 — BEGIN">
+    <div class="st-inner">
+      <div class="cta-wrap">
+        <span class="ch-tag">06 — Begin</span>
+        <h2 class="cta-h">Your cloud.<em>Starts now.</em></h2>
+        <p class="cta-p">
+          Deploy your sovereign stack today. Full control, no vendors, no compromise.
+          Every byte of storage — encrypted, isolated, yours.
+        </p>
+        <div class="cta-btns" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+          <a href="/oort/signup" class="btn btn-w">Create Account</a>
+          <a href="/git" class="btn btn-o">Open Forge ↗</a>
+          <a href="/orbit" class="btn btn-o">Open Orbit ↗</a>
+        </div>
+        <p class="cta-note">Self-hosted · Private · No third parties · No exceptions</p>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /tunnel -->
+</div><!-- /world -->
+
+<!-- Scroll height spacer — invisible, just gives us scroll distance -->
+<div id="scroll-spacer"></div>
+
+<!-- Footer slides up at the very end -->
+<footer id="ft">
+  <a href="/" class="ft-logo">
+    <svg width="22" height="22" viewBox="0 0 34 34"><ellipse cx="17" cy="17" rx="14" ry="5.5" fill="none" stroke="rgba(238,243,248,.4)" stroke-width="1.1" transform="rotate(-28 17 17)"/><circle cx="17" cy="17" r="4" fill="#eef3f8"/></svg>
+    Cosmos
+  </a>
+  <nav class="ft-links"><a href="/git">Forge</a><a href="/oort">Oort</a><a href="/orbit">Orbit</a><a href="/oort/login">Login</a></nav>
+  <div class="ft-right"><div>51.4778° N · 0.0015° W</div><div style="color:var(--ok);margin-top:3px">● All systems nominal</div></div>
 </footer>
 
-<noscript><style>[data-reveal]{opacity:1!important;transform:none!important}.msk-in{transform:none!important}</style></noscript>
+<noscript><style>.station{opacity:1!important;position:relative!important;transform:none!important}.manifesto-q .word{opacity:1!important;transform:none!important}#world{position:relative!important;perspective:none!important}#tunnel{position:relative!important;transform:none!important}#scroll-spacer{display:none}</style></noscript>
 
+<!-- ═══════════════════════════════════════════════════
+   SCRIPT: 3D SCROLL ENGINE + THREE.JS
+═══════════════════════════════════════════════════ -->
 <script>
-(()=>{ 'use strict';
-/* ═══════════════ helpers ═══════════════ */
-const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const TAU=Math.PI*2;
-const clamp=(v,a,b)=>v<a?a:v>b?b:v;
-const rand=(a=1,b)=>b===undefined?Math.random()*a:a+Math.random()*(b-a);
-const mod=(v,m)=>((v%m)+m)%m;
-const p2=n=>String(n).padStart(2,'0');
-const mk=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
-const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
-const FINE=matchMedia('(pointer: fine)').matches;
-const DPR=Math.min(2,devicePixelRatio||1);
+(function(){
+'use strict';
 
-/* deterministic value noise + fbm (for procedural textures) */
-function h2(ix,iy,s){let h=Math.imul(ix,374761393)^Math.imul(iy,668265263)^Math.imul(s,974711);
-  h=Math.imul(h^h>>>13,1274126177);return((h^h>>>16)>>>0)/4294967296;}
-function vn(x,y,s){const ix=Math.floor(x),iy=Math.floor(y),fx=x-ix,fy=y-iy,
-  u=fx*fx*(3-2*fx),v=fy*fy*(3-2*fy),
-  a=h2(ix,iy,s),b=h2(ix+1,iy,s),c=h2(ix,iy+1,s),d=h2(ix+1,iy+1,s);
-  return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v;}
-function fbm(x,y,oct,s){let a=1,sum=0,n=0;for(let o=0;o<oct;o++){sum+=a*vn(x,y,s+o*131);n+=a;a*=.5;x*=2;y*=2;}return sum/n;}
+/* ─── MATH ─── */
+var CL=function(v,a,b){return Math.max(a,Math.min(b,v))};
+var L=function(a,b,t){return a+(b-a)*t};
+var EIO=function(t){return t<.5?2*t*t:-1+(4-2*t)*t};
+var EO=function(t){return 1-(1-t)*(1-t)};
 
-/* shared smoothed mouse (normalized + raw px) */
-const mouse={x:.5,y:.5,sx:.5,sy:.5,px:innerWidth/2,py:innerHeight/2};
-let scr=0;
+/* ═══════════════════════════════════════════════
+   STATION DEFINITIONS
+   Each station has a Z-depth and a "dwell" zone.
+   Camera Z position = -scrollProgress * totalZDepth
+   Stations become active when camera Z is near their depth.
+═══════════════════════════════════════════════════ */
+var STATIONS = [
+  { id:'st0', z:0,      label:'01 — COSMOS' },
+  { id:'st1', z:-2400,  label:'00 — SOVEREIGNTY' },
+  { id:'st2', z:-5400,  label:'01 — FORGE' },
+  { id:'st3', z:-8400,  label:'02 — OORT' },
+  { id:'st4', z:-11400, label:'03 — ORBIT' },
+  { id:'st5', z:-14000, label:'04 — SCALE' },
+  { id:'st6', z:-16500, label:'05 — COMPARISON' },
+  { id:'st7', z:-19000, label:'06 — BEGIN' },
+];
 
-/* ═══════════════ SKY — nebula · stars · meteors · comets ═══════════════ */
-const scv=$('#sky'),sctx=scv.getContext('2d');
-let SW=0,SH=0,nebTex=null,stars=[],meteors=[],comets=[],nextMet=2600,nextCom=9000;
+/* Total Z depth the camera travels */
+var TOTAL_Z = 19000;
 
-function skyResize(){
-  SW=innerWidth;SH=innerHeight;
-  scv.width=SW*DPR;scv.height=SH*DPR;
-  scv.style.width=SW+'px';scv.style.height=SH+'px';
-  sctx.setTransform(DPR,0,0,DPR,0,0);
+/* The scroll spacer height determines scroll-to-Z mapping.
+   More height = slower scrolling through Z. Each station
+   gets a "dwell" zone where the camera barely moves. */
+var SCROLL_HEIGHT = 16000; /* px of scroll */
+document.getElementById('scroll-spacer').style.height = SCROLL_HEIGHT + 'px';
+
+/* Station visibility range: +/- this many Z-units from station center */
+var VISIBLE_RANGE = 1400;
+/* Fade-in/out range */
+var FADE_RANGE = 600;
+
+/* ─── STATE ─── */
+var scrollY = 0;
+var smoothZ = 0;
+var targetZ = 0;
+var rafPending = false;
+
+/* ─── DOM REFS ─── */
+var tunnel   = document.getElementById('tunnel');
+var progBar  = document.getElementById('prog');
+var labelEl  = document.getElementById('sect-id');
+var navEl    = document.getElementById('nav');
+var footerEl = document.getElementById('ft');
+var stationEls = STATIONS.map(function(s){ return document.getElementById(s.id); });
+
+/* ═══════════════════════════════════════════════
+   MANIFESTO WORDS
+═══════════════════════════════════════════════════ */
+var mqEl = document.getElementById('mq');
+var wordEls = [];
+if(mqEl){
+  var WORDS = 'Your cloud should obey you \u2014 not the other way around.'.split(' ');
+  mqEl.innerHTML = WORDS.map(function(w){
+    return '<span class="word">'+(w==='\u2014'?'<em>'+w+'</em>':w)+'</span>';
+  }).join(' ');
+  wordEls = Array.from(mqEl.querySelectorAll('.word'));
 }
-function buildStars(){
-  stars=[];
-  const n=Math.round(clamp(SW*SH/2300,260,950));
-  for(let i=0;i<n;i++){
-    const r=Math.pow(Math.random(),2.3)*1.9+.28;
-    const roll=Math.random();
-    const c=roll<.6?[255,255,255]:roll<.78?[201,215,255]:roll<.92?[255,238,220]:[255,208,176];
-    stars.push({x:Math.random(),y:Math.random(),r,p:.012+(r/2.2)*.06,
-      a:.2+Math.random()*.7,tw:Math.random()*TAU,ts:.4+Math.random()*1.9,c});
+
+/* ═══════════════════════════════════════════════
+   CORE SCROLL → Z MAPPING
+
+   The magic: we define "stations" at specific scroll
+   positions. Between stations, Z moves fast (the
+   "travel" phase). Near stations, Z changes slowly
+   (the "dwell" phase), creating the pause effect.
+
+   Each station "owns" a range of scroll progress.
+   Within that range, the first 20% is approach,
+   middle 60% is dwell (slow Z), last 20% is depart.
+═══════════════════════════════════════════════════ */
+
+/* Build scroll-to-Z mapping with dwell zones */
+/* Each station gets equal scroll allocation */
+var stationScrollFrac = 1 / STATIONS.length; /* e.g., 0.125 each */
+
+function scrollToZ(scrollFraction){
+  /* Find which station segment we're in */
+  var seg = CL(scrollFraction * STATIONS.length, 0, STATIONS.length - 0.001);
+  var segIdx = Math.floor(seg);
+  var segFrac = seg - segIdx; /* 0→1 within this segment */
+
+  var curZ = STATIONS[segIdx].z;
+  var nextZ = segIdx < STATIONS.length - 1 ? STATIONS[segIdx + 1].z : curZ;
+
+  /* Within each segment:
+     0.00-0.15 = depart previous / approach (fast Z motion, ease in)
+     0.15-0.85 = DWELL (very slow Z motion — camera stays near station)
+     0.85-1.00 = depart (fast Z motion, ease out) */
+  var dwellStart = 0.15;
+  var dwellEnd   = 0.85;
+  var zFrac;
+
+  if(segFrac < dwellStart){
+    /* approach: ease in, move Z from ~5% to 0% of gap */
+    zFrac = (1 - EO(1 - segFrac / dwellStart)) * 0.05;
+  } else if(segFrac > dwellEnd){
+    /* depart: ease out, move Z from 0% to 95% of gap */
+    var departFrac = (segFrac - dwellEnd) / (1 - dwellEnd);
+    zFrac = 0.05 + EIO(departFrac) * 0.95;
+  } else {
+    /* dwell: very slight Z drift (0→5% of gap) */
+    var dwellFrac = (segFrac - dwellStart) / (dwellEnd - dwellStart);
+    zFrac = dwellFrac * 0.05;
   }
+
+  return curZ + (nextZ - curZ) * zFrac;
 }
-function makeNebula(){
-  const w=460,h=260,c=mk(w,h),g=c.getContext('2d'),im=g.createImageData(w,h),d=im.data;
-  const nx=.749,ny=-.663; /* milky-way band axis */
-  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
-    const i=(y*w+x)*4;
-    const dist=(x/w-.18)*nx+(y/h-.86)*ny;
-    const band=Math.exp(-Math.pow(dist/.16,2));
-    const n1=fbm(x*.012,y*.012,5,7);
-    const m=fbm(x*.022,y*.022,3,44);
-    let cl=clamp((n1-.42)/.36,0,1);cl=cl*cl*(3-2*cl);
-    const den=Math.min(1,cl*(.3+band*.85));
-    const warm=m*m*m,core=clamp((den-.55)/.45,0,1);
-    d[i]=20+m*24+warm*52+core*12;
-    d[i+1]=34+m*30+warm*20+core*46;
-    d[i+2]=74+m*44+warm*8+core*64;
-    d[i+3]=Math.min(255,den*210);
-  }
-  g.putImageData(im,0,0);return c;
-}
-function nebDraw(s,al,dx,dy,rot){
-  const w=nebTex.width*s,h=nebTex.height*s;
-  sctx.save();sctx.globalAlpha=al;sctx.translate(SW/2+dx,SH/2+dy);
-  if(rot)sctx.rotate(rot);
-  sctx.drawImage(nebTex,-w/2,-h/2,w,h);sctx.restore();
-}
-function drawFarPlanet(){
-  const px=SW*.84-(mouse.sx-.5)*30,py=SH*.16-scr*.06-(mouse.sy-.5)*18;
-  const r=Math.min(SW,SH)*.065;
-  let g=sctx.createRadialGradient(px-r*.3,py-r*.35,r*.1,px,py,r);
-  g.addColorStop(0,'rgba(50,68,100,.17)');g.addColorStop(.7,'rgba(22,34,60,.08)');g.addColorStop(1,'rgba(10,16,34,0)');
-  sctx.fillStyle=g;sctx.beginPath();sctx.arc(px,py,r,0,TAU);sctx.fill();
-  sctx.strokeStyle='rgba(190,212,240,.15)';sctx.lineWidth=1;
-  sctx.beginPath();sctx.arc(px,py,r-.5,Math.PI*1.02,Math.PI*1.48);sctx.stroke();
-  sctx.save();sctx.translate(px,py);sctx.rotate(-.44);sctx.scale(1,.3);
-  for(let i=0;i<2;i++){sctx.beginPath();sctx.arc(0,0,r*(1.55+i*.35),0,TAU);
-    sctx.strokeStyle=`rgba(150,180,225,${.075-i*.03})`;sctx.lineWidth=5+i*4;sctx.stroke();}
-  sctx.restore();
-}
-function spawnMeteor(){
-  const ang=.5+Math.random()*.7,dir=Math.random()<.5?1:-1;
-  meteors.push({x:rand(-.05,1.05)*SW,y:rand(-.05,.45)*SH,
-    dx:Math.cos(ang)*dir,dy:Math.sin(ang),
-    sp:rand(430,820),dur:rand(.8,1.35),life:0,len:rand(60,150)});
-}
-function spawnComet(){
-  const fromR=Math.random()<.55;
-  comets.push({x:fromR?SW+170:-170,y:rand(.05,.6)*SH,
-    vx:(fromR?-1:1)*rand(48,105),vy:rand(-22,34),
-    a:0,ph:0,core:rand(1.5,2.6),tail:[]});
-}
-function drawMeteors(dt){
-  sctx.globalCompositeOperation='lighter';
-  for(let i=meteors.length-1;i>=0;i--){const m=meteors[i];
-    m.life+=dt;const f=m.life/m.dur;
-    if(f>=1){meteors.splice(i,1);continue;}
-    const a=Math.sin(Math.PI*f)*.9;
-    const hx=m.x+m.dx*m.sp*m.life,hy=m.y+m.dy*m.sp*m.life;
-    const tx=hx-m.dx*m.len,ty=hy-m.dy*m.len;
-    const g=sctx.createLinearGradient(tx,ty,hx,hy);
-    g.addColorStop(0,'rgba(180,205,255,0)');g.addColorStop(1,`rgba(220,235,255,${a})`);
-    sctx.strokeStyle=g;sctx.lineWidth=1.4;
-    sctx.beginPath();sctx.moveTo(tx,ty);sctx.lineTo(hx,hy);sctx.stroke();
-    sctx.fillStyle=`rgba(255,255,255,${a})`;
-    sctx.beginPath();sctx.arc(hx,hy,1.1,0,TAU);sctx.fill();}
-  sctx.globalCompositeOperation='source-over';
-}
-function drawComets(dt){
-  sctx.globalCompositeOperation='lighter';
-  for(let i=comets.length-1;i>=0;i--){const c=comets[i];
-    if(c.ph===0){c.a=Math.min(1,c.a+dt*.5);if(c.a>=1)c.ph=1;}
-    else if(c.ph===1){if(c.x<-260||c.x>SW+260||c.y<-260||c.y>SH+260)c.ph=2;}
-    else{c.a=Math.max(0,c.a-dt*.35);if(c.a<=0){comets.splice(i,1);continue;}}
-    c.x+=c.vx*dt;c.y+=c.vy*dt;
-    c.tail.push({x:c.x,y:c.y});if(c.tail.length>130)c.tail.shift();
-    const n=c.tail.length;
-    for(let j=0;j<n-1;j++){const f=j/n,a=f*f*c.a*.55;
-      sctx.strokeStyle=`rgba(168,216,255,${a})`;sctx.lineWidth=Math.max(.3,f*c.core*2.6);
-      sctx.beginPath();sctx.moveTo(c.tail[j].x,c.tail[j].y);sctx.lineTo(c.tail[j+1].x,c.tail[j+1].y);sctx.stroke();
-      if(f>.6){sctx.strokeStyle=`rgba(255,255,255,${(f-.6)/.4*c.a*.35})`;
-        sctx.lineWidth=Math.max(.2,f*c.core*.5);
-        sctx.beginPath();sctx.moveTo(c.tail[j].x,c.tail[j].y);sctx.lineTo(c.tail[j+1].x,c.tail[j+1].y);sctx.stroke();}}
-    const g=sctx.createRadialGradient(c.x,c.y,0,c.x,c.y,c.core*7);
-    g.addColorStop(0,`rgba(255,255,255,${c.a})`);
-    g.addColorStop(.3,`rgba(178,226,255,${c.a*.7})`);g.addColorStop(1,'rgba(0,0,0,0)');
-    sctx.fillStyle=g;sctx.beginPath();sctx.arc(c.x,c.y,c.core*7,0,TAU);sctx.fill();
-    sctx.fillStyle=`rgba(244,251,255,${c.a})`;
-    sctx.beginPath();sctx.arc(c.x,c.y,c.core,0,TAU);sctx.fill();}
-  sctx.globalCompositeOperation='source-over';
-}
-function skyFrame(t,dt){
-  sctx.clearRect(0,0,SW,SH);
-  const ox=mouse.sx-.5,oy=mouse.sy-.5;
-  /* nebula — two drifting depth layers */
-  sctx.globalCompositeOperation='screen';
-  const s0=Math.max(SW/nebTex.width,SH/nebTex.height);
-  nebDraw(s0*1.85,.34,-ox*34+Math.sin(t*.00005)*40,-oy*20+Math.cos(t*.00004)*24,0);
-  nebDraw(s0*3.2,.24,-ox*80+Math.cos(t*.00004)*34,-oy*46+Math.sin(t*.00006)*26,.55);
-  sctx.globalCompositeOperation='source-over';
-  drawFarPlanet();
-  /* stars — twinkle, diffraction spikes on bright ones */
-  const ts=t/1000;
-  for(const s of stars){
-    const sx=mod(s.x*SW-ox*s.p*240,SW);
-    const sy=mod(s.y*SH-scr*s.p*.55-oy*s.p*150,SH);
-    const a=s.a*(.68+.32*Math.sin(ts*s.ts+s.tw));
-    sctx.fillStyle=`rgba(${s.c[0]},${s.c[1]},${s.c[2]},${a})`;
-    sctx.beginPath();sctx.arc(sx,sy,s.r,0,TAU);sctx.fill();
-    if(s.r>1.42){
-      sctx.strokeStyle=`rgba(${s.c[0]},${s.c[1]},${s.c[2]},${a*.3})`;sctx.lineWidth=.6;
-      const L=s.r*5.2;
-      sctx.beginPath();sctx.moveTo(sx-L,sy);sctx.lineTo(sx+L,sy);
-      sctx.moveTo(sx,sy-L);sctx.lineTo(sx,sy+L);sctx.stroke();
-      const g=sctx.createRadialGradient(sx,sy,0,sx,sy,s.r*3.4);
-      g.addColorStop(0,`rgba(${s.c[0]},${s.c[1]},${s.c[2]},${a*.28})`);g.addColorStop(1,'rgba(0,0,0,0)');
-      sctx.fillStyle=g;sctx.beginPath();sctx.arc(sx,sy,s.r*3.4,0,TAU);sctx.fill();
+
+/* ═══════════════════════════════════════════════
+   STATION VISIBILITY
+═══════════════════════════════════════════════════ */
+function updateStations(camZ){
+  stationEls.forEach(function(el, i){
+    if(!el) return;
+    var stZ = STATIONS[i].z;
+    var dist = Math.abs(camZ - stZ);
+
+    if(dist < VISIBLE_RANGE){
+      var alpha;
+      if(dist < VISIBLE_RANGE - FADE_RANGE){
+        alpha = 1;
+      } else {
+        alpha = 1 - (dist - (VISIBLE_RANGE - FADE_RANGE)) / FADE_RANGE;
+      }
+      el.classList.add('active');
+      el.style.opacity = String(CL(alpha, 0, 1));
+    } else {
+      el.classList.remove('active');
+      el.style.opacity = '0';
     }
-  }
-  if(!RM){
-    if(t>nextMet){spawnMeteor();if(Math.random()<.4)spawnMeteor();nextMet=t+3600+Math.random()*5200;}
-    if(t>nextCom){spawnComet();nextCom=t+20000+Math.random()*17000;}
-  }
-  drawMeteors(dt);drawComets(dt);
-}
+  });
 
-/* ═══════════════ FORGE — volcanic planet, live surface ═══════════════ */
-const fcv=$('#forgeCv'),fctx=fcv.getContext('2d'),fbox=fcv.parentElement;
-let fW=0,fH=0,fR=0,fCX=0,fCY=0,fVis=false,fInit=false,fRot=0,fMaps=null,fEmbers=[];
-const fl={x:-.62,y:-.55},flT={x:-.62,y:-.55},fp={x:0,y:0},fpT={x:0,y:0};
-const FTILT=-.5,FSQ=.24;
-
-function forgeResize(){
-  const s=fbox.clientWidth;if(!s)return;
-  fW=s;fH=s;
-  fcv.width=s*DPR;fcv.height=s*DPR;fcv.style.width=s+'px';fcv.style.height=s+'px';
-  fctx.setTransform(DPR,0,0,DPR,0,0);
-  fR=s*.205;fCX=s*.5;fCY=s*.53;
-}
-function makeForgeMaps(){
-  /* procedural basalt surface + emissive lava-crack layer (seamless, double-width) */
-  const TW=480,TH=240;
-  const s1=mk(TW,TH),g1=mk(TW,TH);
-  const sc=s1.getContext('2d'),gc=g1.getContext('2d');
-  const si=sc.createImageData(TW,TH),gi=gc.createImageData(TW,TH);
-  const sd=si.data,gd=gi.data;
-  for(let y=0;y<TH;y++)for(let x=0;x<TW;x++){
-    const i=(y*TW+x)*4;
-    const t=fbm(x*.013,y*.013,4,11);
-    const mar=fbm(x*.008,y*.008,3,29);
-    let r=34+t*80,g=22+t*50,b=15+t*32;
-    if(mar<.44){const d=(.44-mar)*1.6;r*=1-d*.45;g*=1-d*.45;b*=1-d*.45;}
-    sd[i]=r;sd[i+1]=g;sd[i+2]=b;sd[i+3]=255;
-    const rv=fbm(x*.05,y*.05,4,53);
-    const ridge=1-Math.abs(rv*2-1);
-    const patch=fbm(x*.01,y*.01,3,71);
-    if(ridge>.955&&patch>.42){
-      const k=Math.pow((ridge-.955)/.045,1.6);
-      gd[i]=255;gd[i+1]=110+k*115;gd[i+2]=35+k*90;gd[i+3]=Math.min(255,k*250);
-    }
-  }
-  sc.putImageData(si,0,0);gc.putImageData(gi,0,0);
-  const surf=mk(TW*2,TH),glow=mk(TW*2,TH);
-  const sx1=surf.getContext('2d');sx1.drawImage(s1,0,0);sx1.drawImage(s1,TW,0);
-  const gx1=glow.getContext('2d');gx1.drawImage(g1,0,0);gx1.drawImage(g1,TW,0);
-  return{surf,glow};
-}
-function emberNew(bottom){
-  return{x:rand(-1.45,1.45),y:bottom?rand(1.05,1.9):rand(-1.6,1.9),
-    vy:rand(.09,.22),sw:rand(.8,2.4),ph:rand(0,TAU),r:rand(.55,1.6),a:rand(.2,.6),fs:rand(2,5)};
-}
-function forgeInit(){
-  fMaps=makeForgeMaps();
-  fEmbers=[];for(let i=0;i<26;i++)fEmbers.push(emberNew(false));
-  fInit=true;
-}
-function fSphere(tex){
-  /* classic column-slice sphere mapping → convincing rotation */
-  const N=Math.round(clamp(fR*1.7,96,220)),step=2*fR/N,tw=tex.width,th=tex.height;
-  for(let i=0;i<N;i++){
-    const xa=-fR+i*step,xb=xa+step,xm=(xa+xb)/2;
-    const h=2*Math.sqrt(Math.max(0,fR*fR-xm*xm));
-    let u0=Math.asin(clamp(xa/fR,-1,1))/Math.PI+.5+fRot;
-    let u1=Math.asin(clamp(xb/fR,-1,1))/Math.PI+.5+fRot;
-    u0-=Math.floor(u0);if(u1<u0)u1+=1;
-    fctx.drawImage(tex,u0*tw,0,Math.max(1,(u1-u0)*tw),th,fCX+xa-.4,fCY-h/2,step+.8,h);
-  }
-}
-function fRing(r,style,w,a0,a1){
-  fctx.save();fctx.translate(fCX,fCY);fctx.rotate(FTILT);fctx.scale(1,FSQ);
-  fctx.beginPath();fctx.arc(0,0,r,a0,a1);
-  fctx.strokeStyle=style;fctx.lineWidth=w/FSQ;fctx.stroke();fctx.restore();
-}
-function fMoonAt(ang,mr){
-  const lx=Math.cos(ang)*mr,ly=Math.sin(ang)*mr,ct=Math.cos(FTILT),st=Math.sin(FTILT);
-  return{x:fCX+lx*ct-ly*FSQ*st,y:fCY+lx*st+ly*FSQ*ct,behind:ly<0};
-}
-function fDrawMoon(p,r){
-  fctx.globalCompositeOperation='lighter';
-  let g=fctx.createRadialGradient(p.x,p.y,0,p.x,p.y,r*4);
-  g.addColorStop(0,'rgba(255,190,120,.45)');g.addColorStop(1,'rgba(255,190,120,0)');
-  fctx.fillStyle=g;fctx.beginPath();fctx.arc(p.x,p.y,r*4,0,TAU);fctx.fill();
-  fctx.globalCompositeOperation='source-over';
-  g=fctx.createRadialGradient(p.x-r*.3,p.y-r*.3,0,p.x,p.y,r);
-  g.addColorStop(0,'#ffe7c2');g.addColorStop(.6,'#8a5a34');g.addColorStop(1,'#241509');
-  fctx.fillStyle=g;fctx.beginPath();fctx.arc(p.x,p.y,r,0,TAU);fctx.fill();
-}
-function forgeFrame(t,dt){
-  if(!fInit)forgeInit();
-  fRot+=dt*.02;
-  fl.x+=(flT.x-fl.x)*.05;fl.y+=(flT.y-fl.y)*.05;
-  fp.x+=(fpT.x-fp.x)*.07;fp.y+=(fpT.y-fp.y)*.07;
-  fctx.clearRect(0,0,fW,fH);
-  fctx.save();fctx.translate(fp.x,fp.y);
-  const r1=fR*1.66,r2=fR*2.18;
-  /* rings — far half */
-  fRing(r1,'rgba(255,171,77,.15)',1.1,Math.PI,TAU);
-  fRing(r1,'rgba(255,171,77,.05)',6,Math.PI,TAU);
-  fRing(r2,'rgba(255,171,77,.06)',1,Math.PI,TAU);
-  const mAng=t*.00024,mp=fMoonAt(mAng,r1*.985),ms=Math.max(3,fR*.048);
-  if(mp.behind)fDrawMoon(mp,ms);
-  /* planet — rotating surface, mouse-driven terminator, night-side lava glow */
-  fctx.save();fctx.beginPath();fctx.arc(fCX,fCY,fR,0,TAU);fctx.clip();
-  fSphere(fMaps.surf);
-  const lx=fCX+fl.x*fR,ly=fCY+fl.y*fR;
-  const sh=fctx.createRadialGradient(lx,ly,fR*.12,lx,ly,fR*2.3);
-  sh.addColorStop(0,'rgba(0,0,0,0)');sh.addColorStop(.5,'rgba(5,3,2,.03)');
-  sh.addColorStop(.66,'rgba(5,3,2,.5)');sh.addColorStop(.82,'rgba(3,1,0,.86)');sh.addColorStop(1,'rgba(2,1,0,.97)');
-  fctx.fillStyle=sh;fctx.fillRect(fCX-fR,fCY-fR,fR*2,fR*2);
-  fctx.globalCompositeOperation='lighter';
-  fSphere(fMaps.glow);
-  fctx.globalCompositeOperation='source-over';
-  fctx.restore();
-  /* atmosphere rim */
-  const atm=fctx.createRadialGradient(fCX,fCY,fR*.84,fCX,fCY,fR*1.18);
-  atm.addColorStop(0,'rgba(255,150,60,0)');atm.addColorStop(.5,'rgba(255,150,60,.13)');atm.addColorStop(1,'rgba(255,150,60,0)');
-  fctx.fillStyle=atm;fctx.beginPath();fctx.arc(fCX,fCY,fR*1.18,0,TAU);fctx.fill();
-  /* rings — near half crosses in front of the planet */
-  fRing(r1,'rgba(255,180,92,.35)',1.1,0,Math.PI);
-  fRing(r1,'rgba(255,171,77,.06)',6,0,Math.PI);
-  fRing(r2,'rgba(255,171,77,.11)',1,0,Math.PI);
-  if(!mp.behind)fDrawMoon(mp,ms);
-  /* rising embers */
-  fctx.globalCompositeOperation='lighter';
-  const ts=t/1000;
-  for(const e of fEmbers){
-    e.y-=e.vy*dt;if(e.y<-1.7)Object.assign(e,emberNew(true));
-    const flk=.55+.45*Math.sin(ts*e.fs+e.ph);
-    fctx.fillStyle=`rgba(255,158,84,${(e.a*flk).toFixed(3)})`;
-    fctx.beginPath();fctx.arc(fCX+e.x*fR+Math.sin(ts*e.sw+e.ph)*9,fCY+e.y*fR,e.r,0,TAU);fctx.fill();
-  }
-  fctx.globalCompositeOperation='source-over';
-  fctx.restore();
-}
-/* forge interactivity — the light source follows your pointer */
-fbox.addEventListener('pointermove',e=>{
-  const r=fbox.getBoundingClientRect();
-  const dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height*.53);
-  const d=Math.hypot(dx,dy)||1;
-  flT.x=dx/d;flT.y=dy/d;
-  fpT.x=clamp(dx*.03,-9,9);fpT.y=clamp(dy*.03,-8,8);
-});
-fbox.addEventListener('pointerleave',()=>{flT.x=-.62;flT.y=-.55;fpT.x=0;fpT.y=0;});
-
-/* ═══════════════ OORT — draggable 3D ring system ═══════════════ */
-const ocv=$('#oortCv'),octx=ocv.getContext('2d'),obox=ocv.parentElement;
-let oW=0,oH=0,oR=0,oCX=0,oCY=0,oVis=false,oInit=false;
-let yaw=.55,pitch=.5,pitchT=.5,yawV=.0024,oDrag=false,olx=0,oly=0;
-let ringP=[],sats=[],pings=[],nextPing=2500;
-
-function oortResize(){
-  const s=obox.clientWidth;if(!s)return;
-  oW=s;oH=s;
-  ocv.width=s*DPR;ocv.height=s*DPR;ocv.style.width=s+'px';ocv.style.height=s+'px';
-  octx.setTransform(DPR,0,0,DPR,0,0);
-  oR=s*.175;oCX=s*.5;oCY=s*.5;
-}
-function oortBuild(){
-  ringP=[];
-  for(let i=0;i<980;i++){
-    let rr;do{rr=1.34+Math.pow(Math.random(),.9)*.72;}while(rr>1.60&&rr<1.70); /* Cassini-like gap */
-    ringP.push({rr,a:Math.random()*TAU,
-      w:.8/Math.pow(rr,1.5)*(.94+Math.random()*.12), /* Keplerian speeds: inner rings orbit faster */
-      y:(Math.random()+Math.random()-1)*.024,
-      sz:Math.random()<.06?1.5+Math.random()*.7:.5+Math.random()*.75,
-      b:.3+Math.random()*.7,c:Math.random()});
-  }
-  /* shepherd moon sits inside the gap; inner moon is retrograde */
-  sats=[{rm:1.65,inc:-.22,w:.4,a:0,s:3.2},{rm:1.14,inc:.55,w:-.8,a:2.4,s:2.3}];
-}
-ocv.addEventListener('pointerdown',e=>{
-  oDrag=true;olx=e.clientX;oly=e.clientY;
-  try{ocv.setPointerCapture(e.pointerId);}catch(_){}
-  document.body.classList.add('grabbing');
-});
-ocv.addEventListener('pointermove',e=>{
-  if(!oDrag)return;
-  const dx=e.clientX-olx,dy=e.clientY-oly;olx=e.clientX;oly=e.clientY;
-  yaw+=dx*.0056;yawV=dx*.0056;
-  pitchT=clamp(pitchT+dy*.0035,-.5,1.2);
-});
-['pointerup','pointercancel'].forEach(ev=>ocv.addEventListener(ev,()=>{
-  oDrag=false;document.body.classList.remove('grabbing');
-}));
-function oortFrame(t,dt){
-  if(!oInit){oortBuild();oInit=true;}
-  if(!oDrag){if(!RM)yawV+=(0.0024-yawV)*.02;else yawV*=.9;yaw+=yawV;}
-  pitch+=(pitchT-pitch)*.09;
-  const cyw=Math.cos(yaw),syw=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
-  const P=(x,y,z)=>{
-    const x1=x*cyw+z*syw,z1=-x*syw+z*cyw;
-    const y2=y*cp-z1*sp,z2=y*sp+z1*cp;
-    const pr=900/(900+z2);
-    return{x:oCX+x1*pr,y:oCY+y2*pr,z:z2,pr};
-  };
-  octx.clearRect(0,0,oW,oH);
-  for(const p of ringP)p.a+=p.w*dt;
-  for(const m of sats)m.a+=m.w*dt;
-
-  const drawParts=front=>{
-    for(const p of ringP){
-      const q=P(Math.cos(p.a)*p.rr*oR,p.y*oR,Math.sin(p.a)*p.rr*oR);
-      if(front?q.z>0:q.z<=0)continue;
-      if(q.z>0){const dx=q.x-oCX,dy=q.y-oCY;if(dx*dx+dy*dy<oR*oR*.96)continue;}
-      let al=p.b*clamp((q.pr-.78)*1.9,.22,1);
-      if(p.sz>1.4)al*=.65+.35*Math.sin(t*.004+p.a*9);
-      octx.fillStyle=`rgba(${215+p.c*40|0},${230+p.c*22|0},255,${al.toFixed(3)})`;
-      octx.beginPath();octx.arc(q.x,q.y,p.sz*q.pr,0,TAU);octx.fill();
-    }
-  };
-  drawParts(false); /* far particles */
-
-  /* planet halo */
-  octx.globalCompositeOperation='screen';
-  let g=octx.createRadialGradient(oCX,oCY,oR*.5,oCX,oCY,oR*2.05);
-  g.addColorStop(0,'rgba(96,178,232,.17)');g.addColorStop(1,'rgba(96,178,232,0)');
-  octx.fillStyle=g;octx.beginPath();octx.arc(oCX,oCY,oR*2.05,0,TAU);octx.fill();
-  octx.globalCompositeOperation='source-over';
-  /* icy body with limb darkening */
-  g=octx.createRadialGradient(oCX-oR*.42,oCY-oR*.45,oR*.08,oCX,oCY,oR);
-  g.addColorStop(0,'rgba(218,237,249,.97)');g.addColorStop(.34,'rgba(150,192,216,.95)');
-  g.addColorStop(.64,'rgba(66,110,143,.96)');g.addColorStop(.86,'rgba(26,54,82,.99)');g.addColorStop(1,'rgba(8,17,30,1)');
-  octx.fillStyle=g;octx.beginPath();octx.arc(oCX,oCY,oR,0,TAU);octx.fill();
-  /* fresnel rim */
-  octx.globalCompositeOperation='screen';
-  g=octx.createRadialGradient(oCX,oCY,oR*.86,oCX,oCY,oR*1.14);
-  g.addColorStop(0,'rgba(150,215,255,0)');g.addColorStop(.5,'rgba(150,215,255,.32)');g.addColorStop(1,'rgba(150,215,255,0)');
-  octx.fillStyle=g;octx.beginPath();octx.arc(oCX,oCY,oR*1.14,0,TAU);octx.fill();
-  octx.globalCompositeOperation='source-over';
-  /* sunlit crescent */
-  octx.save();octx.strokeStyle='rgba(226,245,255,.5)';octx.lineWidth=1.2;
-  octx.shadowColor='rgba(160,220,255,.9)';octx.shadowBlur=6;
-  octx.beginPath();octx.arc(oCX,oCY,oR-.9,Math.PI*1.03,Math.PI*1.47);octx.stroke();octx.restore();
-
-  /* shepherd orbit path */
-  octx.strokeStyle='rgba(143,216,255,.12)';octx.lineWidth=1;octx.beginPath();
-  {const m=sats[0],rm=m.rm*oR;let pen=false;
-    for(let k=0;k<=72;k++){const a=k/72*TAU,ca=Math.cos(a),sa=Math.sin(a);
-      const q=P(ca*rm,-sa*rm*Math.sin(m.inc),sa*rm*Math.cos(m.inc));
-      const dx=q.x-oCX,dy=q.y-oCY;
-      if(q.z>0&&dx*dx+dy*dy<oR*oR){pen=false;continue;}
-      if(!pen){octx.moveTo(q.x,q.y);pen=true;}else octx.lineTo(q.x,q.y);}}
-  octx.stroke();
-
-  /* radar pings expanding through the ring plane */
-  if(!RM&&t>nextPing){pings.push({t0:t});nextPing=t+4200+Math.random()*2800;}
-  for(let i=pings.length-1;i>=0;i--){
-    const f=(t-pings[i].t0)/2500;
-    if(f>=1){pings.splice(i,1);continue;}
-    const rp=(1.04+f*1.16)*oR;
-    octx.strokeStyle=`rgba(150,220,255,${((1-f)*.32).toFixed(3)})`;
-    octx.lineWidth=1;octx.beginPath();let pen=false;
-    for(let k=0;k<=48;k++){const a=k/48*TAU;
-      const q=P(Math.cos(a)*rp,0,Math.sin(a)*rp);
-      const dx=q.x-oCX,dy=q.y-oCY;
-      if(q.z>0&&dx*dx+dy*dy<oR*oR){pen=false;continue;}
-      if(!pen){octx.moveTo(q.x,q.y);pen=true;}else octx.lineTo(q.x,q.y);}
-    octx.stroke();
-  }
-  /* satellites */
-  for(const m of sats){
-    const rm=m.rm*oR,ca=Math.cos(m.a),sa=Math.sin(m.a);
-    const q=P(ca*rm,-sa*rm*Math.sin(m.inc),sa*rm*Math.cos(m.inc));
-    if(q.z>0){const dx=q.x-oCX,dy=q.y-oCY;if(dx*dx+dy*dy<oR*oR*.93)continue;}
-    const r=m.s*q.pr,cl=clamp((q.pr-.78)*1.9,.35,1);
-    octx.globalCompositeOperation='lighter';
-    g=octx.createRadialGradient(q.x,q.y,0,q.x,q.y,r*5);
-    g.addColorStop(0,`rgba(170,225,255,${(.5*cl).toFixed(3)})`);g.addColorStop(1,'rgba(170,225,255,0)');
-    octx.fillStyle=g;octx.beginPath();octx.arc(q.x,q.y,r*5,0,TAU);octx.fill();
-    octx.globalCompositeOperation='source-over';
-    g=octx.createRadialGradient(q.x-r*.35,q.y-r*.35,0,q.x,q.y,r);
-    g.addColorStop(0,'rgba(240,250,255,.98)');g.addColorStop(.55,'rgba(150,195,220,.95)');g.addColorStop(1,'rgba(40,70,100,.95)');
-    octx.fillStyle=g;octx.beginPath();octx.arc(q.x,q.y,r,0,TAU);octx.fill();
-  }
-  drawParts(true); /* near particles */
-}
-
-/* ═══════════════ ORBIT — draggable 3D multi-ring reactor system ═══════════════ */
-const orbCv=$('#orbitCv'),orbCtx=orbCv?orbCv.getContext('2d'):null,orbBox=orbCv?orbCv.parentElement:null;
-let orbW=0,orbH=0,orbR=0,orbCX=0,orbCY=0,orbVis=false,orbInit=false;
-let orbYaw=.48,orbPitch=.42,orbPitchT=.42,orbYawV=.0028,orbDrag=false,orbLx=0,orbLy=0;
-let orbRings=[],orbNodes=[],orbPulses=[],orbDust=[],nextOrbPulse=1800;
-
-function orbitResize(){
-  if(!orbBox||!orbCv)return;
-  const s=orbBox.clientWidth;if(!s)return;
-  orbW=s;orbH=s;
-  orbCv.width=s*DPR;orbCv.height=s*DPR;
-  orbCv.style.width=s+'px';orbCv.style.height=s+'px';
-  orbCtx.setTransform(DPR,0,0,DPR,0,0);
-  orbR=s*.175;orbCX=s*.5;orbCY=s*.5;
-}
-
-function orbitBuild(){
-  orbRings=[
-    {r:1.18,incX:.35,incY:.25,rotSpeed:.55,a:0,color:'rgba(56,189,248,',segs:64},
-    {r:1.62,incX:-.48,incY:.38,rotSpeed:-.42,a:1.2,color:'rgba(168,85,247,',segs:72},
-    {r:2.08,incX:.22,incY:-.52,rotSpeed:.28,a:2.5,color:'rgba(14,165,233,',segs:80}
-  ];
-
-  orbNodes=[
-    {ring:0,a:.2,w:.55,sz:5.5,label:'WEB',port:':4100',color:[56,189,248]},
-    {ring:0,a:3.3,w:.55,sz:5.0,label:'API',port:':4101',color:[16,185,129]},
-    {ring:1,a:1.5,w:-.42,sz:6.0,label:'SVC',port:':4102',color:[168,85,247]},
-    {ring:1,a:4.7,w:-.42,sz:4.8,label:'AUTH',port:':4103',color:[245,158,11]},
-    {ring:2,a:.8,w:.28,sz:5.2,label:'DATA',port:':4104',color:[14,165,233]},
-    {ring:2,a:3.9,w:.28,sz:5.6,label:'CRON',port:':4105',color:[16,185,129]}
-  ];
-
-  orbDust=[];
-  for(let i=0;i<180;i++){
-    const rr=.75+Math.random()*1.55;
-    orbDust.push({
-      rr,
-      a:Math.random()*TAU,
-      w:(.7/Math.pow(rr,1.4))*(.85+Math.random()*.3),
-      y:(Math.random()-0.5)*.35,
-      sz:Math.random()<.1?1.4+Math.random()*.8:.6+Math.random()*.6,
-      al:.25+Math.random()*.65,
-      isPurple:Math.random()>.5
+  /* Manifesto word reveal: based on distance from station 1 */
+  if(wordEls.length){
+    var manifDist = camZ - STATIONS[1].z; /* negative = past it, positive = before it */
+    var manifProg = CL(1 - Math.abs(manifDist) / VISIBLE_RANGE, 0, 1); /* 0→1 proximity */
+    wordEls.forEach(function(w, i){
+      var threshold = (i / wordEls.length) * 0.85;
+      w.classList.toggle('lit', manifProg > threshold + 0.15);
     });
   }
 }
 
-if(orbCv){
-  orbCv.addEventListener('pointerdown',e=>{
-    orbDrag=true;orbLx=e.clientX;orbLy=e.clientY;
-    try{orbCv.setPointerCapture(e.pointerId);}catch(_){}
-    document.body.classList.add('grabbing');
+/* ═══════════════════════════════════════════════
+   CURRENT STATION LABEL
+═══════════════════════════════════════════════════ */
+function updateLabel(camZ){
+  if(!labelEl) return;
+  var closest = 0, minDist = Infinity;
+  STATIONS.forEach(function(s, i){
+    var d = Math.abs(camZ - s.z);
+    if(d < minDist){ minDist = d; closest = i; }
   });
-  orbCv.addEventListener('pointermove',e=>{
-    if(!orbDrag)return;
-    const dx=e.clientX-orbLx,dy=e.clientY-orbLy;
-    orbLx=e.clientX;orbLy=e.clientY;
-    orbYaw+=dx*.0056;orbYawV=dx*.0056;
-    orbPitchT=clamp(orbPitchT+dy*.0035,-.6,1.2);
-  });
-  ['pointerup','pointercancel'].forEach(ev=>orbCv.addEventListener(ev,()=>{
-    orbDrag=false;document.body.classList.remove('grabbing');
-  }));
+  var newLabel = STATIONS[closest].label;
+  if(labelEl.textContent !== newLabel) labelEl.textContent = newLabel;
 }
 
-function orbitFrame(t,dt){
-  if(!orbInit){orbitBuild();orbInit=true;}
-  if(!orbDrag){
-    if(!RM)orbYawV+=(.0028-orbYawV)*.02;
-    else orbYawV*=.9;
-    orbYaw+=orbYawV;
+/* ═══════════════════════════════════════════════
+   BAR CHARTS + LIVE DATA
+═══════════════════════════════════════════════════ */
+function buildBars(id, n, cls){
+  var c = document.getElementById(id);
+  if(!c || c.children.length) return;
+  for(var i=0; i<n; i++){
+    var b = document.createElement('div');
+    b.className = 'bar '+cls;
+    b.style.height = Math.floor(8+Math.random()*92)+'%';
+    c.appendChild(b);
   }
-  orbPitch+=(orbPitchT-orbPitch)*.09;
-
-  const cyw=Math.cos(orbYaw),syw=Math.sin(orbYaw);
-  const cp=Math.cos(orbPitch),sp=Math.sin(orbPitch);
-
-  const P=(x,y,z)=>{
-    const x1=x*cyw+z*syw,z1=-x*syw+z*cyw;
-    const y2=y*cp-z1*sp,z2=y*sp+z1*cp;
-    const pr=900/(900+z2);
-    return{x:orbCX+x1*pr,y:orbCY+y2*pr,z:z2,pr};
+}
+function rnd(a,b){return a+Math.random()*(b-a)}
+function tickData(){
+  var m={
+    fCommits:function(){return(1180+Math.floor(rnd(0,80))).toLocaleString()},
+    fC2:function(){var v=document.getElementById('fCommits');return v?v.textContent:'1,218'},
+    fK:function(){return String(10+Math.floor(rnd(0,6)))},
+    oRps:function(){return Math.floor(rnd(28000,42000)).toLocaleString()},
+    oR2:function(){var v=document.getElementById('oRps');return v?v.textContent:'34,210'},
+    oLat:function(){return rnd(2.8,5.2).toFixed(1)},
+    oL2:function(){var v=document.getElementById('oLat');return(v?v.textContent:'3.8')+'ms'},
+    oStore:function(){return rnd(4.2,5.8).toFixed(1)},
+    oS2:function(){var v=document.getElementById('oStore');return(v?v.textContent:'4.7')+'TB'},
+    orbP:function(){return':'+(4100+Math.floor(rnd(0,15)))},
+    oP2:function(){var v=document.getElementById('orbP');return v?v.textContent:':4109'},
+    orbC:function(){return String(Math.floor(rnd(5,12)))},
+    oC2:function(){var v=document.getElementById('orbC');return v?v.textContent:'7'},
   };
-
-  const ringPt=(ring,angle)=>{
-    const rad=ring.r*orbR;
-    const rx=Math.cos(angle)*rad;
-    const ry=0;
-    const rz=Math.sin(angle)*rad;
-    const cx=Math.cos(ring.incX),sx=Math.sin(ring.incX);
-    const y1=ry*cx-rz*sx,z1=ry*sx+rz*cx;
-    const cy=Math.cos(ring.incY),sy=Math.sin(ring.incY);
-    const x2=rx*cy+z1*sy,z2=-rx*sy+z1*cy;
-    return P(x2,y1,z2);
-  };
-
-  orbCtx.clearRect(0,0,orbW,orbH);
-
-  for(const r of orbRings)r.a+=r.rotSpeed*dt;
-  for(const n of orbNodes)n.a+=n.w*dt;
-  for(const d of orbDust)d.a+=d.w*dt;
-
-  /* Far dust */
-  for(const d of orbDust){
-    const q=P(Math.cos(d.a)*d.rr*orbR,d.y*orbR,Math.sin(d.a)*d.rr*orbR);
-    if(q.z>0)continue;
-    const al=d.al*clamp((q.pr-.75)*1.8,.2,1);
-    orbCtx.fillStyle=d.isPurple?`rgba(168,85,247,${al.toFixed(3)})`:`rgba(56,189,248,${al.toFixed(3)})`;
-    orbCtx.beginPath();orbCtx.arc(q.x,q.y,d.sz*q.pr,0,TAU);orbCtx.fill();
-  }
-
-  /* Far ring segments */
-  for(const ring of orbRings){
-    orbCtx.lineWidth=1.1;
-    for(let k=0;k<ring.segs;k++){
-      const a1=(k/ring.segs)*TAU;
-      const a2=((k+1)/ring.segs)*TAU;
-      const q1=ringPt(ring,a1);
-      const q2=ringPt(ring,a2);
-      if(q1.z<=0||q2.z<=0){
-        const alpha=clamp((q1.pr-.72)*1.5,.1,.45);
-        orbCtx.strokeStyle=ring.color+alpha.toFixed(3)+')';
-        orbCtx.beginPath();orbCtx.moveTo(q1.x,q1.y);orbCtx.lineTo(q2.x,q2.y);orbCtx.stroke();
-      }
-    }
-  }
-
-  /* Central Quantum Engine Core / Docker Host */
-  const corePulse=.5+.5*Math.sin(t*.003);
-  orbCtx.globalCompositeOperation='screen';
-  let cg=orbCtx.createRadialGradient(orbCX,orbCY,orbR*.2,orbCX,orbCY,orbR*1.7);
-  cg.addColorStop(0,`rgba(56,189,248,${(.25+corePulse*.15).toFixed(3)})`);
-  cg.addColorStop(.5,`rgba(168,85,247,${(.12+corePulse*.08).toFixed(3)})`);
-  cg.addColorStop(1,'rgba(0,0,0,0)');
-  orbCtx.fillStyle=cg;orbCtx.beginPath();orbCtx.arc(orbCX,orbCY,orbR*1.7,0,TAU);orbCtx.fill();
-
-  orbCtx.globalCompositeOperation='source-over';
-  cg=orbCtx.createRadialGradient(orbCX-orbR*.35,orbCY-orbR*.35,orbR*.05,orbCX,orbCY,orbR*.85);
-  cg.addColorStop(0,'#e0f2fe');
-  cg.addColorStop(.3,'#38bdf8');
-  cg.addColorStop(.65,'#6366f1');
-  cg.addColorStop(.9,'#1e1b4b');
-  cg.addColorStop(1,'#05070d');
-  orbCtx.fillStyle=cg;orbCtx.beginPath();orbCtx.arc(orbCX,orbCY,orbR*.85,0,TAU);orbCtx.fill();
-
-  /* Rotating Core Hex Brackets */
-  orbCtx.save();
-  orbCtx.translate(orbCX,orbCY);
-  orbCtx.rotate(t*.0008);
-  orbCtx.strokeStyle='rgba(56,189,248,.7)';
-  orbCtx.lineWidth=1.4;
-  orbCtx.beginPath();
-  for(let i=0;i<6;i++){
-    const ang=(i/6)*TAU;
-    const hx=Math.cos(ang)*orbR*.62;
-    const hy=Math.sin(ang)*orbR*.62;
-    if(i===0)orbCtx.moveTo(hx,hy);else orbCtx.lineTo(hx,hy);
-  }
-  orbCtx.closePath();orbCtx.stroke();
-  orbCtx.restore();
-
-  /* Central Core Badge */
-  orbCtx.save();
-  orbCtx.font=`700 ${(orbR*.36)|0}px var(--font-disp, monospace)`;
-  orbCtx.textAlign='center';orbCtx.textBaseline='middle';
-  orbCtx.fillStyle='#ffffff';
-  orbCtx.shadowColor='rgba(56,189,248,.9)';orbCtx.shadowBlur=10;
-  orbCtx.fillText('⬡',orbCX,orbCY-1);
-  orbCtx.restore();
-
-  /* Core Shockwave Radar Pings */
-  if(!RM&&t>nextOrbPulse){
-    orbPulses.push({t0:t});
-    nextOrbPulse=t+3200+Math.random()*2200;
-  }
-  for(let i=orbPulses.length-1;i>=0;i--){
-    const f=(t-orbPulses[i].t0)/2200;
-    if(f>=1){orbPulses.splice(i,1);continue;}
-    const prp=(.85+f*1.4)*orbR;
-    const alp=((1-f)*.45).toFixed(3);
-    orbCtx.strokeStyle=`rgba(56,189,248,${alp})`;
-    orbCtx.lineWidth=1.5;
-    orbCtx.beginPath();
-    orbCtx.arc(orbCX,orbCY,prp,0,TAU);
-    orbCtx.stroke();
-  }
-
-  /* Near Ring Segments */
-  for(const ring of orbRings){
-    orbCtx.lineWidth=1.3;
-    for(let k=0;k<ring.segs;k++){
-      const a1=(k/ring.segs)*TAU;
-      const a2=((k+1)/ring.segs)*TAU;
-      const q1=ringPt(ring,a1);
-      const q2=ringPt(ring,a2);
-      if(q1.z>0&&q2.z>0){
-        const alpha=clamp((q1.pr-.72)*2.2,.25,.95);
-        orbCtx.strokeStyle=ring.color+alpha.toFixed(3)+')';
-        orbCtx.beginPath();orbCtx.moveTo(q1.x,q1.y);orbCtx.lineTo(q2.x,q2.y);orbCtx.stroke();
-      }
-    }
-  }
-
-  /* Container Nodes & Laser Beams */
-  const renderedNodes=orbNodes.map(n=>{
-    const ring=orbRings[n.ring];
-    const pos=ringPt(ring,n.a);
-    return{...n,pos};
-  }).sort((a,b)=>a.pos.z-b.pos.z);
-
-  for(const node of renderedNodes){
-    const q=node.pos;
-    const r=node.sz*q.pr;
-    const [cr,cg,cb]=node.color;
-    const cl=clamp((q.pr-.75)*1.9,.35,1);
-
-    if(q.z>0||Math.abs(q.z)<orbR*.8){
-      const laserGrad=orbCtx.createLinearGradient(orbCX,orbCY,q.x,q.y);
-      laserGrad.addColorStop(0,`rgba(56,189,248,${(.12*cl).toFixed(3)})`);
-      laserGrad.addColorStop(.7,`rgba(${cr},${cg},${cb},${(.35*cl).toFixed(3)})`);
-      laserGrad.addColorStop(1,`rgba(${cr},${cg},${cb},${(.85*cl).toFixed(3)})`);
-      orbCtx.strokeStyle=laserGrad;
-      orbCtx.lineWidth=1.2;
-      orbCtx.beginPath();
-      orbCtx.moveTo(orbCX,orbCY);
-      orbCtx.lineTo(q.x,q.y);
-      orbCtx.stroke();
-
-      const pktPos=(t*.0018+node.a)%1;
-      const px=orbCX+(q.x-orbCX)*pktPos;
-      const py=orbCY+(q.y-orbCY)*pktPos;
-      orbCtx.fillStyle='#fff';
-      orbCtx.beginPath();
-      orbCtx.arc(px,py,1.8*q.pr,0,TAU);
-      orbCtx.fill();
-    }
-
-    orbCtx.globalCompositeOperation='lighter';
-    let g=orbCtx.createRadialGradient(q.x,q.y,0,q.x,q.y,r*4.5);
-    g.addColorStop(0,`rgba(${cr},${cg},${cb},${(.6*cl).toFixed(3)})`);
-    g.addColorStop(1,`rgba(${cr},${cg},${cb},0)`);
-    orbCtx.fillStyle=g;
-    orbCtx.beginPath();orbCtx.arc(q.x,q.y,r*4.5,0,TAU);orbCtx.fill();
-
-    orbCtx.globalCompositeOperation='source-over';
-    g=orbCtx.createRadialGradient(q.x-r*.3,q.y-r*.3,0,q.x,q.y,r);
-    g.addColorStop(0,'#ffffff');
-    g.addColorStop(.45,`rgb(${cr},${cg},${cb})`);
-    g.addColorStop(1,'#05070d');
-    orbCtx.fillStyle=g;
-    orbCtx.beginPath();orbCtx.arc(q.x,q.y,r,0,TAU);orbCtx.fill();
-
-    orbCtx.strokeStyle=`rgba(255,255,255,${(.8*cl).toFixed(2)})`;
-    orbCtx.lineWidth=1;
-    orbCtx.stroke();
-
-    if(q.z>-orbR*.4){
-      orbCtx.save();
-      orbCtx.font=`600 ${Math.max(9,(10*q.pr)|0)}px var(--font-mono, monospace)`;
-      orbCtx.textAlign='left';
-      orbCtx.textBaseline='middle';
-      orbCtx.fillStyle=`rgba(241,245,249,${(.9*cl).toFixed(2)})`;
-      orbCtx.fillText(`${node.label} ${node.port}`,q.x+r+6,q.y);
-      orbCtx.restore();
-    }
-  }
-
-  /* Near dust */
-  for(const d of orbDust){
-    const q=P(Math.cos(d.a)*d.rr*orbR,d.y*orbR,Math.sin(d.a)*d.rr*orbR);
-    if(q.z<=0)continue;
-    const al=d.al*clamp((q.pr-.75)*2.2,.35,1);
-    orbCtx.fillStyle=d.isPurple?`rgba(192,132,252,${al.toFixed(3)})`:`rgba(125,211,252,${al.toFixed(3)})`;
-    orbCtx.beginPath();orbCtx.arc(q.x,q.y,d.sz*q.pr,0,TAU);orbCtx.fill();
-  }
+  Object.keys(m).forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=m[id]()});
+  document.querySelectorAll('.panel-bars .bar').forEach(function(b){b.style.height=Math.floor(6+Math.random()*94)+'%'});
 }
 
-/* ═══════════════ UI — cursor · reveals · scramble · telemetry ═══════════════ */
-let curDot=null,curRing=null,curShown=false,crx=innerWidth/2,cry=innerHeight/2;
-if(FINE&&!RM){curDot=$('#curDot');curRing=$('#curRing');document.body.classList.add('has-cur');}
+/* ═══════════════════════════════════════════════
+   MAIN ANIMATION FRAME
+═══════════════════════════════════════════════════ */
+function onFrame(){
+  rafPending = false;
 
-addEventListener('mousemove',e=>{
-  mouse.px=e.clientX;mouse.py=e.clientY;
-  mouse.x=e.clientX/innerWidth;mouse.y=e.clientY/innerHeight;
-  if(curRing&&!curShown){curShown=true;document.body.classList.add('cur-vis');crx=mouse.px;cry=mouse.py;}
-  if(curRing){
-    const el=e.target instanceof Element?e.target:null;
-    curRing.classList.toggle('act',!!(el&&el.closest('a,button')));
-    curRing.classList.toggle('drag',!!(el&&el.closest('[data-cursor="drag"]')));
-  }
-},{passive:true});
-document.addEventListener('mouseleave',()=>{document.body.classList.remove('cur-vis');curShown=false;});
+  /* Compute target Z from scroll position */
+  var maxScroll = Math.max(1, SCROLL_HEIGHT - window.innerHeight);
+  var scrollFrac = CL(scrollY / maxScroll, 0, 1);
+  targetZ = scrollToZ(scrollFrac);
 
-/* nav state + scroll cache */
-const nav=$('#nav');
-addEventListener('scroll',()=>{scr=scrollY;nav.classList.toggle('scrolled',scr>40);},{passive:true});
+  /* Smooth lerp to target */
+  smoothZ += (targetZ - smoothZ) * 0.08;
 
-/* mobile menu */
- $('#burger').addEventListener('click',()=>document.body.classList.toggle('m-open'));
- $$('#mmenu a').forEach(a=>a.addEventListener('click',()=>document.body.classList.remove('m-open')));
+  /* Move the tunnel in Z — this is the core 3D scroll mechanism */
+  tunnel.style.transform = 'translateZ(' + (-smoothZ) + 'px)';
 
-/* text scramble decode */
-const SCR_CH='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<>/\\[]·';
-function scramble(el){
-  const target=el.dataset.txt;
-  if(RM){el.textContent=target;return;}
-  let f=0;const total=Math.max(16,target.length*1.15);
-  const iv=setInterval(()=>{
-    f++;const done=Math.floor(target.length*f/total);let s='';
-    for(let i=0;i<target.length;i++){
-      const ch=target[i];
-      s+=i<done?ch:(ch===' '?' ':SCR_CH[(Math.random()*SCR_CH.length)|0]);
-    }
-    el.textContent=s;
-    if(f>=total){el.textContent=target;clearInterval(iv);}
-  },26);
-}
- $$('[data-scr]').forEach(el=>{el.dataset.txt=el.textContent;});
+  /* Update station visibility */
+  updateStations(smoothZ);
+  updateLabel(smoothZ);
 
-/* scroll reveal */
-const rio=new IntersectionObserver(es=>{for(const en of es){
-  if(!en.isIntersecting)continue;
-  en.target.classList.add('in');
-  en.target.querySelectorAll('[data-scr]').forEach(scramble);
-  rio.unobserve(en.target);
-}},{threshold:.15,rootMargin:'0px 0px -7% 0px'});
- $$('[data-reveal]').forEach(el=>rio.observe(el));
-setTimeout(()=>scramble($('#tagScr')),350);
+  /* Nav scroll state */
+  if(navEl) navEl.classList.toggle('stuck', scrollY > 50);
 
-/* canvas visibility gating (perf) */
-const vio=new IntersectionObserver(es=>{for(const en of es){
-  if(en.target===fbox)fVis=en.isIntersecting;
-  if(en.target===obox)oVis=en.isIntersecting;
-  if(orbBox&&en.target===orbBox)orbVis=en.isIntersecting;
-}},{rootMargin:'80px'});
-vio.observe(fbox);vio.observe(obox);if(orbBox)vio.observe(orbBox);
+  /* Progress bar */
+  if(progBar) progBar.style.transform = 'scaleX(' + scrollFrac + ')';
 
-/* magnetic buttons */
-if(FINE&&!RM)$$('.mag').forEach(b=>{
-  b.addEventListener('pointermove',e=>{
-    const r=b.getBoundingClientRect();
-    b.style.transform=`translate(${(e.clientX-r.left-r.width/2)*.16}px,${(e.clientY-r.top-r.height/2)*.22}px)`;
-  });
-  b.addEventListener('pointerleave',()=>{b.style.transform='';});
-});
-
-/* forge terminal — self-typing deploy log */
-const termBody=$('#termBody');
-const TSCRIPT=[
-  [['cosmos:~$ ','tp'],['git push origin main','tw']],
-  [['» ','tc'],['compressing objects ','tc'],['100%','ta']],
-  [['» ','tc'],['integrity verified','tc']],
-  [['» ','tc'],['deployed → ','tc'],['forge.internal','to']],
-];
-let tli=0,tsi=0,tci=0,tel=null;
-function typeStep(){
-  if(RM){termBody.innerHTML=TSCRIPT.map(l=>l.map(s=>`<span class="t-${s[1]}">${s[0]}</span>`).join('')).join('<br>');return;}
-  if(tli>=TSCRIPT.length){setTimeout(()=>{termBody.textContent='';tli=0;tsi=0;tci=0;typeStep();},3400);return;}
-  const line=TSCRIPT[tli];
-  if(tsi>=line.length){termBody.appendChild(document.createElement('br'));tli++;tsi=0;tci=0;setTimeout(typeStep,340);return;}
-  const seg=line[tsi];
-  if(tci===0){tel=document.createElement('span');tel.className='t-'+seg[1];termBody.appendChild(tel);}
-  tel.textContent=seg[0].slice(0,++tci);
-  if(tci>=seg[0].length){tsi++;tci=0;}
-  setTimeout(typeStep,22+Math.random()*34);
-}
-setTimeout(typeStep,900);
-
-/* oort stats — live jitter + telemetry bars */
-const stRps=$('#stRps'),stLat=$('#stLat');
-setInterval(()=>{
-  if(RM)return;
-  stLat.textContent=(3.2+Math.random()*.95).toFixed(2);
-  stRps.textContent=(32000+((Math.random()*880)|0)-440).toLocaleString('en-US');
-},1500);
-const bars=$('#bars');
-for(let i=0;i<14;i++){
-  const b=document.createElement('i');
-  b.style.height=(5+Math.random()*17)+'px';
-  b.style.animationDuration=(.7+Math.random()*.9)+'s';
-  b.style.animationDelay=(-Math.random()*2).toFixed(2)+'s';
-  bars.appendChild(b);
+  /* Footer at end */
+  if(footerEl) footerEl.classList.toggle('show', scrollFrac > 0.96);
 }
 
-/* orbit stats — live jitter + telemetry bars */
-const orbPorts=$('#orbPorts');
-if(orbPorts){
-  const portsList=[':4100',':4102',':4105',':4280',':4310',':4450'];
-  setInterval(()=>{
-    if(RM)return;
-    orbPorts.textContent=portsList[(Math.random()*portsList.length)|0];
-  },2200);
-}
-const orbitBars=$('#orbitBars');
-if(orbitBars){
-  for(let i=0;i<14;i++){
-    const b=document.createElement('i');
-    b.style.height=(5+Math.random()*17)+'px';
-    b.style.animationDuration=(.6+Math.random()*.8)+'s';
-    b.style.animationDelay=(-Math.random()*2).toFixed(2)+'s';
-    orbitBars.appendChild(b);
-  }
-}
-
-/* HUD telemetry — UTC clock, pointer RA/DEC, session uptime */
-const hudRa=$('#hudRa'),hudDec=$('#hudDec'),hudUtc=$('#hudUtc'),ftUp=$('#ftUp');
-const t0=Date.now();
-setInterval(()=>{
-  const s=((Date.now()-t0)/1000)|0;
-  ftUp.textContent=`SESSION T+${p2(s/3600|0)}:${p2((s/60|0)%60)}:${p2(s%60)}`;
-},1000);
-
-const lineEls=$$('.hero-title .msk');
-let fc=0;
-function uiFrame(t){
-  if(curDot){
-    curDot.style.transform=`translate(${mouse.px}px,${mouse.py}px)`;
-    crx+=(mouse.px-crx)*.18;cry+=(mouse.py-cry)*.18;
-    curRing.style.transform=`translate(${crx}px,${cry}px)`;
-  }
-  if(!RM&&scr<innerHeight&&lineEls.length){
-    const ox=mouse.sx-.5,oy=mouse.sy-.5,K=[16,26,10];
-    lineEls.forEach((el,i)=>{el.style.transform=`translate3d(${ox*K[i]}px,${oy*K[i]*.45}px,0)`;});
-  }
-  if((fc++%12)===0){
-    const d=new Date();
-    hudUtc.textContent=`${p2(d.getUTCHours())}:${p2(d.getUTCMinutes())}:${p2(d.getUTCSeconds())} UTC`;
-    const ra=mouse.sx*24,dec=(.5-mouse.sy)*168;
-    const ad=Math.abs(dec);
-    hudRa.textContent=`RA ${p2(ra|0)}h ${p2((ra*60|0)%60)}m ${p2((ra*3600|0)%60)}s`;
-    hudDec.textContent=`DEC ${dec<0?'−':'+'}${p2(ad|0)}° ${p2((ad*60|0)%60)}′ ${p2((ad*3600|0)%60)}″`;
-  }
-}
-
-/* ═══════════════ BOOT + MAIN LOOP ═══════════════ */
-skyResize();buildStars();nebTex=makeNebula();
-addEventListener('resize',()=>{skyResize();buildStars();});
-new ResizeObserver(forgeResize).observe(fbox);
-new ResizeObserver(oortResize).observe(obox);
-if(orbBox)new ResizeObserver(orbitResize).observe(orbBox);
-forgeResize();oortResize();if(orbBox)orbitResize();
-
-/* pre-bake forge textures during idle time so scrolling never hitches */
-const warm=()=>{if(!fInit)forgeInit();};
-if('requestIdleCallback' in window)requestIdleCallback(warm,{timeout:2500});else setTimeout(warm,1800);
-
-let lastT=performance.now();
-function loop(t){
-  const dt=RM?0:Math.min(.05,(t-lastT)/1000)||.016;
-  lastT=t;
-  mouse.sx+=(mouse.x-mouse.sx)*.06;
-  mouse.sy+=(mouse.y-mouse.sy)*.06;
-  const tt=RM?2000:t;
-  skyFrame(tt,dt);
-  if(fVis)forgeFrame(tt,dt);
-  if(oVis)oortFrame(tt,dt);
-  if(orbVis)orbitFrame(tt,dt);
-  uiFrame(t);
+/* Continuous RAF for smooth lerp */
+function loop(){
   requestAnimationFrame(loop);
+  /* Always lerp even without scroll events for smooth motion */
+  var delta = Math.abs(targetZ - smoothZ);
+  if(delta > 0.5) onFrame();
 }
+
+window.addEventListener('scroll', function(){
+  scrollY = window.scrollY;
+  if(!rafPending){ rafPending = true; requestAnimationFrame(onFrame); }
+}, {passive:true});
+
+/* ═══════════════════════════════════════════════
+   THREE.JS — BACKGROUND 3D SCENE
+   Stars, planets, debris — all synced to camZ
+═══════════════════════════════════════════════════ */
+(function(){
+  if(!window.THREE) return;
+  var T = THREE;
+  var W = innerWidth, H = innerHeight;
+  var canvas = document.getElementById('cvs');
+
+  var renderer = new T.WebGLRenderer({canvas:canvas, antialias:true, alpha:false, powerPreference:'high-performance'});
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setSize(W, H);
+  renderer.setClearColor(0x020308, 1);
+
+  var scene = new T.Scene();
+  scene.fog = new T.FogExp2(0x020308, 0.004);
+
+  var cam3 = new T.PerspectiveCamera(60, W/H, 0.1, 600);
+  cam3.position.set(0, 0, 50);
+
+  /* Lights */
+  scene.add(new T.AmbientLight(0x080e1e, 2.5));
+  var sunL = new T.PointLight(0x8fd9ff, 5, 200); sunL.position.set(16, 24, 30); scene.add(sunL);
+  var warmL = new T.PointLight(0xff6b35, 4, 120); warmL.position.set(-18,-12,-30); scene.add(warmL);
+  var vioL = new T.PointLight(0xa855f7, 3, 100); vioL.position.set(8,-16,-40); scene.add(vioL);
+
+  /* Stars — spread across the full Z-tunnel */
+  (function(){
+    var N=4000, pos=new Float32Array(N*3), col=new Float32Array(N*3);
+    var pal=[[1,1,1],[.75,.88,1],[1,.92,.75],[.6,.75,1]];
+    for(var i=0;i<N;i++){
+      /* Stars spread from Z +80 to Z -200 */
+      pos[i*3]   = (Math.random()-0.5)*160;
+      pos[i*3+1] = (Math.random()-0.5)*120;
+      pos[i*3+2] = 80 - Math.random()*280;
+      var c=pal[Math.floor(Math.random()*pal.length)];
+      col[i*3]=c[0]; col[i*3+1]=c[1]; col[i*3+2]=c[2];
+    }
+    var g=new T.BufferGeometry();
+    g.setAttribute('position',new T.BufferAttribute(pos,3));
+    g.setAttribute('color',new T.BufferAttribute(col,3));
+    scene.add(new T.Points(g,new T.PointsMaterial({size:.24,vertexColors:true,transparent:true,opacity:.85,blending:T.AdditiveBlending,sizeAttenuation:true})));
+  })();
+
+  /* Helper: create ring */
+  function mkRing(r,tube,clr,op,rx,ry){
+    var m=new T.Mesh(new T.TorusGeometry(r,tube,8,128),new T.MeshBasicMaterial({color:clr,transparent:true,opacity:op,blending:T.AdditiveBlending}));
+    m.rotation.set(rx,ry,0); return m;
+  }
+
+  /* ── HERO CORE (Three.js Z=0, world Z=0) ── */
+  var heroGrp = new T.Group();
+  var icoMat = new T.MeshStandardMaterial({color:0x071428,emissive:0x8fd9ff,emissiveIntensity:.45,metalness:.95,roughness:.12});
+  var icoMesh = new T.Mesh(new T.IcosahedronGeometry(2.5,4), icoMat);
+  var wfMesh = new T.Mesh(new T.IcosahedronGeometry(2.55,4), new T.MeshBasicMaterial({color:0x8fd9ff,wireframe:true,transparent:true,opacity:.14}));
+  heroGrp.add(icoMesh, wfMesh);
+  heroGrp.add(new T.Mesh(new T.SphereGeometry(3.5,32,32), new T.MeshBasicMaterial({color:0x3a8fff,transparent:true,opacity:.06,side:T.BackSide,blending:T.AdditiveBlending})));
+  var hR1=mkRing(5,.028,0x8fd9ff,.6,Math.PI/2.8,0);
+  var hR2=mkRing(7,.02,0x43e5a0,.4,Math.PI/3.5,Math.PI/5);
+  var hR3=mkRing(9,.014,0xa855f7,.3,Math.PI/2,Math.PI/4);
+  var satM=new T.Mesh(new T.SphereGeometry(.16,8,8), new T.MeshBasicMaterial({color:0x43e5a0,blending:T.AdditiveBlending}));
+  heroGrp.add(hR1,hR2,hR3,satM);
+  heroGrp.position.set(0, 0, 0);
+  scene.add(heroGrp);
+
+  /* ── FORGE PLANET (Three.js z = -40, aligned with station 2 ratio) ── */
+  var forgeGrp = new T.Group();
+  var forgeMat = new T.MeshStandardMaterial({color:0x250400,emissive:0xff3300,emissiveIntensity:.55,metalness:.2,roughness:.88});
+  forgeGrp.add(new T.Mesh(new T.SphereGeometry(5.5,64,64), forgeMat));
+  forgeGrp.add(new T.Mesh(new T.SphereGeometry(7,32,32), new T.MeshBasicMaterial({color:0xff4422,transparent:true,opacity:.06,side:T.BackSide,blending:T.AdditiveBlending})));
+  (function(){
+    var g=new T.BufferGeometry(),p=new Float32Array(700*3);
+    for(var i=0;i<700;i++){var a=Math.random()*Math.PI*2,r=7+Math.random()*2.2,y=(Math.random()-.5)*.9;p[i*3]=Math.cos(a)*r;p[i*3+1]=y;p[i*3+2]=Math.sin(a)*r;}
+    g.setAttribute('position',new T.BufferAttribute(p,3));
+    forgeGrp.add(new T.Points(g,new T.PointsMaterial({color:0xff6b35,size:.12,transparent:true,opacity:.72,blending:T.AdditiveBlending})));
+  })();
+  forgeGrp.position.set(-10, -4, -60);
+  scene.add(forgeGrp);
+
+  /* ── OORT PLANET (Three.js z = -100) ── */
+  var oortGrp = new T.Group();
+  var oortMat = new T.MeshStandardMaterial({color:0x020b18,emissive:0x38bdf8,emissiveIntensity:.35,metalness:.7,roughness:.3});
+  oortGrp.add(new T.Mesh(new T.SphereGeometry(5,64,64), oortMat));
+  var oRng=new T.Mesh(new T.TorusGeometry(8,1.4,2,200),new T.MeshBasicMaterial({color:0x8fd9ff,transparent:true,opacity:.2,blending:T.AdditiveBlending,side:T.DoubleSide}));
+  oRng.rotation.x=Math.PI/4.5;
+  var oRng2=new T.Mesh(new T.TorusGeometry(10.5,.4,2,200),new T.MeshBasicMaterial({color:0x4dd4ff,transparent:true,opacity:.11,blending:T.AdditiveBlending,side:T.DoubleSide}));
+  oRng2.rotation.x=Math.PI/4.5;
+  oortGrp.add(oRng, oRng2);
+  oortGrp.add(new T.Mesh(new T.SphereGeometry(6.2,32,32),new T.MeshBasicMaterial({color:0x1a8fff,transparent:true,opacity:.05,side:T.BackSide,blending:T.AdditiveBlending})));
+  oortGrp.position.set(10, 3, -100);
+  scene.add(oortGrp);
+
+  /* ── ORBIT CORE (Three.js z = -140) ── */
+  var orbitGrp = new T.Group();
+  var orbitMat = new T.MeshStandardMaterial({color:0x0a001e,emissive:0xa855f7,emissiveIntensity:.7,metalness:.92,roughness:.1});
+  var orbitMesh = new T.Mesh(new T.OctahedronGeometry(3.5,2), orbitMat);
+  var orbitWf = new T.Mesh(new T.OctahedronGeometry(3.6,2), new T.MeshBasicMaterial({color:0xa855f7,wireframe:true,transparent:true,opacity:.2}));
+  orbitGrp.add(orbitMesh, orbitWf);
+  orbitGrp.add(new T.Mesh(new T.SphereGeometry(5.5,32,32),new T.MeshBasicMaterial({color:0xa855f7,transparent:true,opacity:.05,side:T.BackSide,blending:T.AdditiveBlending})));
+  (function(){
+    var g=new T.BufferGeometry(),p=new Float32Array(450*3);
+    for(var i=0;i<450;i++){var r=5+Math.random()*2,th=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1);p[i*3]=r*Math.sin(ph)*Math.cos(th);p[i*3+1]=r*Math.sin(ph)*Math.sin(th);p[i*3+2]=r*Math.cos(ph);}
+    g.setAttribute('position',new T.BufferAttribute(p,3));
+    orbitGrp.add(new T.Points(g,new T.PointsMaterial({color:0xcc88ff,size:.09,transparent:true,opacity:.78,blending:T.AdditiveBlending})));
+  })();
+  orbitGrp.position.set(0, -4, -140);
+  scene.add(orbitGrp);
+
+  /* ── DEBRIS ── */
+  var debGrp = new T.Group();
+  for(var i=0;i<30;i++){
+    var dg=Math.random()<.5?new T.OctahedronGeometry(.1+Math.random()*.16,0):new T.TetrahedronGeometry(.08+Math.random()*.14,0);
+    var dm=new T.MeshBasicMaterial({color:0x8fd9ff,transparent:true,opacity:.12+Math.random()*.3,wireframe:Math.random()>.4});
+    var dd=new T.Mesh(dg,dm);
+    dd.position.set((Math.random()-.5)*50,(Math.random()-.5)*35,50-Math.random()*230);
+    dd.rotation.set(Math.random()*6,Math.random()*6,Math.random()*6);
+    dd.userData={vy:(Math.random()-.5)*.004,vx:(Math.random()-.5)*.003};
+    debGrp.add(dd);
+  }
+  scene.add(debGrp);
+
+  /* ── Map HTML scroll Z → Three.js camera Z ──
+     CSS tunnel goes 0 → -19000
+     Three.js scene goes 0 → -180
+     Scale factor: 180/19000 ≈ 0.00947 */
+  var Z_SCALE = 180 / TOTAL_Z;
+
+  var clock = new T.Clock();
+
+  function threeTick(){
+    var dt = clock.getDelta();
+    var t  = clock.getElapsedTime();
+
+    /* Camera Z tracks the CSS tunnel position */
+    var threeZ = 50 - smoothZ * Z_SCALE;
+    cam3.position.z = threeZ;
+    cam3.position.x = Math.sin(t * 0.04) * 1.5;
+    cam3.position.y = Math.cos(t * 0.03) * 0.8;
+
+    /* Hero rotation */
+    if(Math.abs(smoothZ) < 3000){
+      icoMesh.rotation.y += dt*.22; icoMesh.rotation.z += dt*.08;
+      wfMesh.rotation.copy(icoMesh.rotation);
+      hR1.rotation.z += dt*.36;
+      hR2.rotation.x += dt*.22; hR2.rotation.z += dt*.1;
+      hR3.rotation.y += dt*.28; hR3.rotation.x += dt*.14;
+      var sa = t*.6;
+      satM.position.set(Math.cos(sa)*8,Math.sin(sa*.35)*2,Math.sin(sa)*8);
+    }
+
+    /* Forge rotation */
+    forgeGrp.children[0].rotation.y = t*.1;
+    if(forgeGrp.children[2]) forgeGrp.children[2].rotation.y = t*.35;
+    forgeMat.emissiveIntensity = .45 + .15*Math.sin(t*1.6);
+
+    /* Oort */
+    oortGrp.children[0].rotation.y = t*.08;
+    oRng.rotation.z = t*.04;
+    oRng2.rotation.z = -t*.025;
+    oortMat.emissiveIntensity = .28 + .1*Math.sin(t*1.2);
+
+    /* Orbit */
+    orbitMesh.rotation.y += dt*.2; orbitMesh.rotation.x += dt*.08;
+    orbitWf.rotation.copy(orbitMesh.rotation);
+    if(orbitGrp.children[3]) orbitGrp.children[3].rotation.y = t*.16;
+    orbitMat.emissiveIntensity = .6 + .15*Math.sin(t*1.9);
+
+    /* Debris */
+    debGrp.children.forEach(function(d){
+      d.position.x += d.userData.vx; d.position.y += d.userData.vy;
+      d.rotation.y += .003; d.rotation.x += .002;
+      if(Math.abs(d.position.x)>26) d.userData.vx *= -1;
+      if(Math.abs(d.position.y)>18) d.userData.vy *= -1;
+    });
+
+    renderer.render(scene, cam3);
+  }
+
+  /* Resize */
+  window.addEventListener('resize', function(){
+    W=innerWidth; H=innerHeight;
+    cam3.aspect=W/H; cam3.updateProjectionMatrix();
+    renderer.setSize(W,H);
+  }, {passive:true});
+
+  /* Render loop */
+  (function raf(){
+    requestAnimationFrame(raf);
+    threeTick();
+  })();
+
+})(); /* end THREE block */
+
+/* ═══════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════ */
+buildBars('forge-bars', 18, 'bar-forge');
+buildBars('oort-bars',  18, 'bar-oort');
+buildBars('orbit-bars', 18, 'bar-orbit');
+
+/* Initial state */
+onFrame();
 requestAnimationFrame(loop);
+setInterval(tickData, 1800);
+
 })();
 </script>
 </body>

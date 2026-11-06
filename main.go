@@ -877,6 +877,12 @@ func main() {
 		w.Header().Set("Content-Type", "text/css; charset=utf-8")
 		w.Write(data)
 	})
+	mux.HandleFunc("/three.min.js", func(w http.ResponseWriter, r *http.Request) {
+		data, _ := templatesFS.ReadFile("templates/three.min.js")
+		w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
+		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		w.Write(data)
+	})
 	RegisterS3ConsoleRoutes(mux)
 	RegisterOrbitRoutes(mux)
 	mux.HandleFunc("/oort", func(w http.ResponseWriter, r *http.Request) { handleServicePage(w, r, "oort") })
