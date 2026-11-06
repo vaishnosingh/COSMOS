@@ -85,7 +85,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
   pointer-events:none;
 }
 
-/* Each station is positioned at a Z-depth in the tunnel */
+/* Each station is positioned in the 3D world */
 .station{
   position:absolute;
   left:0;top:0;right:0;bottom:0;
@@ -93,10 +93,10 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
   transform-style:preserve-3d;
   pointer-events:none;
   opacity:0;
-  transition:opacity .15s ease-out;
+  visibility:hidden;
+  will-change:transform,opacity;
 }
 .station.active{
-  opacity:1;
   pointer-events:auto;
 }
 /* Station inner layout */
@@ -559,7 +559,7 @@ footer.show{transform:translateY(0)}
 <div id="tunnel">
 
   <!-- ★ STATION 0 — HERO  (Z = 0) -->
-  <div class="station" id="st0" style="transform:translateZ(0px)" data-label="01 — COSMOS">
+  <div class="station active" id="st0" style="opacity:1;visibility:visible" data-label="01 — COSMOS">
     <div class="st-inner">
       <div class="hero-center">
         <div class="hero-tag">Sovereign Cloud Platform</div>
@@ -581,7 +581,7 @@ footer.show{transform:translateY(0)}
   </div>
 
   <!-- ★ STATION 1 — MANIFESTO  (Z = -2400) -->
-  <div class="station" id="st1" style="transform:translateZ(-2400px)" data-label="00 — SOVEREIGNTY">
+  <div class="station" id="st1" data-label="00 — SOVEREIGNTY">
     <div class="st-inner">
       <div class="manifesto-wrap">
         <span class="ch-tag">00 — Sovereignty</span>
@@ -603,7 +603,7 @@ footer.show{transform:translateY(0)}
   </div>
 
   <!-- ★ STATION 2 — FORGE  (Z = -5400) -->
-  <div class="station" id="st2" style="transform:translateZ(-5400px)" data-label="01 — FORGE">
+  <div class="station" id="st2" data-label="01 — FORGE">
     <div class="st-inner">
       <div class="prod-wrap">
         <div class="prod-copy">
@@ -636,7 +636,7 @@ footer.show{transform:translateY(0)}
   </div>
 
   <!-- ★ STATION 3 — OORT  (Z = -8400) -->
-  <div class="station" id="st3" style="transform:translateZ(-8400px)" data-label="02 — OORT">
+  <div class="station" id="st3" data-label="02 — OORT">
     <div class="st-inner">
       <div class="prod-wrap rev">
         <div class="prod-copy">
@@ -670,7 +670,7 @@ footer.show{transform:translateY(0)}
   </div>
 
   <!-- ★ STATION 4 — ORBIT  (Z = -11400) -->
-  <div class="station" id="st4" style="transform:translateZ(-11400px)" data-label="03 — ORBIT">
+  <div class="station" id="st4" data-label="03 — ORBIT">
     <div class="st-inner">
       <div class="prod-wrap">
         <div class="prod-copy">
@@ -704,7 +704,7 @@ footer.show{transform:translateY(0)}
   </div>
 
   <!-- ★ STATION 5 — SCALE  (Z = -14000) -->
-  <div class="station" id="st5" style="transform:translateZ(-14000px)" data-label="04 — SCALE">
+  <div class="station" id="st5" data-label="04 — SCALE">
     <div class="st-inner">
       <div class="scale-wrap">
         <span class="ch-tag">04 — Scale</span>
@@ -722,7 +722,7 @@ footer.show{transform:translateY(0)}
   </div>
 
   <!-- ★ STATION 6 — COMPARE  (Z = -16500) -->
-  <div class="station" id="st6" style="transform:translateZ(-16500px)" data-label="05 — COMPARISON">
+  <div class="station" id="st6" data-label="05 — COMPARISON">
     <div class="st-inner">
       <div class="cmp-wrap">
         <span class="ch-tag">05 — Comparison</span>
@@ -742,7 +742,7 @@ footer.show{transform:translateY(0)}
   </div>
 
   <!-- ★ STATION 7 — CTA  (Z = -19000) -->
-  <div class="station" id="st7" style="transform:translateZ(-19000px)" data-label="06 — BEGIN">
+  <div class="station" id="st7" data-label="06 — BEGIN">
     <div class="st-inner">
       <div class="cta-wrap">
         <span class="ch-tag">06 — Begin</span>
@@ -777,7 +777,7 @@ footer.show{transform:translateY(0)}
   <div class="ft-right"><div>51.4778° N · 0.0015° W</div><div style="color:var(--ok);margin-top:3px">● All systems nominal</div></div>
 </footer>
 
-<noscript><style>.station{opacity:1!important;position:relative!important;transform:none!important}.manifesto-q .word{opacity:1!important;transform:none!important}#world{position:relative!important;perspective:none!important}#tunnel{position:relative!important;transform:none!important}#scroll-spacer{display:none}</style></noscript>
+<noscript><style>.station{opacity:1!important;visibility:visible!important;position:relative!important;transform:none!important}.manifesto-q .word{opacity:1!important;transform:none!important}#world{position:relative!important;perspective:none!important}#tunnel{position:relative!important;transform:none!important}#scroll-spacer{display:none}</style></noscript>
 
 <!-- ═══════════════════════════════════════════════════
    SCRIPT: 3D SCROLL ENGINE + THREE.JS
@@ -816,19 +816,14 @@ var TOTAL_Z = 19000;
 var SCROLL_HEIGHT = (STATIONS.length - 1) * 1000;
 document.getElementById('scroll-spacer').style.height = SCROLL_HEIGHT + 'px';
 
-/* Station visibility range: +/- this many Z-units from station center */
-var VISIBLE_RANGE = 1400;
-/* Fade-in/out range */
-var FADE_RANGE = 600;
-
 /* ─── STATE ─── */
 var scrollY = 0;
 var smoothZ = 0;
 var targetZ = 0;
 var currentStationIdx = 0;
 var targetStationIdx = 0;
-var navCooldown = 700; /* ms between station transitions */
 var lastNavTime = 0;
+var lastNavDir = 0;
 var wheelAccum = 0;
 var wheelDecay = null;
 var rafPending = false;
@@ -861,12 +856,14 @@ function goToStation(idx){
 
 function nextStation(){
   if(targetStationIdx < STATIONS.length - 1){
+    lastNavDir = 1;
     goToStation(targetStationIdx + 1);
   }
 }
 
 function prevStation(){
   if(targetStationIdx > 0){
+    lastNavDir = -1;
     goToStation(targetStationIdx - 1);
   }
 }
@@ -876,13 +873,26 @@ window.goToStation = goToStation;
 window.nextStation = nextStation;
 window.prevStation = prevStation;
 
-/* Wheel gesture: one flick = one station transition + pause */
+/* Wheel gesture: instant direction reverse, one flick = one station transition + pause */
 window.addEventListener('wheel', function(e){
   e.preventDefault();
-  wheelAccum += e.deltaY;
+
+  // Instant reset on scroll direction change so user never has to overcome residual delta
+  if((e.deltaY > 0 && wheelAccum < 0) || (e.deltaY < 0 && wheelAccum > 0)){
+    wheelAccum = e.deltaY;
+  } else {
+    wheelAccum += e.deltaY;
+  }
+
   var now = Date.now();
-  if(Math.abs(wheelAccum) > 25 && (now - lastNavTime) > navCooldown){
-    if(wheelAccum > 0){
+  var dir = wheelAccum > 0 ? 1 : -1;
+  var isDirChange = (dir !== lastNavDir);
+  // Direction reversals respond ultra fast (180ms) for effortless backward scrolling!
+  var activeCooldown = isDirChange ? 180 : 420;
+
+  if(Math.abs(wheelAccum) > 18 && (now - lastNavTime) > activeCooldown){
+    lastNavDir = dir;
+    if(dir > 0){
       nextStation();
     } else {
       prevStation();
@@ -890,8 +900,9 @@ window.addEventListener('wheel', function(e){
     wheelAccum = 0;
     lastNavTime = now;
   }
+
   clearTimeout(wheelDecay);
-  wheelDecay = setTimeout(function(){ wheelAccum = 0; }, 120);
+  wheelDecay = setTimeout(function(){ wheelAccum = 0; }, 90);
 }, {passive: false});
 
 /* Touch gestures: swipe up/down */
@@ -903,7 +914,12 @@ window.addEventListener('touchstart', function(e){
 window.addEventListener('touchend', function(e){
   var dy = touchStartY - e.changedTouches[0].clientY;
   var now = Date.now();
-  if(Math.abs(dy) > 35 && (now - lastNavTime) > navCooldown){
+  var dir = dy > 0 ? 1 : -1;
+  var isDirChange = (dir !== lastNavDir);
+  var activeCooldown = isDirChange ? 180 : 380;
+
+  if(Math.abs(dy) > 28 && (now - lastNavTime) > activeCooldown){
+    lastNavDir = dir;
     if(dy > 0){
       nextStation();
     } else {
@@ -917,9 +933,11 @@ window.addEventListener('touchend', function(e){
 window.addEventListener('keydown', function(e){
   if(e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' '){
     e.preventDefault();
+    lastNavDir = 1;
     nextStation();
   } else if(e.key === 'ArrowUp' || e.key === 'PageUp'){
     e.preventDefault();
+    lastNavDir = -1;
     prevStation();
   } else if(e.key === 'Home'){
     goToStation(0);
@@ -942,36 +960,94 @@ if(mqEl){
 }
 
 /* ═══════════════════════════════════════════════
-   STATION VISIBILITY
+   STATION VISIBILITY & 3D PARALLAX INTERPOLATION
+   Continuous, symmetrical cross-fade for forward AND backward scroll.
+   Stations stay safely within [-75px, +45px] of camera space so
+   CSS 3D perspective never suffers divide-by-zero or near-plane explosions.
 ═══════════════════════════════════════════════════ */
 function updateStations(camZ){
+  // Clamp camZ to station limits
+  camZ = CL(camZ, STATIONS[STATIONS.length - 1].z, STATIONS[0].z);
+
+  // Find the active segment
+  var segIdx = 0;
+  for(var i = 0; i < STATIONS.length - 1; i++){
+    if(camZ <= STATIONS[i].z && camZ >= STATIONS[i+1].z){
+      segIdx = i;
+      break;
+    }
+  }
+
+  var zA = STATIONS[segIdx].z;
+  var zB = STATIONS[segIdx + 1].z;
+  var span = zB - zA;
+  var t = span !== 0 ? (camZ - zA) / span : 0;
+  t = CL(t, 0, 1);
+
+  // Silky smooth cosine ease: 0 at zA, 1 at zB
+  var ease = (1 - Math.cos(t * Math.PI)) * 0.5;
+
   stationEls.forEach(function(el, i){
     if(!el) return;
-    var stZ = STATIONS[i].z;
-    var dist = Math.abs(camZ - stZ);
 
-    if(dist < VISIBLE_RANGE){
-      var alpha;
-      if(dist < VISIBLE_RANGE - FADE_RANGE){
-        alpha = 1;
+    if(i === segIdx){
+      // Station A (in view when ease=0, departing forward when ease->1)
+      var op = 1 - ease;
+      if(op > 0.005){
+        var z = ease * 45;
+        var s = 1 + ease * 0.03;
+        var y = -ease * 18;
+        el.style.visibility = 'visible';
+        el.style.opacity = op.toFixed(3);
+        el.style.transform = 'translate3d(0,' + y.toFixed(1) + 'px,' + z.toFixed(1) + 'px) scale(' + s.toFixed(3) + ')';
+        el.style.pointerEvents = ease < 0.25 ? 'auto' : 'none';
+        el.classList.toggle('active', ease < 0.35);
       } else {
-        alpha = 1 - (dist - (VISIBLE_RANGE - FADE_RANGE)) / FADE_RANGE;
+        el.style.visibility = 'hidden';
+        el.style.opacity = '0';
+        el.style.pointerEvents = 'none';
+        el.classList.remove('active');
       }
-      el.classList.add('active');
-      el.style.opacity = String(CL(alpha, 0, 1));
+    } else if(i === segIdx + 1){
+      // Station B (in view when ease=1, arriving from depth when ease->1)
+      var op = ease;
+      if(op > 0.005){
+        var z = (ease - 1) * 75;
+        var s = 0.96 + ease * 0.04;
+        var y = (1 - ease) * 18;
+        el.style.visibility = 'visible';
+        el.style.opacity = op.toFixed(3);
+        el.style.transform = 'translate3d(0,' + y.toFixed(1) + 'px,' + z.toFixed(1) + 'px) scale(' + s.toFixed(3) + ')';
+        el.style.pointerEvents = ease > 0.75 ? 'auto' : 'none';
+        el.classList.toggle('active', ease > 0.65);
+      } else {
+        el.style.visibility = 'hidden';
+        el.style.opacity = '0';
+        el.style.pointerEvents = 'none';
+        el.classList.remove('active');
+      }
     } else {
-      el.classList.remove('active');
+      // Inactive station
+      el.style.visibility = 'hidden';
       el.style.opacity = '0';
+      el.style.pointerEvents = 'none';
+      el.classList.remove('active');
     }
   });
 
-  /* Manifesto word reveal: based on distance from station 1 */
+  /* Manifesto word reveal (Station 1): lights up smoothly from either direction */
   if(wordEls.length){
-    var manifDist = camZ - STATIONS[1].z;
-    var manifProg = CL(1 - Math.abs(manifDist) / VISIBLE_RANGE, 0, 1);
+    var manifProg = 0;
+    if(segIdx === 0){
+      manifProg = t;
+    } else if(segIdx === 1){
+      manifProg = 1 - t;
+    } else {
+      manifProg = 0;
+    }
     wordEls.forEach(function(w, i){
-      var threshold = (i / wordEls.length) * 0.85;
-      w.classList.toggle('lit', manifProg > threshold + 0.15);
+      var threshold = (i / wordEls.length) * 0.78;
+      w.classList.toggle('lit', manifProg > threshold + 0.12);
     });
   }
 }
@@ -1030,13 +1106,18 @@ function tickData(){
 function onFrame(){
   rafPending = false;
 
-  /* Smooth lerp to target station Z */
-  smoothZ += (targetZ - smoothZ) * 0.085;
+  /* Smooth lerp to target station Z with clean settling */
+  var diff = targetZ - smoothZ;
+  if(Math.abs(diff) < 0.4){
+    smoothZ = targetZ;
+  } else {
+    smoothZ += diff * 0.092;
+  }
 
-  /* Move the tunnel in Z */
-  tunnel.style.transform = 'translateZ(' + (-smoothZ) + 'px)';
+  /* Tunnel container remains steady at origin - stations are positioned in station-relative space */
+  if(tunnel) tunnel.style.transform = 'translateZ(0px)';
 
-  /* Update station visibility */
+  /* Update station visibility & transforms */
   updateStations(smoothZ);
   updateLabel(smoothZ);
 
@@ -1057,7 +1138,12 @@ function loop(){
 }
 
 window.addEventListener('scroll', function(){
-  /* Keep scroll position in sync with station */
+  var maxScroll = Math.max(1, SCROLL_HEIGHT - window.innerHeight);
+  var scrollFrac = window.scrollY / maxScroll;
+  var approxIdx = Math.round(scrollFrac * (STATIONS.length - 1));
+  if(approxIdx !== targetStationIdx && (Date.now() - lastNavTime) > 300){
+    goToStation(approxIdx);
+  }
 }, {passive:true});
 
 /* ═══════════════════════════════════════════════
@@ -1200,8 +1286,13 @@ window.addEventListener('scroll', function(){
     cam3.position.x = Math.sin(t * 0.04) * 1.5;
     cam3.position.y = Math.cos(t * 0.03) * 0.8;
 
-    /* Hero rotation */
-    if(Math.abs(smoothZ) < 3000){
+    /* Hero Core: active only at Station 0. Dissolve smoothly so camera never collides with it */
+    var heroDist = Math.abs(smoothZ);
+    if(heroDist < 2200){
+      heroGrp.visible = true;
+      var heroScale = Math.max(0.001, 1 - heroDist / 1900);
+      heroGrp.scale.setScalar(heroScale);
+
       icoMesh.rotation.y += dt*.22; icoMesh.rotation.z += dt*.08;
       wfMesh.rotation.copy(icoMesh.rotation);
       hR1.rotation.z += dt*.36;
@@ -1209,6 +1300,8 @@ window.addEventListener('scroll', function(){
       hR3.rotation.y += dt*.28; hR3.rotation.x += dt*.14;
       var sa = t*.6;
       satM.position.set(Math.cos(sa)*8,Math.sin(sa*.35)*2,Math.sin(sa)*8);
+    } else {
+      heroGrp.visible = false;
     }
 
     /* Forge rotation */
