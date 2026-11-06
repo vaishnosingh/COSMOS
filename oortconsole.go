@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/base64"
+	"encoding/xml"
+	"html"
 	"github.com/google/uuid"
 	"fmt"
 	"io"
@@ -952,6 +954,9 @@ func handleS3CreateBucket(w http.ResponseWriter, r *http.Request) {
 	// Enable versioning
 	exec.Command("mc", "version", "enable", "cosmos/"+internalName).Run()
 	
+	// Enable public streaming for Mornye NAS
+	exec.Command("mc", "anonymous", "set", "download", "cosmos/"+internalName).Run()
+	
 	// Save to DB
 	scyllaSession.Query(`INSERT INTO cosmos.buckets (bucket_name, owner_email, display_name) VALUES (?, ?, ?)`, internalName, ak, displayName).Exec()
 	
@@ -1302,6 +1307,181 @@ func handleMornyeNASEnableStreaming(w http.ResponseWriter, r *http.Request) {
 	jsonOK(w, map[string]any{"success": true, "bucket": req.Bucket, "status": "streaming_enabled"})
 }
 
+func escapeDAVPath(p string) string {
+	parts := strings.Split(p, "/")
+	for i, part := range parts {
+		parts[i] = url.PathEscape(part)
+	}
+	return strings.Join(parts, "/")
+}
+
+func xmlEscape(s string) string {
+	var b strings.Builder
+	xml.EscapeText(&b, []byte(s))
+	return b.String()
+}
+
+func mimeForFilename(filename string) string {
+	lower := strings.ToLower(filename)
+	switch {
+	case strings.HasSuffix(lower, ".flac"):
+		return "audio/flac"
+	case strings.HasSuffix(lower, ".mp3"):
+		return "audio/mpeg"
+	case strings.HasSuffix(lower, ".wav"):
+		return "audio/wav"
+	case strings.HasSuffix(lower, ".m4a"):
+		return "audio/mp4"
+	case strings.HasSuffix(lower, ".aac"):
+		return "audio/aac"
+	case strings.HasSuffix(lower, ".ogg"):
+		return "audio/ogg"
+	case strings.HasSuffix(lower, ".opus"):
+		return "audio/opus"
+	case strings.HasSuffix(lower, ".alac"):
+		return "audio/alac"
+	case strings.HasSuffix(lower, ".m3u"), strings.HasSuffix(lower, ".m3u8"):
+		return "audio/x-mpegurl"
+	case strings.HasSuffix(lower, ".lrc"):
+		return "text/plain; charset=utf-8"
+	case strings.HasSuffix(lower, ".json"):
+		return "application/json"
+	default:
+		return "application/octet-stream"
+	}
+}
+
+func handleWebDAVPropfind(w http.ResponseWriter, r *http.Request, username, displayBucket, actualBucket, objectKey string) {
+	mc, err := minio.New(minioEndpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4("unityadmin", "UnityAdmin2026!", ""),
+		Secure: false,
+	})
+	if err != nil {
+		http.Error(w, "WebDAV backend error", 500)
+		return
+	}
+
+	depth := r.Header.Get("Depth")
+	if depth == "" {
+		depth = "1"
+	}
+
+	w.Header().Set("Content-Type", "application/xml; charset=\"utf-8\"")
+	w.Header().Set("DAV", "1, 2")
+	w.Header().Set("MS-Author-Via", "DAV")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, HEAD, POST, PUT, DELETE, OPTIONS, PROPFIND")
+	w.Header().Set("Access-Control-Allow-Headers", "Depth, Content-Type, Authorization, Range")
+	w.WriteHeader(207) // HTTP 207 Multi-Status
+
+	var buf strings.Builder
+	buf.WriteString("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n")
+	buf.WriteString("<D:multistatus xmlns:D=\"DAV:\">\n")
+
+	rootHref := fmt.Sprintf("/oort/%s/%s/", username, displayBucket)
+
+	if objectKey == "" {
+		// Root collection self entry
+		buf.WriteString("  <D:response>\n")
+		buf.WriteString(fmt.Sprintf("    <D:href>%s</D:href>\n", xmlEscape(rootHref)))
+		buf.WriteString("    <D:propstat>\n")
+		buf.WriteString("      <D:prop>\n")
+		buf.WriteString(fmt.Sprintf("        <D:displayname>%s</D:displayname>\n", xmlEscape(displayBucket)))
+		buf.WriteString("        <D:resourcetype><D:collection/></D:resourcetype>\n")
+		buf.WriteString("      </D:prop>\n")
+		buf.WriteString("      <D:status>HTTP/1.1 200 OK</D:status>\n")
+		buf.WriteString("    </D:propstat>\n")
+		buf.WriteString("  </D:response>\n")
+
+		if depth != "0" {
+			ctx := context.Background()
+			for obj := range mc.ListObjects(ctx, actualBucket, minio.ListObjectsOptions{Recursive: true}) {
+				if obj.Err == nil && !strings.HasSuffix(obj.Key, "/") {
+					itemHref := rootHref + escapeDAVPath(obj.Key)
+					mime := mimeForFilename(obj.Key)
+					lastMod := obj.LastModified.UTC().Format(http.TimeFormat)
+					name := filepath.Base(obj.Key)
+
+					buf.WriteString("  <D:response>\n")
+					buf.WriteString(fmt.Sprintf("    <D:href>%s</D:href>\n", xmlEscape(itemHref)))
+					buf.WriteString("    <D:propstat>\n")
+					buf.WriteString("      <D:prop>\n")
+					buf.WriteString(fmt.Sprintf("        <D:displayname>%s</D:displayname>\n", xmlEscape(name)))
+					buf.WriteString("        <D:resourcetype/>\n")
+					buf.WriteString(fmt.Sprintf("        <D:getcontentlength>%d</D:getcontentlength>\n", obj.Size))
+					buf.WriteString(fmt.Sprintf("        <D:getcontenttype>%s</D:getcontenttype>\n", mime))
+					buf.WriteString(fmt.Sprintf("        <D:getlastmodified>%s</D:getlastmodified>\n", lastMod))
+					buf.WriteString("      </D:prop>\n")
+					buf.WriteString("      <D:status>HTTP/1.1 200 OK</D:status>\n")
+					buf.WriteString("    </D:propstat>\n")
+					buf.WriteString("  </D:response>\n")
+				}
+			}
+		}
+	} else {
+		// Specific file PROPFIND
+		ctx := context.Background()
+		objInfo, err := mc.StatObject(ctx, actualBucket, objectKey, minio.StatObjectOptions{})
+		if err != nil {
+			buf.WriteString("  <D:response>\n")
+			buf.WriteString(fmt.Sprintf("    <D:href>%s%s</D:href>\n", xmlEscape(rootHref), xmlEscape(escapeDAVPath(objectKey))))
+			buf.WriteString("    <D:status>HTTP/1.1 404 Not Found</D:status>\n")
+			buf.WriteString("  </D:response>\n")
+		} else {
+			itemHref := rootHref + escapeDAVPath(objInfo.Key)
+			mime := mimeForFilename(objInfo.Key)
+			lastMod := objInfo.LastModified.UTC().Format(http.TimeFormat)
+			name := filepath.Base(objInfo.Key)
+
+			buf.WriteString("  <D:response>\n")
+			buf.WriteString(fmt.Sprintf("    <D:href>%s</D:href>\n", xmlEscape(itemHref)))
+			buf.WriteString("    <D:propstat>\n")
+			buf.WriteString("      <D:prop>\n")
+			buf.WriteString(fmt.Sprintf("        <D:displayname>%s</D:displayname>\n", xmlEscape(name)))
+			buf.WriteString("        <D:resourcetype/>\n")
+			buf.WriteString(fmt.Sprintf("        <D:getcontentlength>%d</D:getcontentlength>\n", objInfo.Size))
+			buf.WriteString(fmt.Sprintf("        <D:getcontenttype>%s</D:getcontenttype>\n", mime))
+			buf.WriteString(fmt.Sprintf("        <D:getlastmodified>%s</D:getlastmodified>\n", lastMod))
+			buf.WriteString("      </D:prop>\n")
+			buf.WriteString("      <D:status>HTTP/1.1 200 OK</D:status>\n")
+			buf.WriteString("    </D:propstat>\n")
+			buf.WriteString("  </D:response>\n")
+		}
+	}
+
+	buf.WriteString("</D:multistatus>\n")
+	w.Write([]byte(buf.String()))
+}
+
+func renderNASDirectoryIndex(w http.ResponseWriter, username, displayBucket string, tracks []MornyeTrackItem) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS, PROPFIND")
+	w.Header().Set("Access-Control-Allow-Headers", "Range, Authorization, Content-Type, Depth")
+	w.Header().Set("DAV", "1, 2")
+
+	var buf strings.Builder
+	buf.WriteString("<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\">\n")
+	buf.WriteString(fmt.Sprintf("<html>\n<head><title>Index of /oort/%s/%s/</title></head>\n<body>\n", html.EscapeString(username), html.EscapeString(displayBucket)))
+	buf.WriteString(fmt.Sprintf("<h1>Index of /oort/%s/%s/</h1>\n<hr>\n<pre><a href=\"../\">Parent Directory</a>\n", html.EscapeString(username), html.EscapeString(displayBucket)))
+
+	for _, t := range tracks {
+		escaped := escapeDAVPath(t.Key)
+		displayName := t.Name
+		if len(displayName) > 55 {
+			displayName = displayName[:52] + "..."
+		}
+		padded := displayName
+		if len(padded) < 55 {
+			padded += strings.Repeat(" ", 55-len(padded))
+		}
+		buf.WriteString(fmt.Sprintf("<a href=\"%s\">%s</a> %s %10d\n", escaped, html.EscapeString(padded), t.LastModified, t.Size))
+	}
+
+	buf.WriteString("</pre>\n<hr>\n<address>Mornye NAS Server at cosmos.linuxguy.space Port 443</address>\n</body>\n</html>")
+	w.Write([]byte(buf.String()))
+}
+
 func handleS3PublicProxy(w http.ResponseWriter, r *http.Request, username, path string) {
 	trimmed := strings.Trim(path, "/")
 	var displayBucket, objectKey string
@@ -1366,10 +1546,37 @@ func handleS3PublicProxy(w http.ResponseWriter, r *http.Request, username, path 
 		publicBucketCache.Store(cacheKey, actualBucket)
 	}
 
+	// WebDAV OPTIONS method handling
+	if r.Method == "OPTIONS" {
+		w.Header().Set("DAV", "1, 2")
+		w.Header().Set("MS-Author-Via", "DAV")
+		w.Header().Set("Allow", "GET, HEAD, POST, PUT, DELETE, OPTIONS, PROPFIND, MKCOL, COPY, MOVE")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, HEAD, POST, PUT, DELETE, OPTIONS, PROPFIND, MKCOL, COPY, MOVE")
+		w.Header().Set("Access-Control-Allow-Headers", "Depth, Content-Type, Authorization, Range, X-Requested-With")
+		w.Header().Set("Access-Control-Expose-Headers", "Content-Range, Content-Length, Accept-Ranges, DAV")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	// WebDAV PROPFIND method handling
+	if r.Method == "PROPFIND" {
+		handleWebDAVPropfind(w, r, username, displayBucket, actualBucket, objectKey)
+		return
+	}
+
 	// Check if this is a Mornye NAS root, index.json, or playlist.m3u request
 	isPlaylist := objectKey == "playlist.m3u" || objectKey == "mornye.m3u" || r.URL.Query().Get("format") == "m3u"
 	isJSON := objectKey == "index.json" || objectKey == "mornye.json" || r.URL.Query().Get("format") == "json" || strings.Contains(r.Header.Get("Accept"), "application/json")
 	isRoot := (objectKey == "")
+
+	if isRoot && r.Method == "HEAD" {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("DAV", "1, 2")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 
 	if isRoot || isPlaylist || isJSON {
 		mc, err := minio.New(minioEndpoint, &minio.Options{
@@ -1395,7 +1602,7 @@ func handleS3PublicProxy(w http.ResponseWriter, r *http.Request, username, path 
 
 				isAudio := ext == "flac" || ext == "mp3" || ext == "wav" || ext == "m4a" || ext == "aac" || ext == "ogg" || ext == "opus" || ext == "alac"
 				if isAudio || isRoot {
-					streamURL := fmt.Sprintf("https://cosmos.linuxguy.space/oort/%s/%s/%s", username, displayBucket, url.PathEscape(obj.Key))
+					streamURL := fmt.Sprintf("https://cosmos.linuxguy.space/oort/%s/%s/%s", username, displayBucket, escapeDAVPath(obj.Key))
 					tracks = append(tracks, MornyeTrackItem{
 						Key:          obj.Key,
 						Name:         name,
@@ -1412,7 +1619,8 @@ func handleS3PublicProxy(w http.ResponseWriter, r *http.Request, username, path 
 
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Headers", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS, PROPFIND")
+		w.Header().Set("DAV", "1, 2")
 
 		if isPlaylist {
 			w.Header().Set("Content-Type", "audio/x-mpegurl; charset=utf-8")
@@ -1445,8 +1653,8 @@ func handleS3PublicProxy(w http.ResponseWriter, r *http.Request, username, path 
 			return
 		}
 
-		// Web player page
-		renderMornyeNASWebPlayer(w, username, displayBucket, tracks, totalBytes)
+		// NAS Root: Pure Directory Index for Mornye / HTTP(S) network storage
+		renderNASDirectoryIndex(w, username, displayBucket, tracks)
 		return
 	}
 
@@ -1458,6 +1666,10 @@ func handleS3PublicProxy(w http.ResponseWriter, r *http.Request, username, path 
 	
 	r.URL.Path = targetPath
 	r.URL.RawPath = targetPath
+
+	// CRITICAL: Strip any Authorization header before proxying to MinIO.
+	// Mornye or WebDAV clients often send HTTP Basic Auth, which MinIO rejects with 400 InvalidRequest.
+	r.Header.Del("Authorization")
 
 	proxy.ModifyResponse = func(resp *http.Response) error {
 		if resp.StatusCode == 403 {
@@ -1498,228 +1710,6 @@ func handleS3PublicProxy(w http.ResponseWriter, r *http.Request, username, path 
 	tw := &trackingResponseWriter{ResponseWriter: w, statusCode: 200}
 	proxy.ServeHTTP(tw, r)
 	recordHit(actualBucket, tw.statusCode, tw.bytes, false, r.Header.Get("CF-IPCountry"), "read")
-}
-
-func renderMornyeNASWebPlayer(w http.ResponseWriter, username, displayBucket string, tracks []MornyeTrackItem, totalBytes int64) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	nasURL := fmt.Sprintf("https://cosmos.linuxguy.space/oort/%s/%s/", username, displayBucket)
-	playlistURL := fmt.Sprintf("https://cosmos.linuxguy.space/oort/%s/%s/playlist.m3u", username, displayBucket)
-	jsonURL := fmt.Sprintf("https://cosmos.linuxguy.space/oort/%s/%s/index.json", username, displayBucket)
-
-	var sizeStr string
-	tb := float64(totalBytes)
-	if tb > 1024*1024*1024 {
-		sizeStr = fmt.Sprintf("%.2f GB", tb/(1024*1024*1024))
-	} else {
-		sizeStr = fmt.Sprintf("%.1f MB", tb/(1024*1024))
-	}
-
-	tracksJSON, _ := json.Marshal(tracks)
-
-	html := fmt.Sprintf(`<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mornye NAS · @%s / %s</title>
-<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%%23a855f7" d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>'>
-<style>
-:root{--bg:#030712;--surface:rgba(255,255,255,0.035);--border:rgba(255,255,255,0.09);--accent:#a855f7;--accent-cyan:#38bdf8;--text:#f3f4f6;--dim:#9ca3af;--mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;}
-*{box-sizing:border-box;margin:0;padding:0;}
-body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;min-height:100vh;padding:24px 16px 120px;}
-.container{max-width:980px;margin:0 auto;}
-.glass{background:var(--surface);border:1px solid var(--border);border-radius:16px;backdrop-filter:blur(16px);padding:24px;margin-bottom:20px;}
-.header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:20px;}
-.brand{display:flex;align-items:center;gap:12px;}
-.icon-box{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#a855f7,#4f46e5);display:flex;align-items:center;justify-content:center;box-shadow:0 0 20px rgba(168,85,247,0.35);}
-.title{font-size:20px;font-weight:700;letter-spacing:-0.5px;}
-.badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-family:var(--mono);text-transform:uppercase;padding:4px 10px;border-radius:99px;background:rgba(56,189,248,0.1);color:var(--accent-cyan);border:1px solid rgba(56,189,248,0.25);}
-.dot{width:6px;height:6px;border-radius:50%%;background:#22c55e;box-shadow:0 0 8px #22c55e;}
-.nas-box{background:rgba(0,0,0,0.5);border:1px solid rgba(168,85,247,0.3);border-radius:12px;padding:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
-.url-val{font-family:var(--mono);font-size:13px;color:#e9d5ff;flex:1;min-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.btn{cursor:pointer;background:linear-gradient(135deg,#a855f7,#6366f1);color:#fff;border:none;padding:9px 18px;border-radius:10px;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:0.2s;}
-.btn:hover{filter:brightness(1.15);transform:translateY(-1px);}
-.btn-ghost{background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--text);}
-.btn-ghost:hover{background:rgba(255,255,255,0.12);}
-.player-card{position:fixed;bottom:16px;left:50%%;transform:translateX(-50%%);width:calc(100%% - 32px);max-width:980px;background:rgba(15,23,42,0.95);border:1px solid rgba(168,85,247,0.4);border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,0.7);padding:14px 20px;z-index:9999;backdrop-filter:blur(20px);display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
-.track-table{width:100%%;border-collapse:collapse;margin-top:12px;font-size:13px;}
-.track-table th{text-align:left;color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:1px;padding:12px 14px;border-bottom:1px solid var(--border);}
-.track-table td{padding:14px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:middle;}
-.track-row:hover td{background:rgba(255,255,255,0.02);}
-.pill-format{font-size:10px;font-family:var(--mono);padding:2px 8px;border-radius:4px;font-weight:700;}
-.pill-FLAC{background:rgba(168,85,247,0.2);color:#d8b4fe;border:1px solid rgba(168,85,247,0.4);}
-.pill-MP3{background:rgba(34,197,94,0.2);color:#86efac;border:1px solid rgba(34,197,94,0.4);}
-.pill-WAV{background:rgba(56,189,248,0.2);color:#7dd3fc;border:1px solid rgba(56,189,248,0.4);}
-.pill-OTHER{background:rgba(255,255,255,0.1);color:#e2e8f0;border:1px solid rgba(255,255,255,0.2);}
-.vinyl{width:36px;height:36px;border-radius:50%%;background:#18181b;border:2px solid #3f3f46;display:flex;align-items:center;justify-content:center;position:relative;}
-.spinning{animation:spin 3s linear infinite;}
-@keyframes spin{100%%{transform:rotate(360deg);}}
-</style>
-</head>
-<body>
-<div class="container">
-  <div class="glass">
-    <div class="header">
-      <div class="brand">
-        <div class="icon-box">
-          <svg width="22" height="22" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-        </div>
-        <div>
-          <div class="title">Mornye NAS · Audio Stream Gateway</div>
-          <div style="font-size:13px;color:var(--dim);margin-top:2px;">Account: <strong style="color:#fff">@%s</strong> · Space: <strong style="color:var(--accent-cyan)">%s</strong></div>
-        </div>
-      </div>
-      <div style="display:flex;gap:10px;align-items:center;">
-        <span class="badge"><span class="dot"></span>NAS Storage Online</span>
-        <a href="/oort/console" class="btn btn-ghost" style="text-decoration:none;">Oort Console →</a>
-      </div>
-    </div>
-
-    <div style="margin-bottom:16px;font-size:13px;color:var(--dim);">
-      Configure this dedicated URL into your <strong>Mornye Music Streaming App</strong> to access your network-attached library with lossless byte-range playback:
-    </div>
-
-    <div class="nas-box">
-      <div class="url-val" id="nasUrlVal">%s</div>
-      <button class="btn" onclick="copyText('%s','Mornye NAS URL copied!')">📋 Copy Mornye NAS URL</button>
-      <a href="%s" class="btn btn-ghost" style="text-decoration:none;" download>🎵 Playlist (.m3u)</a>
-      <a href="%s" class="btn btn-ghost" style="text-decoration:none;" target="_blank">JSON Metadata</a>
-    </div>
-
-    <div style="display:flex;gap:20px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border);font-size:13px;color:var(--dim);flex-wrap:wrap;">
-      <div>Tracks: <strong style="color:#fff">%d audio file(s)</strong></div>
-      <div>Library Size: <strong style="color:#fff">%s</strong></div>
-      <div>Protocol: <strong style="color:#38bdf8">RFC 7233 Byte-Range Streaming</strong></div>
-      <div>DAC / Hi-Res: <strong style="color:#a855f7">Bit-Perfect 24-bit/192kHz Ready</strong></div>
-    </div>
-  </div>
-
-  <div class="glass">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-      <h3 style="font-size:16px;font-weight:600;">Music Library</h3>
-      <button class="btn btn-ghost" onclick="playAll()">▶ Play All</button>
-    </div>
-
-    <div style="overflow-x:auto;">
-      <table class="track-table">
-        <thead>
-          <tr>
-            <th style="width:50px;">#</th>
-            <th>Track Name</th>
-            <th style="width:100px;">Format</th>
-            <th style="width:110px;">Size</th>
-            <th style="width:200px;text-align:right;">Actions</th>
-          </tr>
-        </thead>
-        <tbody id="trackList">
-          <!-- Injected by JS -->
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-<div class="player-card" id="playerBar" style="display:none;">
-  <div class="vinyl spinning" id="disc">
-    <div style="width:10px;height:10px;border-radius:50%%;background:#a855f7;"></div>
-  </div>
-  <div style="flex:1;min-width:200px;">
-    <div id="nowPlayingTitle" style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">No track playing</div>
-    <div id="nowPlayingSub" style="font-size:11px;color:var(--dim);font-family:var(--mono);margin-top:2px;">Select a track to stream</div>
-  </div>
-  <audio id="audioEl" controls style="flex:2;min-width:260px;height:36px;outline:none;border-radius:8px;"></audio>
-  <button class="btn btn-ghost" onclick="playNext()" title="Next Track">⏭</button>
-</div>
-
-<script>
-const tracks = %s;
-let currentIndex = -1;
-const audio = document.getElementById('audioEl');
-const bar = document.getElementById('playerBar');
-const disc = document.getElementById('disc');
-const nowTitle = document.getElementById('nowPlayingTitle');
-const nowSub = document.getElementById('nowPlayingSub');
-
-function fmtBytes(b){
-  if(!b) return '0 B';
-  const u = ['B','KB','MB','GB'];
-  let i=0; while(b>=1024 && i<u.length-1){b/=1024; i++;}
-  return b.toFixed(1) + ' ' + u[i];
-}
-
-function renderTracks(){
-  const tb = document.getElementById('trackList');
-  if(!tracks || !tracks.length){
-    tb.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--dim);">No audio tracks uploaded yet. Open Oort Console to upload FLAC, MP3, or WAV files.</td></tr>';
-    return;
-  }
-  tb.innerHTML = tracks.map((t, idx) => {
-    const fmt = t.format || 'AUDIO';
-    const pillClass = 'pill-' + (['FLAC','MP3','WAV'].includes(fmt) ? fmt : 'OTHER');
-    return '<tr class="track-row">' +
-      '<td style="color:var(--dim);font-family:var(--mono);">' + (idx + 1) + '</td>' +
-      '<td><strong style="color:#fff;">' + escapeHtml(t.title) + '</strong><div style="font-size:11px;color:var(--dim);font-family:var(--mono);margin-top:2px;">' + escapeHtml(t.name) + '</div></td>' +
-      '<td><span class="pill-format ' + pillClass + '">' + fmt + '</span></td>' +
-      '<td style="color:var(--dim);font-family:var(--mono);">' + fmtBytes(t.size) + '</td>' +
-      '<td style="text-align:right;">' +
-        '<button class="btn" style="padding:6px 12px;margin-right:6px;font-size:12px;" onclick="playTrack(' + idx + ')">▶ Play</button>' +
-        '<a href="' + t.stream_url + '" download class="btn btn-ghost" style="padding:6px 10px;font-size:12px;text-decoration:none;margin-right:6px;">⬇</a>' +
-        '<button class="btn btn-ghost" style="padding:6px 10px;font-size:12px;" onclick="copyText(\'' + t.stream_url + '\',\'Direct stream URL copied!\')" title="Copy Link">🔗</button>' +
-      '</td>' +
-    '</tr>';
-  }).join('');
-}
-
-function escapeHtml(s){
-  if(!s) return '';
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-function playTrack(idx){
-  if(idx < 0 || idx >= tracks.length) return;
-  currentIndex = idx;
-  const t = tracks[idx];
-  nowTitle.textContent = t.title || t.name;
-  nowSub.textContent = (t.format || 'AUDIO') + ' · ' + fmtBytes(t.size) + ' · Zero-Delay Stream';
-  audio.src = t.stream_url;
-  bar.style.display = 'flex';
-  audio.play();
-  disc.classList.add('spinning');
-}
-
-function playNext(){
-  if(tracks.length === 0) return;
-  const next = (currentIndex + 1) %% tracks.length;
-  playTrack(next);
-}
-
-function playAll(){
-  if(tracks.length > 0) playTrack(0);
-}
-
-audio.onended = () => { playNext(); };
-audio.onpause = () => { disc.classList.remove('spinning'); };
-audio.onplay  = () => { disc.classList.add('spinning'); };
-
-function copyText(txt, msg){
-  navigator.clipboard.writeText(txt).then(() => {
-    alert(msg || 'Copied to clipboard!');
-  }).catch(() => {
-    prompt('Copy this URL:', txt);
-  });
-}
-
-renderTracks();
-</script>
-</body>
-</html>`,
-		username, displayBucket,
-		username, displayBucket,
-		nasURL, nasURL, playlistURL, jsonURL,
-		len(tracks), sizeStr,
-		string(tracksJSON),
-	)
-	w.Write([]byte(html))
 }
 
 
