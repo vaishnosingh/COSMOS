@@ -4,54 +4,55 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Sign In — Cosmos {{.Service}}</title>
-<meta name="description" content="Sign in to your Cosmos {{.Service}} sovereign space."/>
-<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="6" fill="%23eef3f8"/><ellipse cx="16" cy="16" rx="14" ry="5.5" fill="none" stroke="%2338bdf8" stroke-width="1.5" transform="rotate(-24 16 16)"/></svg>'/>
+<meta name="description" content="Sign in to your Cosmos {{.Service}} sovereign workspace."/>
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="6" fill="%23eef3f8"/><ellipse cx="16" cy="16" rx="14" ry="5.5" fill="none" stroke="%238fd9ff" stroke-width="1.5" transform="rotate(-24 16 16)"/></svg>'/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-<script src="/three.min.js"></script>
-<script>
-if (typeof THREE === 'undefined') {
-  document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
-}
-</script>
-
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
 :root {
-  --bg: #03050d;
-  --card-bg: rgba(7, 12, 24, 0.78);
-  --ink: #f1f5f9;
-  --dim: rgba(226, 232, 240, 0.65);
-  --faint: rgba(226, 232, 240, 0.35);
-  --border: rgba(255, 255, 255, 0.08);
-  --border-focus: rgba(56, 189, 248, 0.6);
-  --cyan: #38bdf8;
-  --violet: #a855f7;
-  --amber: #f59e0b;
-  --emerald: #10b981;
-  --rose: #f43f5e;
-  --mono: 'JetBrains Mono', monospace;
-  --sans: 'Space Grotesk', system-ui, sans-serif;
+  --bg: #020308;
+  --ink: #eef3f8;
+  --dim: rgba(226, 234, 242, 0.58);
+  --faint: rgba(226, 234, 242, 0.32);
+  --line: rgba(226, 234, 242, 0.08);
+  --line-strong: rgba(226, 234, 242, 0.16);
+  --ok: #43e5a0;
+  --ac: 143, 216, 255;
+  --ac-rgb: 143, 216, 255;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+  --disp: 'Space Grotesk', -apple-system, sans-serif;
+  --serif: 'Instrument Serif', Georgia, serif;
+  --pad: clamp(24px, 5vw, 72px);
   --ez: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { min-height: 100%; height: 100%; }
+html, body { min-height: 100%; }
 
 body {
-  font-family: var(--sans);
+  font-family: var(--disp);
   background: var(--bg);
   color: var(--ink);
-  overflow-x: hidden;
-  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  min-height: 100svh;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
   position: relative;
-  perspective: 1200px;
+  selection-background: rgba(var(--ac-rgb), 0.3);
 }
 
-/* ── 3D Canvas Background ── */
+::selection { background: rgba(var(--ac-rgb), 0.3); color: #fff; }
+
+a:focus-visible, button:focus-visible, input:focus-visible {
+  outline: 1px solid rgba(var(--ac-rgb), 0.7);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* ── 3D Viewport & Atmospheric Layers ── */
 #webgl-bg {
   position: fixed;
   inset: 0;
@@ -61,658 +62,578 @@ body {
   pointer-events: none;
 }
 
-.cosmic-vignette {
+.noise-overlay {
+  position: fixed;
+  inset: -10%;
+  width: 120%;
+  height: 120%;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
+
+.radial-vignette {
   position: fixed;
   inset: 0;
   z-index: 2;
   pointer-events: none;
-  background: radial-gradient(circle at 50% 50%, transparent 20%, rgba(3, 5, 13, 0.6) 70%, #03050d 100%);
+  background: radial-gradient(ellipse at 50% 45%, transparent 40%, rgba(2, 3, 8, 0.7) 85%, #020308 100%);
 }
 
-.cosmic-grid {
-  position: fixed;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  opacity: 0.15;
-  background-image: 
-    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-  background-size: 60px 60px;
-  mask-image: radial-gradient(circle at 50% 50%, black 30%, transparent 80%);
-}
-
-/* ── Header Bar ── */
-.auth-nav {
+/* ── Top Navigation Bar ── */
+.authbar {
   position: relative;
   z-index: 10;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px 32px;
+  padding: 28px var(--pad) 12px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
 }
 
-.brand-link {
+.authbar a.back-link {
+  color: var(--dim);
+  text-decoration: none;
   display: inline-flex;
   align-items: center;
-  gap: 12px;
-  text-decoration: none;
-  color: #fff;
-  font-weight: 700;
-  font-size: 15px;
-  letter-spacing: -0.3px;
-  transition: transform 0.25s var(--ez), opacity 0.25s;
-}
-
-.brand-link:hover { transform: translateY(-1px); opacity: 0.9; }
-
-.brand-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(168, 85, 247, 0.2));
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 0 15px rgba(56, 189, 248, 0.25);
-}
-
-.hud-badge {
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 6px 14px;
-  border-radius: 99px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--border);
-  color: var(--dim);
-  display: flex;
-  align-items: center;
   gap: 8px;
+  transition: color 0.25s, transform 0.25s var(--ez);
 }
 
-.status-dot {
-  width: 6px;
-  height: 6px;
+.authbar a.back-link:hover {
+  color: #fff;
+  transform: translateX(-3px);
+}
+
+.authbar .channel-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line);
+  color: var(--dim);
+  font-size: 9.5px;
+  backdrop-filter: blur(10px);
+}
+
+.authbar .pulse-dot {
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
-  background: #22c55e;
-  box-shadow: 0 0 8px #22c55e;
-  animation: pulse 2s infinite ease-in-out;
+  background: var(--ok);
+  box-shadow: 0 0 10px var(--ok);
+  animation: dotPulse 2.4s ease infinite;
 }
 
-@keyframes pulse {
+@keyframes dotPulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.4; transform: scale(0.85); }
 }
 
-/* ── Center Stage & Floating 3D Card ── */
-.auth-stage {
+/* ── Main Auth Card Container ── */
+.auth-shell {
   position: relative;
   z-index: 10;
   flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px 24px;
+  display: grid;
+  place-items: center;
+  padding: 20px var(--pad) 50px;
+  perspective: 1200px;
 }
 
-.tilt-wrapper {
-  perspective: 1200px;
+.card-wrapper {
   width: 100%;
   max-width: 440px;
+  will-change: transform;
 }
 
-.auth-card {
-  background: var(--card-bg);
+/* ── Signature Stuudio/Jockey Floating 3D Card with Conic Edge Lighting ── */
+.card-3d {
+  position: relative;
+  border-radius: 20px;
+  padding: 44px 38px 40px;
+  background: linear-gradient(145deg, rgba(10, 15, 28, 0.82), rgba(4, 7, 14, 0.88)) padding-box,
+              conic-gradient(from var(--rim-angle, 0deg) at var(--mx, 50%) var(--my, 50%),
+                rgba(143, 216, 255, 0.85) 0deg,
+                rgba(255, 255, 255, 0.1) 60deg,
+                rgba(143, 216, 255, 0.05) 160deg,
+                rgba(143, 216, 255, 0.45) 260deg,
+                rgba(143, 216, 255, 0.85) 360deg) border-box;
+  border: 1px solid transparent;
   backdrop-filter: blur(28px);
   -webkit-backdrop-filter: blur(28px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
-  padding: 36px 32px;
-  box-shadow: 
-    0 30px 80px rgba(0, 0, 0, 0.8),
-    0 0 40px rgba(56, 189, 248, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  transition: transform 0.15s ease-out, box-shadow 0.3s var(--ez);
+  box-shadow: 0 35px 85px rgba(0, 0, 0, 0.65), 0 0 50px rgba(143, 216, 255, 0.05);
+  transform-style: preserve-3d;
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.3, 1), box-shadow 0.3s;
+}
+
+.card-3d:hover {
+  box-shadow: 0 45px 100px rgba(0, 0, 0, 0.75), 0 0 60px rgba(143, 216, 255, 0.1);
+}
+
+/* Corner Reticle Accents */
+.cnr {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 1px solid rgba(var(--ac-rgb), 0.35);
+  pointer-events: none;
+  transition: border-color 0.3s, width 0.3s var(--ez), height 0.3s var(--ez);
+}
+.c1 { top: -1px; left: -1px; border-right: 0; border-bottom: 0; border-top-left-radius: 8px; }
+.c2 { top: -1px; right: -1px; border-left: 0; border-bottom: 0; border-top-right-radius: 8px; }
+.c3 { bottom: -1px; left: -1px; border-right: 0; border-top: 0; border-bottom-left-radius: 8px; }
+.c4 { bottom: -1px; right: -1px; border-left: 0; border-top: 0; border-bottom-right-radius: 8px; }
+
+.card-3d:focus-within .cnr {
+  border-color: rgba(var(--ac-rgb), 0.95);
+  width: 20px;
+  height: 20px;
+  box-shadow: 0 0 10px rgba(var(--ac-rgb), 0.2);
+}
+
+/* ── Brand Mark ── */
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: var(--ink);
+  margin-bottom: 30px;
+}
+
+.brand-icon {
+  width: 34px;
+  height: 34px;
+  animation: markSpin 24s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes markSpin {
+  to { transform: rotate(360deg); }
+}
+
+.brand-text {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.brand-text em {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  color: rgb(var(--ac-rgb));
+  margin-left: 2px;
+}
+
+/* Headings */
+.h-title {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  margin-bottom: 8px;
+  color: #fff;
+}
+
+.h-sub {
+  font-size: 14px;
+  color: var(--dim);
+  margin-bottom: 28px;
+  line-height: 1.5;
+}
+
+/* Error Alert Box */
+.error-box {
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 22px;
+  font-size: 13.5px;
+  color: #f87171;
+  font-weight: 500;
+  display: none;
+}
+.error-box.visible { display: block; }
+
+/* ── Form Inputs ── */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(226, 234, 242, 0.6);
+  margin-bottom: 8px;
+}
+
+.input-ctrl {
+  width: 100%;
+  background: rgba(226, 234, 242, 0.03);
+  border: 1px solid var(--line-strong);
+  color: #fff;
+  padding: 13px 16px;
+  border-radius: 11px;
+  font-size: 14.5px;
+  font-weight: 500;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
+}
+
+.input-ctrl::placeholder {
+  color: rgba(226, 234, 242, 0.28);
+}
+
+.input-ctrl:focus {
+  border-color: rgba(var(--ac-rgb), 0.65);
+  box-shadow: 0 0 0 3px rgba(var(--ac-rgb), 0.15);
+  background: rgba(226, 234, 242, 0.05);
+}
+
+.pwd-wrap {
+  position: relative;
+}
+
+.pwd-wrap .input-ctrl {
+  padding-right: 48px;
+}
+
+.pwd-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(226, 234, 242, 0.38);
+  display: flex;
+  padding: 6px;
+  transition: color 0.2s;
+}
+
+.pwd-toggle:hover {
+  color: var(--ink);
+}
+
+.pwd-toggle svg { width: 18px; height: 18px; }
+.pwd-toggle .slash { display: none; }
+.pwd-toggle.shown .slash { display: block; }
+
+.caps-warn {
+  display: none;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  color: #fbbf24;
+  margin-top: 8px;
+  align-items: center;
+  gap: 7px;
+  text-transform: uppercase;
+}
+.caps-warn.on { display: flex; }
+.caps-warn i {
+  width: 5px;
+  height: 5px;
+  background: #fbbf24;
+  border-radius: 1px;
+  box-shadow: 0 0 8px #fbbf24;
+  flex: none;
+}
+
+.forgot-link-row {
+  text-align: right;
+  margin-top: 9px;
+}
+
+.forgot-link-row a {
+  font-size: 12.5px;
+  color: rgba(226, 234, 242, 0.45);
+  text-decoration: none;
+  font-family: var(--mono);
+  letter-spacing: 0.04em;
+  transition: color 0.2s;
+}
+
+.forgot-link-row a:hover {
+  color: rgb(var(--ac-rgb));
+}
+
+/* ── Magnetic Submit Button ── */
+.btn-submit {
+  width: 100%;
+  padding: 14px 24px;
+  border-radius: 11px;
+  border: none;
+  background: #fff;
+  color: #04060d;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: -0.01em;
+  box-shadow: 0 8px 30px rgba(255, 255, 255, 0.12);
+  transition: transform 0.2s var(--ez), box-shadow 0.25s, opacity 0.25s;
+  margin-top: 6px;
   position: relative;
   overflow: hidden;
 }
 
-.auth-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--cyan), var(--violet), transparent);
-  opacity: 0.8;
+.btn-submit:hover {
+  box-shadow: 0 12px 40px rgba(255, 255, 255, 0.22);
+  transform: translateY(-1px);
 }
 
-/* Service-Specific Accent Glow */
-{{if eq .Service "git"}}
-.auth-card::before {
-  background: linear-gradient(90deg, transparent, var(--amber), var(--emerald), transparent);
-}
-{{else if eq .Service "orbit"}}
-.auth-card::before {
-  background: linear-gradient(90deg, transparent, #6366f1, var(--cyan), transparent);
-}
-{{end}}
-
-/* Top Tabs (Sign In / Register) */
-.tab-pills {
-  display: flex;
-  background: rgba(0, 0, 0, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 4px;
-  margin-bottom: 26px;
+.btn-submit:active {
+  transform: scale(0.985);
 }
 
-.tab-pill {
-  flex: 1;
+.btn-submit:disabled {
+  opacity: 0.75;
+  cursor: wait;
+}
+
+/* ── Auth Footer ── */
+.auth-footer {
   text-align: center;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 8px 12px;
-  border-radius: 8px;
+  margin-top: 26px;
+  font-size: 13.5px;
+  color: rgba(226, 234, 242, 0.42);
+}
+
+.auth-footer a {
+  color: rgb(var(--ac-rgb));
   text-decoration: none;
-  color: var(--dim);
-  transition: all 0.25s var(--ez);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-
-.tab-pill.active {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.tab-pill:not(.active):hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.card-title-wrap {
-  text-align: center;
-  margin-bottom: 24px;
-}
-
-.card-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--mono);
-  font-size: 10px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  padding: 3px 10px;
-  border-radius: 99px;
-  background: rgba(56, 189, 248, 0.1);
-  color: var(--cyan);
-  border: 1px solid rgba(56, 189, 248, 0.25);
-  margin-bottom: 10px;
+  margin-left: 4px;
+  transition: color 0.2s;
 }
 
-{{if eq .Service "git"}}
-.card-badge {
-  background: rgba(245, 158, 11, 0.1);
-  color: var(--amber);
-  border-color: rgba(245, 158, 11, 0.25);
-}
-{{else if eq .Service "orbit"}}
-.card-badge {
-  background: rgba(99, 102, 241, 0.1);
-  color: #818cf8;
-  border-color: rgba(99, 102, 241, 0.25);
-}
-{{end}}
-
-.card-h1 {
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: -0.6px;
+.auth-footer a:hover {
   color: #fff;
 }
 
-.card-sub {
-  font-size: 13px;
-  color: var(--dim);
-  margin-top: 4px;
-  line-height: 1.4;
-}
-
-/* Error Banner */
-.alert-error {
-  background: rgba(244, 63, 94, 0.1);
-  border: 1px solid rgba(244, 63, 94, 0.3);
-  color: #fca5a5;
-  font-size: 12.5px;
-  padding: 10px 14px;
-  border-radius: 10px;
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* Inputs */
-.form-group {
-  margin-bottom: 18px;
-}
-
-.input-label {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--dim);
-  margin-bottom: 8px;
-}
-
-.input-label a {
-  color: var(--cyan);
-  text-decoration: none;
-  font-size: 11.5px;
-  transition: color 0.2s;
-}
-.input-label a:hover { color: #fff; text-decoration: underline; }
-
-.input-box {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.input-icon {
-  position: absolute;
-  left: 14px;
-  width: 16px;
-  height: 16px;
-  color: var(--faint);
-  pointer-events: none;
-  transition: color 0.2s;
-}
-
-.form-input {
-  width: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 13px 40px 13px 40px;
-  font-family: inherit;
-  font-size: 14px;
-  color: #fff;
-  outline: none;
-  transition: all 0.25s var(--ez);
-}
-
-.form-input:focus {
-  border-color: var(--cyan);
-  background: rgba(56, 189, 248, 0.04);
-  box-shadow: 0 0 16px rgba(56, 189, 248, 0.2);
-}
-
-.form-input:focus + .input-icon,
-.input-box:focus-within .input-icon {
-  color: var(--cyan);
-}
-
-.eye-btn {
-  position: absolute;
-  right: 12px;
-  background: none;
-  border: none;
-  color: var(--faint);
-  cursor: pointer;
-  padding: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: color 0.2s;
-}
-
-.eye-btn:hover { color: #fff; }
-
-/* Primary Button */
-.submit-btn {
-  width: 100%;
-  cursor: pointer;
-  background: linear-gradient(135deg, #38bdf8, #818cf8, #a855f7);
-  background-size: 200% 200%;
-  color: #fff;
-  border: none;
-  border-radius: 12px;
-  padding: 14px 20px;
-  font-family: inherit;
-  font-size: 14.5px;
-  font-weight: 700;
-  letter-spacing: -0.2px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 10px;
-  box-shadow: 0 4px 20px rgba(56, 189, 248, 0.35);
-  transition: all 0.3s var(--ez);
-}
-
-{{if eq .Service "git"}}
-.submit-btn {
-  background: linear-gradient(135deg, #f59e0b, #ea580c, #10b981);
-  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.35);
-}
-{{else if eq .Service "orbit"}}
-.submit-btn {
-  background: linear-gradient(135deg, #6366f1, #3b82f6, #06b6d4);
-  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.35);
-}
-{{end}}
-
-.submit-btn:hover {
-  transform: translateY(-2px);
-  filter: brightness(1.1);
-  box-shadow: 0 8px 28px rgba(56, 189, 248, 0.5);
-}
-
-.submit-btn:active {
-  transform: translateY(0);
-}
-
-/* Card Footer */
-.card-footer {
-  margin-top: 24px;
-  padding-top: 18px;
-  border-top: 1px solid var(--border);
-  text-align: center;
-  font-size: 12px;
-  color: var(--dim);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  font-family: var(--mono);
-}
-
-.card-footer a {
-  color: var(--dim);
-  text-decoration: none;
-  transition: color 0.2s;
-}
-.card-footer a:hover { color: #fff; }
-
-/* ── Bottom Bar ── */
-.auth-foot {
+/* ── Page Footer ── */
+.authfoot {
   position: relative;
   z-index: 10;
-  padding: 16px 32px 24px;
+  padding: 20px var(--pad);
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 11px;
+  justify-content: center;
   font-family: var(--mono);
-  color: var(--faint);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: rgba(226, 234, 242, 0.25);
+  text-transform: uppercase;
+  gap: 18px;
   flex-wrap: wrap;
-  gap: 12px;
 }
 
-.auth-foot a {
-  color: var(--faint);
-  text-decoration: none;
-  transition: color 0.2s;
+@media (max-width: 480px) {
+  .card-3d { padding: 36px 24px 30px; }
+  .authbar { padding-top: 20px; }
 }
-.auth-foot a:hover { color: #fff; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
 </style>
 </head>
-
 <body>
-<div id="webgl-bg"></div>
-<div class="cosmic-vignette"></div>
-<div class="cosmic-grid"></div>
 
-<!-- Top Navigation -->
-<header class="auth-nav">
-  <a href="/" class="brand-link">
-    <div class="brand-icon">
-      <svg width="18" height="18" viewBox="0 0 32 32"><ellipse cx="16" cy="16" rx="14" ry="5.5" fill="none" stroke="#38bdf8" stroke-width="1.8" transform="rotate(-24 16 16)"/><circle cx="16" cy="16" r="5" fill="#f8fafc"/></svg>
-    </div>
-    <span>Cosmos Cloud</span>
-  </a>
+<!-- Three.js Ambient 3D Starfield & Orbital Precession Viewport -->
+<div id="webgl-bg" aria-hidden="true"></div>
+<div class="noise-overlay" aria-hidden="true"></div>
+<div class="radial-vignette" aria-hidden="true"></div>
 
-  <div class="hud-badge">
-    <span class="status-dot"></span>
-    <span>Cosmos Core Online</span>
+<header class="authbar">
+  <a href="/" class="back-link">&#8592; Cosmos Core</a>
+  <div class="channel-badge">
+    <span class="pulse-dot"></span>
+    <span data-scr>SECURE CHANNEL · {{.Service}}</span>
   </div>
 </header>
 
-<!-- Main Interactive 3D Card Stage -->
-<main class="auth-stage">
-  <div class="tilt-wrapper" id="cardTilt">
-    <div class="auth-card">
-      <!-- Mode Tabs -->
-      <div class="tab-pills">
-        <a href="/{{.Service}}/login" class="tab-pill active">
-          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-          Sign In
-        </a>
-        <a href="/{{.Service}}/signup" class="tab-pill">
-          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
-          Create Space
-        </a>
-      </div>
+<main class="auth-shell">
+  <div class="card-wrapper" id="cardWrapper">
+    <div class="card-3d" id="card">
+      <i class="cnr c1"></i><i class="cnr c2"></i><i class="cnr c3"></i><i class="cnr c4"></i>
 
-      <div class="card-title-wrap">
-        {{if eq .Service "git"}}
-        <span class="card-badge">Forge Git Service</span>
-        <h1 class="card-h1">Welcome back, Developer</h1>
-        <p class="card-sub">Access your private repositories, code review, and CI pipelines.</p>
-        {{else if eq .Service "orbit"}}
-        <span class="card-badge">Orbit Compute Engine</span>
-        <h1 class="card-h1">Command Bridge Access</h1>
-        <p class="card-sub">Deploy, monitor, and scale your sovereign container fleet.</p>
-        {{else}}
-        <span class="card-badge">Oort NAS &amp; Cloud</span>
-        <h1 class="card-h1">Sovereign Storage Terminal</h1>
-        <p class="card-sub">Lossless byte-range Mornye streaming and unified S3 buckets.</p>
-        {{end}}
-      </div>
+      <a href="/" class="brand">
+        <svg class="brand-icon" viewBox="0 0 34 34" aria-hidden="true">
+          <ellipse cx="17" cy="17" rx="14.5" ry="6" fill="none" stroke="rgba(238,243,248,.55)" stroke-width="1.2" transform="rotate(-24 17 17)"/>
+          <circle cx="17" cy="17" r="4.4" fill="#eef3f8"/>
+          <circle cx="27.4" cy="12.2" r="1.8" fill="rgb(var(--ac-rgb))"/>
+        </svg>
+        <span class="brand-text">Cosmos <em>{{.Service}}</em></span>
+      </a>
+
+      <h1 class="h-title">Welcome back</h1>
+      <p class="h-sub">Sign in to your sovereign enclave to continue</p>
 
       {{if .Error}}
-      <div class="alert-error">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <span>{{.Error}}</span>
-      </div>
+      <div class="error-box visible">{{.Error}}</div>
       {{end}}
 
       <form action="/{{.Service}}/login" method="POST" id="loginForm">
         <div class="form-group">
-          <div class="input-label">
-            <span>Username or Email</span>
-          </div>
-          <div class="input-box">
-            <svg class="input-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            <input type="text" id="lg-email" name="email" class="form-input" placeholder="username or email@domain.com" required autocomplete="username" autofocus/>
-          </div>
+          <label class="form-label" for="lg-email">Username or Email</label>
+          <input type="text" id="lg-email" name="email" class="input-ctrl" placeholder="janedoe or jane@example.com" required autocomplete="username"/>
         </div>
 
         <div class="form-group">
-          <div class="input-label">
-            <span>Password</span>
-            <a href="/{{.Service}}/forgot-password">Forgot Key?</a>
-          </div>
-          <div class="input-box">
-            <svg class="input-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            <input type="password" id="pwd" name="password" class="form-input" placeholder="••••••••••••" required autocomplete="current-password"/>
-            <button type="button" class="eye-btn" onclick="togglePasswordVisibility()" aria-label="Toggle password visibility">
-              <svg id="eye-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <label class="form-label" for="pwd">Password</label>
+          <div class="pwd-wrap">
+            <input type="password" name="password" id="pwd" class="input-ctrl" placeholder="••••••••" required autocomplete="current-password"/>
+            <button type="button" class="pwd-toggle" onclick="togglePwd('pwd')" aria-label="Toggle password visibility">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+                <line class="slash" x1="4" y1="4" x2="20" y2="20" stroke-linecap="round"/>
+              </svg>
             </button>
+          </div>
+          <div class="caps-warn"><i></i>Caps Lock is on</div>
+          <div class="forgot-link-row">
+            <a href="/{{.Service}}/forgot-password">Forgot password?</a>
           </div>
         </div>
 
-        <button type="submit" class="submit-btn" id="submitBtn">
-          <span>Authorize Session</span>
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </button>
+        <button type="submit" class="btn-submit" id="submitBtn">Sign In</button>
       </form>
 
-      <div class="card-footer">
-        <a href="/">← Cosmos Central</a>
-        <span>·</span>
-        <a href="/{{.Service}}/signup">New Space Signup</a>
+      <div class="auth-footer">
+        Don't have an account? <a href="/{{.Service}}/signup">Create one</a>
       </div>
     </div>
   </div>
 </main>
 
-<!-- Bottom Bar -->
-<footer class="auth-foot">
-  <div>Encrypted with AES-256-GCM · Sovereign Infrastructure</div>
-  <div>Portals Go v2.4 · Zero Telemetry</div>
+<footer class="authfoot">
+  <span>51.4778° N · 0.0015° W</span>
+  <span>Zero Cloud Leakage</span>
+  <span>Sovereign Enclave</span>
 </footer>
 
-<!-- ══ Three.js 3D Space Interactive Engine ══ -->
+<!-- Local Zero-Latency Three.js Engine -->
+<script src="/three.min.js"></script>
 <script>
-(function() {
-  const container = document.getElementById('webgl-bg');
-  if (!window.THREE || !container) return;
+/* ══ 1. THREE.JS 3D CELESTIAL BACKGROUND ══ */
+(function(){
+  'use strict';
+  var container = document.getElementById('webgl-bg');
+  if(!window.THREE || !container) return;
 
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 2000);
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
   camera.position.z = 28;
 
-  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: "high-performance" });
+  var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   container.appendChild(renderer.domElement);
 
-  // 1. Deep Volumetric Starfield
-  const starCount = 1800;
-  const starGeo = new THREE.BufferGeometry();
-  const starPositions = new Float32Array(starCount * 3);
-  const starColors = new Float32Array(starCount * 3);
+  // Deep Starfield Particle Nodes
+  var starCount = 1400;
+  var starGeo = new THREE.BufferGeometry();
+  var starPos = new Float32Array(starCount * 3);
+  var starColors = new Float32Array(starCount * 3);
 
-  const serviceType = "{{.Service}}";
-  let primaryHue = 0.58; // Cyan default (Oort)
-  let accentHue = 0.78;  // Violet default
-  if (serviceType === 'git') {
-    primaryHue = 0.08; // Amber
-    accentHue = 0.42;  // Emerald
-  } else if (serviceType === 'orbit') {
-    primaryHue = 0.65; // Indigo
-    accentHue = 0.52;  // Cyan
+  var colA = new THREE.Color(0x8fd9ff);
+  var colB = new THREE.Color(0xffffff);
+  var colC = new THREE.Color(0x43e5a0);
+
+  for(var i = 0; i < starCount; i++){
+    var i3 = i * 3;
+    starPos[i3]     = (Math.random() - 0.5) * 80;
+    starPos[i3 + 1] = (Math.random() - 0.5) * 60;
+    starPos[i3 + 2] = (Math.random() - 0.5) * 50 - 5;
+
+    var roll = Math.random();
+    var c = roll < 0.6 ? colB : (roll < 0.85 ? colA : colC);
+    starColors[i3]     = c.r;
+    starColors[i3 + 1] = c.g;
+    starColors[i3 + 2] = c.b;
   }
-
-  for (let i = 0; i < starCount; i++) {
-    const x = (Math.random() - 0.5) * 140;
-    const y = (Math.random() - 0.5) * 140;
-    const z = (Math.random() - 0.5) * 120;
-    starPositions[i * 3] = x;
-    starPositions[i * 3 + 1] = y;
-    starPositions[i * 3 + 2] = z;
-
-    const col = new THREE.Color();
-    const mix = Math.random();
-    col.setHSL(mix > 0.3 ? primaryHue : accentHue, 0.7, 0.6 + Math.random() * 0.4);
-    starColors[i * 3] = col.r;
-    starColors[i * 3 + 1] = col.g;
-    starColors[i * 3 + 2] = col.b;
-  }
-  starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
   starGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
 
-  const starMat = new THREE.PointsMaterial({
+  var starMat = new THREE.PointsMaterial({
     size: 0.18,
     vertexColors: true,
     transparent: true,
-    opacity: 0.85,
+    opacity: 0.75,
     blending: THREE.AdditiveBlending
   });
-  const stars = new THREE.Points(starGeo, starMat);
-  scene.add(stars);
+  var starField = new THREE.Points(starGeo, starMat);
+  scene.add(starField);
 
-  // 2. Central 3D Gyroscopic Rings (Space Portal Core)
-  const group = new THREE.Group();
-  scene.add(group);
+  // Subtle 3D Gyroscopic Rings Floating in Celestial Horizon
+  var ringGroup = new THREE.Group();
+  scene.add(ringGroup);
 
-  const ringColor = serviceType === 'git' ? 0xf59e0b : (serviceType === 'orbit' ? 0x818cf8 : 0x38bdf8);
-  const coreColor = serviceType === 'git' ? 0x10b981 : (serviceType === 'orbit' ? 0x38bdf8 : 0xa855f7);
-
-  // Outer Orbital Ring
-  const ring1Geo = new THREE.RingGeometry(8.5, 8.55, 96);
-  const ring1Mat = new THREE.MeshBasicMaterial({ color: ringColor, side: THREE.DoubleSide, transparent: true, opacity: 0.55 });
-  const ring1 = new THREE.Mesh(ring1Geo, ring1Mat);
+  var r1Geo = new THREE.TorusGeometry(12, 0.02, 16, 120);
+  var r1Mat = new THREE.MeshBasicMaterial({ color: 0x8fd9ff, transparent: true, opacity: 0.18 });
+  var ring1 = new THREE.Mesh(r1Geo, r1Mat);
   ring1.rotation.x = Math.PI / 3;
-  group.add(ring1);
+  ringGroup.add(ring1);
 
-  // Middle Orbital Ring
-  const ring2Geo = new THREE.RingGeometry(6.2, 6.24, 80);
-  const ring2Mat = new THREE.MeshBasicMaterial({ color: coreColor, side: THREE.DoubleSide, transparent: true, opacity: 0.45 });
-  const ring2 = new THREE.Mesh(ring2Geo, ring2Mat);
+  var r2Geo = new THREE.TorusGeometry(15, 0.015, 16, 120);
+  var r2Mat = new THREE.MeshBasicMaterial({ color: 0x43e5a0, transparent: true, opacity: 0.1 });
+  var ring2 = new THREE.Mesh(r2Geo, r2Mat);
   ring2.rotation.y = Math.PI / 4;
-  ring2.rotation.x = -Math.PI / 6;
-  group.add(ring2);
+  ring2.rotation.x = Math.PI / 5;
+  ringGroup.add(ring2);
 
-  // Inner Celestial Core (Wireframe Sphere)
-  const sphereGeo = new THREE.IcosahedronGeometry(2.4, 2);
-  const sphereMat = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
-    wireframe: true,
-    transparent: true,
-    opacity: 0.18
-  });
-  const coreSphere = new THREE.Mesh(sphereGeo, sphereMat);
-  group.add(coreSphere);
+  var mouse = { x: 0, y: 0, targetX: 0, targetY: 0 };
+  window.addEventListener('mousemove', function(e){
+    mouse.targetX = (e.clientX / window.innerWidth - 0.5) * 2;
+    mouse.targetY = -(e.clientY / window.innerHeight - 0.5) * 2;
+  }, { passive: true });
 
-  // Mouse Parallax & Tilt
-  let mouseX = 0, mouseY = 0;
-  let targetX = 0, targetY = 0;
-  const windowHalfX = window.innerWidth / 2;
-  const windowHalfY = window.innerHeight / 2;
-
-  document.addEventListener('mousemove', (e) => {
-    mouseX = (e.clientX - windowHalfX);
-    mouseY = (e.clientY - windowHalfY);
-    targetX = mouseX * 0.0008;
-    targetY = mouseY * 0.0008;
-
-    // 3D Tilt on Auth Card
-    const card = document.getElementById('cardTilt');
-    if (card) {
-      const rx = -(e.clientY - windowHalfY) * 0.015;
-      const ry = (e.clientX - windowHalfX) * 0.015;
-      card.style.transform = `perspective(1000px) rotateX(${rx}deg) rotateY(${ry}deg)`;
-    }
-  });
-
-  window.addEventListener('resize', () => {
+  window.addEventListener('resize', function(){
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
-  // Animation Loop
-  let clock = new THREE.Clock();
-  function animate() {
+  var clock = new THREE.Clock();
+  function animate(){
     requestAnimationFrame(animate);
-    const delta = clock.getDelta();
+    if(document.hidden) return;
 
-    group.rotation.y += 0.25 * delta;
-    group.rotation.x += 0.15 * delta;
-    ring1.rotation.z += 0.1 * delta;
-    ring2.rotation.z -= 0.12 * delta;
+    var elapsedTime = clock.getElapsedTime();
+    mouse.x += (mouse.targetX - mouse.x) * 0.05;
+    mouse.y += (mouse.targetY - mouse.y) * 0.05;
 
-    stars.rotation.y += 0.02 * delta;
+    starField.rotation.y = elapsedTime * 0.015;
+    starField.rotation.x = elapsedTime * 0.008;
 
-    // Smooth camera damping
-    camera.position.x += (targetX * 20 - camera.position.x) * 0.05;
-    camera.position.y += (-targetY * 20 - camera.position.y) * 0.05;
+    ring1.rotation.z = elapsedTime * 0.04;
+    ring2.rotation.z = -elapsedTime * 0.03;
+
+    ringGroup.position.x = mouse.x * 1.5;
+    ringGroup.position.y = mouse.y * 1.2;
+
+    camera.position.x = mouse.x * 2;
+    camera.position.y = mouse.y * 1.5;
     camera.lookAt(scene.position);
 
     renderer.render(scene, camera);
@@ -720,19 +641,115 @@ body {
   animate();
 })();
 
-// Password Visibility Toggle
-function togglePasswordVisibility() {
-  const pwd = document.getElementById('pwd');
-  const icon = document.getElementById('eye-icon');
-  if (!pwd) return;
-  if (pwd.type === 'password') {
-    pwd.type = 'text';
-    icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
-  } else {
-    pwd.type = 'password';
-    icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+/* ══ 2. STUUDIO/JOCKEY SIGNATURE 3D CARD TILT & CONIC RIM LIGHT ══ */
+(function(){
+  'use strict';
+  var card = document.getElementById('card');
+  var wrapper = document.getElementById('cardWrapper');
+  if(!card || !wrapper) return;
+
+  var rect = null;
+  function updateRect(){ rect = card.getBoundingClientRect(); }
+  window.addEventListener('resize', updateRect);
+  updateRect();
+
+  var currentTiltX = 0, currentTiltY = 0;
+  var targetTiltX = 0, targetTiltY = 0;
+
+  window.addEventListener('mousemove', function(e){
+    if(!rect) updateRect();
+    var cx = rect.left + rect.width / 2;
+    var cy = rect.top + rect.height / 2;
+    var dx = e.clientX - cx;
+    var dy = e.clientY - cy;
+
+    // Conic Rim Lighting angle and position
+    var angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+    card.style.setProperty('--rim-angle', angle + 'deg');
+    var mxPercent = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+    var myPercent = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+    card.style.setProperty('--mx', mxPercent + '%');
+    card.style.setProperty('--my', myPercent + '%');
+
+    // 3D perspective tilt calculation
+    var dist = Math.hypot(dx, dy);
+    var maxDist = Math.hypot(window.innerWidth, window.innerHeight) / 2;
+    if(dist < maxDist){
+      targetTiltY = (dx / (rect.width * 1.8)) * 12;
+      targetTiltX = -(dy / (rect.height * 1.8)) * 12;
+    } else {
+      targetTiltX = 0;
+      targetTiltY = 0;
+    }
+  }, { passive: true });
+
+  window.addEventListener('mouseleave', function(){
+    targetTiltX = 0;
+    targetTiltY = 0;
+  });
+
+  function tiltLoop(){
+    currentTiltX += (targetTiltX - currentTiltX) * 0.08;
+    currentTiltY += (targetTiltY - currentTiltY) * 0.08;
+    card.style.transform = 'rotateX(' + currentTiltX.toFixed(2) + 'deg) rotateY(' + currentTiltY.toFixed(2) + 'deg)';
+    requestAnimationFrame(tiltLoop);
   }
+  tiltLoop();
+})();
+
+/* ══ 3. ORIGINAL PRESERVED AUTH BEHAVIORS ══ */
+function togglePwd(id) {
+  var el = document.getElementById(id);
+  el.type = el.type === 'password' ? 'text' : 'password';
+  var b = el.parentElement.querySelector('.pwd-toggle');
+  if (b) b.classList.toggle('shown');
 }
+
+document.getElementById('loginForm').addEventListener('submit', function() {
+  var btn = document.getElementById('submitBtn');
+  btn.textContent = 'Signing in…';
+  btn.style.opacity = '0.75';
+  btn.disabled = true;
+});
+
+/* Caps Lock detection */
+document.querySelectorAll('input[type=password]').forEach(function(inp){
+  function checkCaps(e){
+    var on = e.getModifierState && e.getModifierState('CapsLock');
+    var group = inp.closest('.form-group');
+    if(!group) return;
+    var warn = group.querySelector('.caps-warn');
+    if(warn) warn.classList.toggle('on', !!on);
+  }
+  inp.addEventListener('keyup', checkCaps);
+  inp.addEventListener('keydown', checkCaps);
+});
+
+/* Scramble decode on secure channel badge */
+(function(){
+  'use strict';
+  function scramble(el){
+    var tgt = el.dataset.txt;
+    var f = 0, total = Math.max(16, tgt.length * 1.2), CH = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<>/[]·';
+    var iv = setInterval(function(){
+      f++;
+      var done = Math.floor(tgt.length * f / total), s = '';
+      for(var i = 0; i < tgt.length; i++){
+        var ch = tgt[i];
+        s += i < done ? ch : (ch === ' ' ? ' ' : CH[Math.random() * CH.length | 0]);
+      }
+      el.textContent = s;
+      if(f >= total){ el.textContent = tgt; clearInterval(iv); }
+    }, 28);
+  }
+  document.querySelectorAll('[data-scr]').forEach(function(el){
+    el.dataset.txt = el.textContent;
+  });
+  setTimeout(function(){
+    var t = document.querySelector('[data-scr]');
+    if(t) scramble(t);
+  }, 350);
+})();
 </script>
 </body>
 </html>

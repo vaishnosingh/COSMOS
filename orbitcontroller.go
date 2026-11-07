@@ -537,31 +537,11 @@ func RegisterOrbitRoutes(mux *http.ServeMux) {
 	log.Println("[ORBIT] Orbit routes registered")
 }
 
-// handleOrbitConsole serves the Orbit web dashboard or landing page.
+// handleOrbitConsole serves the Orbit web dashboard.
 func handleOrbitConsole(w http.ResponseWriter, r *http.Request) {
 	email, err := getSessionUser(r)
 	if err != nil {
-		if r.URL.Query().Get("console") == "1" {
-			http.Redirect(w, r, "/oort/login?next=/orbit", http.StatusFound)
-			return
-		}
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		data := map[string]interface{}{
-			"Year": time.Now().Year(),
-		}
-		if errTmpl := tmpl.ExecuteTemplate(w, "orbit.html", data); errTmpl != nil {
-			http.Redirect(w, r, "/oort/login?next=/orbit", http.StatusFound)
-		}
-		return
-	}
-
-	if r.URL.Query().Get("landing") == "1" {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		data := map[string]interface{}{
-			"UserEmail": email,
-			"Year":      time.Now().Year(),
-		}
-		tmpl.ExecuteTemplate(w, "orbit.html", data)
+		http.Redirect(w, r, "/oort/login?next=/orbit", http.StatusFound)
 		return
 	}
 
