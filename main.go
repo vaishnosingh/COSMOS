@@ -674,6 +674,9 @@ func sendPasswordResetEmail(toEmail, token, service string) {
 
 // handleForgotPassword handles GET (show form) and POST (send reset email).
 func handleForgotPassword(w http.ResponseWriter, r *http.Request, service string) {
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
 	if r.Method == "GET" {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		data := map[string]any{"Service": service, "Step": "request"}
@@ -887,12 +890,17 @@ func main() {
 	mux.HandleFunc("/tailwind.css", func(w http.ResponseWriter, r *http.Request) {
 		data, _ := templatesFS.ReadFile("templates/tailwind.css")
 		w.Header().Set("Content-Type", "text/css; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-cache, must-revalidate")
+		w.Header().Set("Pragma", "no-cache")
+		w.Header().Set("Expires", "0")
 		w.Write(data)
 	})
 	mux.HandleFunc("/three.min.js", func(w http.ResponseWriter, r *http.Request) {
 		data, _ := templatesFS.ReadFile("templates/three.min.js")
 		w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
-		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		w.Header().Set("Cache-Control", "no-cache, must-revalidate")
+		w.Header().Set("Pragma", "no-cache")
+		w.Header().Set("Expires", "0")
 		w.Write(data)
 	})
 	RegisterS3ConsoleRoutes(mux)

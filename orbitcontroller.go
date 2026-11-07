@@ -545,6 +545,9 @@ func handleOrbitConsole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	data := map[string]interface{}{
 		"UserEmail": email,
@@ -1088,7 +1091,10 @@ func handleOrbitProxy(w http.ResponseWriter, r *http.Request, path string) {
 	}
 
 	if status != "running" {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		fmt.Fprintf(w, `<!DOCTYPE html><html><body style="background:#090d16;color:#e2eaf2;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="text-align:center;"><h2 style="font-size:24px;">Application is %s</h2><p style="color:#64748b;">Please start the container from the Orbit console to access it.</p><a href="/orbit" style="display:inline-block;margin-top:16px;color:#38bdf8;text-decoration:none;padding:8px 16px;border:1px solid rgba(56,189,248,0.3);border-radius:8px;">Open Orbit Console</a></div></body></html>`, status)
 		return
 	}
@@ -1318,7 +1324,10 @@ func handleOrbitDomainRouteProxy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if status != "running" || portNum <= 0 {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		fmt.Fprintf(w, `<!DOCTYPE html><html><body style="background:#090d16;color:#e2eaf2;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="text-align:center;"><h2>Application is %s</h2><p style="color:#64748b;">Start the container from the Orbit console to access it.</p><a href="/orbit" style="display:inline-block;margin-top:16px;color:#38bdf8;text-decoration:none;padding:8px 16px;border:1px solid rgba(56,189,248,0.3);border-radius:8px;">Open Orbit Console</a></div></body></html>`, status)
 		return
 	}

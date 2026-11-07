@@ -171,6 +171,10 @@ func handleS3ConsolePage(w http.ResponseWriter, r *http.Request) {
 	})
 		var username string
 	scyllaSession.Query(`SELECT username FROM cosmos.users WHERE session_id=? ALLOW FILTERING`, sid).Scan(&username)
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	tmpl.ExecuteTemplate(w, "oortconsole.html", map[string]string{"SID": sid, "Username": username})
 }
 
