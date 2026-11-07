@@ -175,11 +175,17 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	tmpl.ExecuteTemplate(w, "index.html", nil)
 }
 
 func handleServicePage(w http.ResponseWriter, r *http.Request, service string) {
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	tmpl.ExecuteTemplate(w, service+".html", nil)
 }
@@ -198,6 +204,9 @@ func handlePoll(w http.ResponseWriter, r *http.Request, service string) {
 // Replacing handleSignup
 func handleSignup(w http.ResponseWriter, r *http.Request, service string) {
 	if r.Method == "GET" {
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		w.Header().Set("Pragma", "no-cache")
+		w.Header().Set("Expires", "0")
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		tmpl.ExecuteTemplate(w, "signup.html", map[string]string{"Service": service})
 		return
@@ -266,6 +275,9 @@ func handleSignup(w http.ResponseWriter, r *http.Request, service string) {
 // Replacing handleLogin
 func handleLogin(w http.ResponseWriter, r *http.Request, service string) {
 	if r.Method == "GET" {
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		w.Header().Set("Pragma", "no-cache")
+		w.Header().Set("Expires", "0")
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		data := map[string]string{"Service": service}
 		if r.URL.Query().Get("error") != "" {
