@@ -32,10 +32,13 @@
 html{
   background:var(--bg);color:var(--ink);
   overflow-x:hidden;
+  overscroll-behavior:none;
 }
 body{
   font-family:var(--sans);background:var(--bg);
   overflow-x:hidden;-webkit-font-smoothing:antialiased;
+  overscroll-behavior:none;
+  touch-action:pan-y;
 }
 a{color:inherit;text-decoration:none}
 button{font-family:inherit;cursor:pointer;border:none;background:none}
@@ -841,6 +844,8 @@ var stationEls = STATIONS.map(function(s){ return document.getElementById(s.id);
    Each scroll action smoothly travels to the next/prev
    station, coming to a complete, stable pause at each one.
 ═══════════════════════════════════════════════════ */
+var isProgrammaticScroll = false;
+
 function goToStation(idx){
   idx = CL(Math.round(idx), 0, STATIONS.length - 1);
   targetStationIdx = idx;
@@ -850,8 +855,10 @@ function goToStation(idx){
 
   var maxScroll = Math.max(1, SCROLL_HEIGHT - window.innerHeight);
   var targetY = (idx / (STATIONS.length - 1)) * maxScroll;
+  isProgrammaticScroll = true;
   window.scrollTo(0, targetY);
   scrollY = targetY;
+  setTimeout(function(){ isProgrammaticScroll = false; }, 120);
 }
 
 function nextStation(){
@@ -905,28 +912,87 @@ window.addEventListener('wheel', function(e){
   wheelDecay = setTimeout(function(){ wheelAccum = 0; }, 90);
 }, {passive: false});
 
-/* Touch gestures: swipe up/down */
+/* Touch gestures: swipe up/down with precise single-station snapping */
+var touchStartX = 0;
 var touchStartY = 0;
+var touchStartTime = 0;
+var touchIsActive = false;
+var touchTriggered = false;
+
 window.addEventListener('touchstart', function(e){
+  if(e.touches.length !== 1) return;
+  touchStartX = e.touches[0].clientX;
   touchStartY = e.touches[0].clientY;
+  touchStartTime = Date.now();
+  touchIsActive = true;
+  touchTriggered = false;
 }, {passive: true});
 
-window.addEventListener('touchend', function(e){
-  var dy = touchStartY - e.changedTouches[0].clientY;
-  var now = Date.now();
-  var dir = dy > 0 ? 1 : -1;
-  var isDirChange = (dir !== lastNavDir);
-  var activeCooldown = isDirChange ? 180 : 380;
+window.addEventListener('touchmove', function(e){
+  if(e.touches.length !== 1) return;
+  var dx = e.touches[0].clientX - touchStartX;
+  var dy = e.touches[0].clientY - touchStartY;
 
-  if(Math.abs(dy) > 28 && (now - lastNavTime) > activeCooldown){
-    lastNavDir = dir;
-    if(dy > 0){
-      nextStation();
-    } else {
-      prevStation();
+  // Intercept vertical swipes immediately so browser never starts kinetic momentum scroll
+  if(Math.abs(dy) > 7 && Math.abs(dy) > Math.abs(dx)){
+    if(e.cancelable){
+      e.preventDefault();
     }
-    lastNavTime = now;
+
+    // Trigger station switch as soon as user has swiped past threshold (36px)
+    if(!touchTriggered && Math.abs(dy) > 36){
+      var now = Date.now();
+      var dir = dy < 0 ? 1 : -1;
+      var isDirChange = (dir !== lastNavDir);
+      var activeCooldown = isDirChange ? 150 : 320;
+
+      if((now - lastNavTime) > activeCooldown){
+        touchTriggered = true;
+        lastNavDir = dir;
+        if(dir > 0){
+          nextStation();
+        } else {
+          prevStation();
+        }
+      }
+    }
   }
+}, {passive: false});
+
+window.addEventListener('touchend', function(e){
+  touchIsActive = false;
+  if(touchTriggered) {
+    touchTriggered = false;
+    return;
+  }
+  if(!e.changedTouches || e.changedTouches.length === 0) return;
+
+  var dy = touchStartY - e.changedTouches[0].clientY;
+  var dx = touchStartX - e.changedTouches[0].clientX;
+  var dt = Date.now() - touchStartTime;
+
+  // Fast flick gesture support (short distance but quick flick)
+  if(Math.abs(dy) > 18 && Math.abs(dy) > Math.abs(dx) && dt < 280){
+    var now = Date.now();
+    var dir = dy > 0 ? 1 : -1;
+    var isDirChange = (dir !== lastNavDir);
+    var activeCooldown = isDirChange ? 150 : 300;
+
+    if((now - lastNavTime) > activeCooldown){
+      lastNavDir = dir;
+      if(dir > 0){
+        nextStation();
+      } else {
+        prevStation();
+      }
+    }
+  }
+  touchTriggered = false;
+}, {passive: true});
+
+window.addEventListener('touchcancel', function(){
+  touchIsActive = false;
+  touchTriggered = false;
 }, {passive: true});
 
 /* Keyboard: arrows, space, page down/up */
@@ -1138,10 +1204,14 @@ function loop(){
 }
 
 window.addEventListener('scroll', function(){
+  if(isProgrammaticScroll) return;
+  // Ignore native scroll events during touch gestures or on mobile screens to prevent kinetic scroll runaways
+  if(touchIsActive || window.innerWidth <= 900) return;
+
   var maxScroll = Math.max(1, SCROLL_HEIGHT - window.innerHeight);
   var scrollFrac = window.scrollY / maxScroll;
   var approxIdx = Math.round(scrollFrac * (STATIONS.length - 1));
-  if(approxIdx !== targetStationIdx && (Date.now() - lastNavTime) > 300){
+  if(approxIdx !== targetStationIdx && (Date.now() - lastNavTime) > 350){
     goToStation(approxIdx);
   }
 }, {passive:true});
