@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orbit — Autonomous Container PaaS &amp; Deployment Engine · Cosmos</title>
+<meta name="description" content="Zero-configuration container deployment engine and application platform. Continuous Git builds, dynamic reverse proxy, custom domains, and live container telemetry.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='5' fill='%23c084fc'/><ellipse cx='16' cy='16' rx='14' ry='6' fill='none' stroke='%23c084fc' stroke-width='1.5' opacity='0.7'/><ellipse cx='16' cy='16' rx='14' ry='6' fill='none' stroke='%238fd9ff' stroke-width='1' opacity='0.5' transform='rotate(60,16,16)'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="/three.min.js"></script>
+<script>
+if (typeof THREE === 'undefined') {
+  document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
+}
+</script>
+
+<style>
+/* ── RESET & DESIGN TOKENS ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #03040c;
+  --bg-card: rgba(12, 12, 28, 0.75);
+  --bg-card-hover: rgba(18, 18, 40, 0.88);
+  --ink: #f0f4f8;
+  --dim: rgba(240, 244, 248, 0.65);
+  --faint: rgba(240, 244, 248, 0.28);
+  --line: rgba(240, 244, 248, 0.08);
+  --line-active: rgba(192, 132, 252, 0.35);
+  --ac: #c084fc;
+  --ac-rgb: 192, 132, 252;
+  --ac-cyan: #8fd9ff;
+  --ok: #4ade80;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+  --sans: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --serif: 'Instrument Serif', Georgia, serif;
+  --pad: clamp(20px, 5vw, 64px);
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html {
+  scroll-behavior: smooth;
+  background: var(--bg);
+  color: var(--ink);
+  overflow-x: hidden;
+}
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--ink);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+::selection {
+  background: rgba(192, 132, 252, 0.35);
+  color: #fff;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: rgba(192, 132, 252, 0.2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(192, 132, 252, 0.4); }
+
+/* ── 3D CANVAS & ATMOSPHERE ── */
+#webgl-bg {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.cosmic-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.cosmic-vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 25%, transparent 20%, rgba(3, 4, 12, 0.65) 70%, #03040c 100%);
+}
+
+/* ── NAVIGATION ── */
+nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--pad);
+  background: rgba(3, 4, 12, 0.55);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid var(--line);
+  transition: all 0.35s var(--ease);
+}
+nav.scrolled {
+  height: 64px;
+  background: rgba(3, 4, 12, 0.9);
+  border-bottom-color: var(--line-active);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  text-decoration: none;
+}
+.brand-mark {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.brand-mark svg {
+  width: 100%;
+  height: 100%;
+  animation: slowOrbit 24s linear infinite;
+}
+@keyframes slowOrbit { to { transform: rotate(360deg); } }
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+.nav-links a {
+  text-decoration: none;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--dim);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.2s;
+  padding: 6px 0;
+  position: relative;
+}
+.nav-links a.active {
+  color: #fff;
+}
+.nav-links a.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 1.5px;
+  background: var(--ac);
+}
+.nav-links a:hover {
+  color: var(--ink);
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.telemetry-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  border-radius: 99px;
+  background: rgba(192, 132, 252, 0.08);
+  border: 1px solid rgba(192, 132, 252, 0.25);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: var(--ac);
+}
+.telemetry-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ac);
+  box-shadow: 0 0 10px var(--ac);
+  animation: pulseDot 2s ease infinite;
+}
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.btn-signin {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+  padding: 8px 18px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(10px);
+  transition: all 0.25s var(--ease);
+}
+.btn-signin:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(192, 132, 252, 0.4);
+  transform: translateY(-1px);
+}
+
+.btn-primary {
+  font-size: 13px;
+  font-weight: 600;
+  color: #03040c;
+  text-decoration: none;
+  padding: 8px 20px;
+  border-radius: 9px;
+  background: var(--ac);
+  box-shadow: 0 4px 20px rgba(192, 132, 252, 0.3);
+  transition: all 0.25s var(--ease);
+}
+.btn-primary:hover {
+  background: #d8b4fe;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 28px rgba(192, 132, 252, 0.45);
+}
+
+/* ── MAIN CONTENT ── */
+main {
+  position: relative;
+  z-index: 10;
+  min-height: 100vh;
+}
+
+/* ── HERO ── */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 130px var(--pad) 80px;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.badge-orbit {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 16px;
+  border-radius: 99px;
+  background: rgba(var(--ac-rgb), 0.08);
+  border: 1px solid rgba(var(--ac-rgb), 0.25);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--ac);
+  margin-bottom: 28px;
+  box-shadow: 0 0 30px rgba(var(--ac-rgb), 0.1);
+}
+
+.hero-title {
+  font-size: clamp(52px, 9vw, 120px);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+  margin-bottom: 28px;
+  text-shadow: 0 0 80px rgba(var(--ac-rgb), 0.15);
+}
+.hero-title em {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--ac);
+  text-shadow: 0 0 40px rgba(var(--ac-rgb), 0.4);
+}
+
+.hero-lead {
+  font-size: clamp(16px, 2vw, 20px);
+  line-height: 1.68;
+  color: var(--dim);
+  max-width: 700px;
+  margin: 0 auto 44px;
+}
+
+.hero-cta-group {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 60px;
+}
+.btn-orbit-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 34px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 12px;
+  background: var(--ac);
+  color: #03040c;
+  text-decoration: none;
+  box-shadow: 0 10px 30px rgba(var(--ac-rgb), 0.25);
+  transition: all 0.3s var(--ease);
+}
+.btn-orbit-main:hover {
+  background: #d8b4fe;
+  transform: translateY(-2px);
+  box-shadow: 0 14px 40px rgba(var(--ac-rgb), 0.4);
+}
+
+.btn-orbit-sub {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 30px;
+  font-size: 15px;
+  font-weight: 500;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+  text-decoration: none;
+  border: 1px solid var(--line);
+  backdrop-filter: blur(14px);
+  transition: all 0.3s var(--ease);
+}
+.btn-orbit-sub:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(var(--ac-rgb), 0.4);
+  transform: translateY(-2px);
+}
+
+/* Terminal Log Box */
+.terminal-snippet {
+  width: 100%;
+  max-width: 700px;
+  background: rgba(6, 6, 16, 0.88);
+  border: 1px solid rgba(192, 132, 252, 0.22);
+  border-radius: 14px;
+  padding: 18px 22px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.8;
+  text-align: left;
+  margin: 0 auto;
+}
+.term-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+  font-size: 11px;
+  color: var(--dim);
+}
+.term-line-ok { color: var(--ok); }
+.term-line-ac { color: var(--ac); }
+.term-line-cyan { color: var(--ac-cyan); }
+
+/* ── BENTO FEATURES ── */
+.section-features {
+  padding: 100px var(--pad) 80px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+.section-head {
+  text-align: center;
+  margin-bottom: 60px;
+}
+.sec-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--ac);
+  margin-bottom: 16px;
+}
+.sec-tag::before, .sec-tag::after {
+  content: '';
+  width: 24px;
+  height: 1px;
+  background: rgba(var(--ac-rgb), 0.4);
+}
+.sec-title {
+  font-size: clamp(34px, 5vw, 56px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+.sec-title em {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--ac);
+}
+
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 24px;
+}
+.col-8 { grid-column: span 8; }
+.col-4 { grid-column: span 4; }
+.col-6 { grid-column: span 6; }
+.col-12 { grid-column: span 12; }
+
+.bento-card {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 36px 32px;
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  transition: transform 0.4s var(--ease), border-color 0.4s, box-shadow 0.4s;
+}
+.bento-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(var(--ac-rgb), 0.35);
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.65), 0 0 30px rgba(var(--ac-rgb), 0.1);
+}
+
+.card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: 99px;
+  background: rgba(var(--ac-rgb), 0.1);
+  border: 1px solid rgba(var(--ac-rgb), 0.3);
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ac);
+  margin-bottom: 20px;
+}
+.card-h {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-bottom: 12px;
+}
+.card-p {
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--dim);
+  margin-bottom: 20px;
+}
+
+/* ── FOOTER ── */
+footer {
+  position: relative;
+  z-index: 10;
+  border-top: 1px solid var(--line);
+  padding: 40px var(--pad);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  background: rgba(3, 4, 12, 0.8);
+  backdrop-filter: blur(20px);
+}
+.ft-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: none;
+}
+.ft-copy {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  color: var(--faint);
+  text-transform: uppercase;
+}
+.ft-clock {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--dim);
+}
+
+@media (max-width: 960px) {
+  .col-8, .col-4, .col-6 { grid-column: span 12; }
+  .nav-links { display: none; }
+}
+@media (max-width: 580px) {
+  .hero-cta-group { flex-direction: column; width: 100%; }
+  footer { flex-direction: column; text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<!-- Three.js Ultraviolet & Cyan Constellation Canvas -->
+<canvas id="webgl-bg" aria-hidden="true"></canvas>
+<div class="cosmic-grain" aria-hidden="true"></div>
+<div class="cosmic-vignette" aria-hidden="true"></div>
+
+<!-- Top Navigation -->
+<nav id="nav">
+  <a href="/" class="nav-brand">
+    <div class="brand-mark">
+      <svg viewBox="0 0 34 34">
+        <ellipse cx="17" cy="17" rx="14.5" ry="5.5" fill="none" stroke="rgba(240,244,248,.4)" stroke-width="1.2" transform="rotate(-24 17 17)"/>
+        <circle cx="17" cy="17" r="4.6" fill="#eef3f8"/>
+        <circle cx="27.4" cy="12.2" r="1.9" fill="var(--ac)"/>
+      </svg>
+    </div>
+    <span>Cosmos Orbit</span>
+  </a>
+
+  <div class="nav-links">
+    <a href="/git">Forge Git</a>
+    <a href="/oort">Oort NAS</a>
+    <a href="/orbit" class="active">Orbit PaaS</a>
+  </div>
+
+  <div class="nav-actions">
+    <div class="telemetry-pill">
+      <div class="telemetry-dot"></div>
+      <span>ORBIT ENGINE ACTIVE</span>
+    </div>
+    <a href="/oort/login?next=/orbit" class="btn-signin">Sign In</a>
+    <a href="/orbit?console=1" class="btn-primary">Launch Console</a>
+  </div>
+</nav>
+
+<main>
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="badge-orbit">
+      <span>MODULE 03 · AUTONOMOUS CONTAINER PAAS</span>
+    </div>
+    <h1 class="hero-title">
+      Deploy Anything.<br>
+      <em>Zero Configuration.</em>
+    </h1>
+    <p class="hero-lead">
+      Continuous deployment container engine for your sovereign cloud. Push code or Dockerfiles; Orbit builds images, configures isolated networks, and routes edge traffic with dynamic reverse proxying.
+    </p>
+
+    <div class="hero-cta-group">
+      <a href="/orbit?console=1" class="btn-orbit-main">Launch Orbit Console →</a>
+      <a href="/oort/login?next=/orbit" class="btn-orbit-sub">Sign In to Dashboard</a>
+    </div>
+
+    <!-- Live Build Simulator Box -->
+    <div class="terminal-snippet">
+      <div class="term-head">
+        <span>● PIPELINE: BUILD &amp; DEPLOY</span>
+        <span class="term-line-ok">STATUS: RUNNING</span>
+      </div>
+      <div><span class="term-line-ac">[ORBIT BUILD]</span> Initializing build context for app 'api-service' (commit: 84f2de)</div>
+      <div><span class="term-line-cyan">[DOCKER]</span> Building multi-stage image via local engine socket...</div>
+      <div><span class="term-line-cyan">[DOCKER]</span> Container health checks: PASSED (port :8080)</div>
+      <div><span class="term-line-ok">[PROXY]</span> Edge routing live at <span style="text-decoration:underline">https://api.cosmos.local</span></div>
+    </div>
+  </section>
+
+  <!-- Bento Features -->
+  <section class="section-features">
+    <div class="section-head">
+      <div class="sec-tag">CONTAINER PLATFORM</div>
+      <h2 class="sec-title">Production PaaS without <em>cloud lock-in.</em></h2>
+    </div>
+
+    <div class="bento-grid">
+      <!-- Card 1: Git-Triggered Deployments -->
+      <div class="bento-card col-8">
+        <span class="card-badge">CI/CD Engine</span>
+        <h3 class="card-h">Instant Git Push Deployments</h3>
+        <p class="card-p">
+          Connect your Forge repositories directly. Every git push triggers an automated build pipeline, validates health endpoints, and executes zero-downtime container rotations.
+        </p>
+        <div style="display:flex;gap:12px;margin-top:14px;flex-wrap:wrap">
+          <span style="background:rgba(255,255,255,0.04);padding:6px 12px;border-radius:6px;font-family:var(--mono);font-size:12px;color:var(--ac-cyan)">Dockerfile Auto-Detect</span>
+          <span style="background:rgba(255,255,255,0.04);padding:6px 12px;border-radius:6px;font-family:var(--mono);font-size:12px;color:var(--ac)">Zero-Downtime Swap</span>
+          <span style="background:rgba(255,255,255,0.04);padding:6px 12px;border-radius:6px;font-family:var(--mono);font-size:12px;color:var(--ok)">Live Build Stream</span>
+        </div>
+      </div>
+
+      <!-- Card 2: Edge Reverse Proxy -->
+      <div class="bento-card col-4">
+        <span class="card-badge">Networking</span>
+        <h3 class="card-h">Dynamic Reverse Proxy</h3>
+        <p class="card-p">
+          Automatic subdomain routing, SSL termination, and port forwarding with zero manual Nginx restarts.
+        </p>
+      </div>
+
+      <!-- Card 3: Metrics & Telemetry -->
+      <div class="bento-card col-4">
+        <span class="card-badge">Observability</span>
+        <h3 class="card-h">Real-Time Telemetry</h3>
+        <p class="card-p">
+          Monitor container CPU utilization, memory thresholds, network I/O, and active streaming logs in real time.
+        </p>
+      </div>
+
+      <!-- Card 4: Secrets Vault -->
+      <div class="bento-card col-8">
+        <span class="card-badge">Security</span>
+        <h3 class="card-h">Encrypted Environment Secrets</h3>
+        <p class="card-p">
+          Keep API keys and database credentials secure. Orbit isolates environment parameters per container and encrypts variables at rest in ScyllaDB.
+        </p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Footer -->
+<footer>
+  <a href="/" class="ft-brand">
+    <svg width="22" height="22" viewBox="0 0 34 34">
+      <ellipse cx="17" cy="17" rx="14.5" ry="5.5" fill="none" stroke="rgba(240,244,248,.6)" stroke-width="1.2" transform="rotate(-24 17 17)"/>
+      <circle cx="17" cy="17" r="4.6" fill="#eef3f8"/>
+      <circle cx="27.4" cy="12.2" r="1.9" fill="var(--ac)"/>
+    </svg>
+    Cosmos Orbit
+  </a>
+  <div class="ft-copy">AUTONOMOUS CONTAINER PAAS · ALL SYSTEMS OPERATIONAL</div>
+  <div class="ft-clock" id="live-utc">UTC 00:00:00</div>
+</footer>
+
+<script>
+// Three.js Ultraviolet & Cyan Space Background
+(() => {
+  'use strict';
+  if (typeof THREE === 'undefined') return;
+
+  const canvas = document.getElementById('webgl-bg');
+  const renderer = new THREE.WebGLRenderer({
+    canvas: canvas,
+    alpha: true,
+    antialias: true,
+    powerPreference: 'high-performance'
+  });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x03040c, 0.0035);
+
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.set(0, 0, 80);
+
+  // Lights
+  scene.add(new THREE.AmbientLight(0x100820, 2.5));
+  const lightViolet = new THREE.PointLight(0xc084fc, 4, 300);
+  lightViolet.position.set(50, 40, 40);
+  scene.add(lightViolet);
+
+  const lightCyan = new THREE.PointLight(0x8fd9ff, 3, 250);
+  lightCyan.position.set(-50, -30, 30);
+  scene.add(lightCyan);
+
+  // Starfield
+  const starCount = 3000;
+  const starGeo = new THREE.BufferGeometry();
+  const starPos = new Float32Array(starCount * 3);
+  const starCol = new Float32Array(starCount * 3);
+
+  const colors = [
+    [0.75, 0.52, 1.0], // Violet
+    [0.56, 0.85, 1.0], // Cyan
+    [0.92, 0.94, 1.0]  // Soft White
+  ];
+
+  for (let i = 0; i < starCount; i++) {
+    starPos[i * 3]     = (Math.random() - 0.5) * 320;
+    starPos[i * 3 + 1] = (Math.random() - 0.5) * 260;
+    starPos[i * 3 + 2] = (Math.random() - 0.5) * 260;
+
+    const c = colors[Math.floor(Math.random() * colors.length)];
+    starCol[i * 3]     = c[0];
+    starCol[i * 3 + 1] = c[1];
+    starCol[i * 3 + 2] = c[2];
+  }
+
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+  starGeo.setAttribute('color', new THREE.BufferAttribute(starCol, 3));
+
+  const starMat = new THREE.PointsMaterial({
+    size: 0.65,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.85,
+    blending: THREE.AdditiveBlending,
+    sizeAttenuation: true
+  });
+  const starField = new THREE.Points(starGeo, starMat);
+  scene.add(starField);
+
+  // Off-axis Orbital Container Constellation
+  const ringGroup = new THREE.Group();
+  ringGroup.position.set(40, -10, -25);
+  scene.add(ringGroup);
+
+  function createRing(r, tube, col, op, rx, ry) {
+    const geo = new THREE.TorusGeometry(r, tube, 16, 128);
+    const mat = new THREE.MeshBasicMaterial({
+      color: col,
+      transparent: true,
+      opacity: op,
+      blending: THREE.AdditiveBlending
+    });
+    const m = new THREE.Mesh(geo, mat);
+    m.rotation.x = rx;
+    m.rotation.y = ry;
+    return m;
+  }
+
+  const r1 = createRing(24, 0.12, 0xc084fc, 0.4, Math.PI / 3, 0.2);
+  const r2 = createRing(18, 0.09, 0x8fd9ff, 0.35, -Math.PI / 4, 0.4);
+  const r3 = createRing(30, 0.07, 0xa855f7, 0.22, Math.PI / 2.5, -0.3);
+
+  ringGroup.add(r1);
+  ringGroup.add(r2);
+  ringGroup.add(r3);
+
+  // Orbiting Container Pods
+  const podGeo = new THREE.BoxGeometry(1.2, 1.2, 1.2);
+  const podMat1 = new THREE.MeshBasicMaterial({ color: 0xc084fc, wireframe: true });
+  const pod1 = new THREE.Mesh(podGeo, podMat1);
+  ringGroup.add(pod1);
+
+  const podMat2 = new THREE.MeshBasicMaterial({ color: 0x8fd9ff, wireframe: true });
+  const pod2 = new THREE.Mesh(podGeo, podMat2);
+  ringGroup.add(pod2);
+
+  // Mouse Parallax
+  let mouseX = 0, mouseY = 0;
+  let targetCamX = 0, targetCamY = 0;
+
+  window.addEventListener('mousemove', e => {
+    mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+    mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+    targetCamX = mouseX * 7;
+    targetCamY = -mouseY * 5;
+  }, { passive: true });
+
+  window.addEventListener('scroll', () => {
+    const nav = document.getElementById('nav');
+    if (nav) nav.classList.toggle('scrolled', window.scrollY > 40);
+  }, { passive: true });
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  // UTC Clock
+  const utcEl = document.getElementById('live-utc');
+  function updateTime() {
+    if (!utcEl) return;
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    utcEl.textContent = `UTC ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
+  }
+  setInterval(updateTime, 1000);
+  updateTime();
+
+  // Render loop
+  const clock = new THREE.Clock();
+  function animate() {
+    requestAnimationFrame(animate);
+    const dt = clock.getDelta();
+    const t = clock.getElapsedTime();
+
+    camera.position.x += (targetCamX - camera.position.x) * 0.05;
+    camera.position.y += (targetCamY - camera.position.y) * 0.05;
+
+    starField.rotation.y = t * 0.012;
+    starField.rotation.x = t * 0.006;
+
+    r1.rotation.z += 0.005;
+    r2.rotation.x += 0.007;
+    r3.rotation.y += 0.004;
+    ringGroup.rotation.y = t * 0.02;
+
+    pod1.position.x = Math.cos(t * 0.7) * 24;
+    pod1.position.z = Math.sin(t * 0.7) * 24;
+    pod1.position.y = Math.sin(t * 0.7) * 8;
+    pod1.rotation.x += 0.01;
+    pod1.rotation.y += 0.01;
+
+    pod2.position.x = Math.cos(-t * 0.5) * 18;
+    pod2.position.y = Math.sin(-t * 0.5) * 18;
+    pod2.position.z = Math.cos(-t * 0.5) * 6;
+    pod2.rotation.x += 0.01;
+    pod2.rotation.y += 0.01;
+
+    renderer.render(scene, camera);
+  }
+  animate();
+})();
+</script>
+</body>
+</html>

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Forge — Sovereign Git Version Control · Cosmos</title>
-<meta name="description" content="Self-hosted Git infrastructure engineered for teams that can't afford exposure. Full isolation, zero third-party dependency.">
+<meta name="description" content="Self-hosted Git infrastructure engineered for teams that demand total isolation. Branch protection, cryptographic audit logs, SSH/HTTPS push, zero third-party telemetry.">
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="6" fill="%23eef3f8"/><ellipse cx="16" cy="16" rx="14" ry="5.5" fill="none" stroke="%23ffab4d" stroke-width="1.5" transform="rotate(-24 16 16)"/></svg>'>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,170 +17,82 @@ if (typeof THREE === 'undefined') {
 </script>
 
 <style>
+/* ── RESET & DESIGN TOKENS ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --bg: #020308;
-  --ink: #eef3f8;
-  --dim: rgba(226, 234, 242, 0.62);
-  --faint: rgba(226, 234, 242, 0.32);
-  --line: rgba(226, 234, 242, 0.08);
-  --line-bright: rgba(226, 234, 242, 0.2);
-  --ok: #43e5a0;
-  --ac: 255, 171, 77;
-  --ac-hex: #ffab4d;
+  --bg: #030408;
+  --bg-card: rgba(14, 12, 10, 0.75);
+  --bg-card-hover: rgba(22, 18, 14, 0.88);
+  --ink: #f0f4f8;
+  --dim: rgba(240, 244, 248, 0.65);
+  --faint: rgba(240, 244, 248, 0.28);
+  --line: rgba(240, 244, 248, 0.08);
+  --line-active: rgba(255, 171, 77, 0.35);
+  --ac: #ffab4d;
+  --ac-rgb: 255, 171, 77;
+  --ac-dark: #e67e22;
+  --ok: #4ade80;
   --mono: 'JetBrains Mono', ui-monospace, monospace;
-  --disp: 'Space Grotesk', sans-serif;
-  --serif: 'Instrument Serif', serif;
-  --pad: clamp(24px, 5vw, 84px);
-  --ez: cubic-bezier(0.16, 1, 0.3, 1);
-  --rim-angle: 0deg;
-}
-
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+  --sans: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --serif: 'Instrument Serif', Georgia, serif;
+  --pad: clamp(20px, 5vw, 64px);
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 html {
   scroll-behavior: smooth;
   background: var(--bg);
   color: var(--ink);
+  overflow-x: hidden;
 }
 
 body {
-  font-family: var(--disp);
+  font-family: var(--sans);
   background: var(--bg);
   color: var(--ink);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  animation: bootIn 1s var(--ez) both;
-  perspective: 1200px;
-}
-
-@keyframes bootIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  min-height: 100vh;
 }
 
 ::selection {
-  background: rgba(var(--ac), 0.35);
+  background: rgba(255, 171, 77, 0.35);
   color: #fff;
 }
 
-::-webkit-scrollbar {
-  width: 9px;
-}
-::-webkit-scrollbar-track {
-  background: var(--bg);
-}
-::-webkit-scrollbar-thumb {
-  background: #1e1712;
-  border: 2px solid var(--bg);
-  border-radius: 6px;
-}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: rgba(255, 171, 77, 0.2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 171, 77, 0.4); }
 
-a:focus-visible, button:focus-visible {
-  outline: 2px solid rgba(var(--ac), 0.7);
-  outline-offset: 4px;
-  border-radius: 4px;
-}
-
-/* Depth Layers */
-#sky {
+/* ── 3D CANVAS & ATMOSPHERE ── */
+#webgl-bg {
   position: fixed;
   inset: 0;
+  width: 100%;
+  height: 100%;
   z-index: 0;
   pointer-events: none;
-  width: 100vw;
-  height: 100vh;
 }
-.grain {
-  position: fixed;
-  inset: -10%;
-  width: 120%;
-  height: 120%;
-  z-index: 2;
-  pointer-events: none;
-  opacity: 0.045;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size: 180px 180px;
-  animation: grain 1s steps(4) infinite;
-}
-@keyframes grain {
-  0%, 100% { transform: translate(0, 0); }
-  25% { transform: translate(-1.2%, 1%); }
-  50% { transform: translate(1%, -1.2%); }
-  75% { transform: translate(-0.8%, -0.8%); }
-}
-.vig {
+
+.cosmic-grain {
   position: fixed;
   inset: 0;
-  z-index: 2;
+  z-index: 1;
   pointer-events: none;
-  background: radial-gradient(ellipse at 50% 45%, transparent 45%, rgba(1, 2, 7, 0.7) 100%);
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* Custom Cursor */
-.cur {
+.cosmic-vignette {
   position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 9999;
+  inset: 0;
+  z-index: 1;
   pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  will-change: transform;
+  background: radial-gradient(circle at 50% 25%, transparent 20%, rgba(3, 4, 8, 0.65) 70%, #030408 100%);
 }
-body.cur-vis .cur { opacity: 1; }
-#curDot {
-  width: 5px;
-  height: 5px;
-  margin: -2.5px 0 0 -2.5px;
-  border-radius: 50%;
-  background: var(--ink);
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
-}
-#curRing {
-  width: 38px;
-  height: 38px;
-  margin: -19px 0 0 -19px;
-  border-radius: 50%;
-  border: 1px solid rgba(238, 243, 248, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: width 0.35s var(--ez), height 0.35s var(--ez), margin 0.35s var(--ez), border-color 0.3s, background 0.3s;
-}
-#curRing span {
-  font-family: var(--mono);
-  font-size: 8px;
-  font-weight: 600;
-  letter-spacing: 0.28em;
-  text-indent: 0.28em;
-  color: #fff;
-  opacity: 0;
-  transition: opacity 0.25s;
-}
-#curRing.act {
-  width: 56px;
-  height: 56px;
-  margin: -28px 0 0 -28px;
-  border-color: rgba(255, 255, 255, 0.85);
-  background: rgba(255, 255, 255, 0.04);
-}
-#curRing.drag {
-  width: 76px;
-  height: 76px;
-  margin: -38px 0 0 -38px;
-  border-color: rgba(var(--ac), 0.95);
-  background: rgba(var(--ac), 0.08);
-  box-shadow: 0 0 24px rgba(var(--ac), 0.25);
-}
-#curRing.drag span { opacity: 1; }
-body.has-cur, body.has-cur a, body.has-cur button, body.has-cur canvas { cursor: none; }
 
-/* Navigation */
+/* ── NAVIGATION ── */
 nav {
   position: fixed;
   top: 0;
@@ -192,413 +104,334 @@ nav {
   align-items: center;
   justify-content: space-between;
   padding: 0 var(--pad);
-  background: rgba(2, 3, 8, 0.48);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border-bottom: 1px solid rgba(226, 234, 242, 0.07);
-  transition: background 0.4s ease, border-color 0.4s ease, height 0.4s ease;
+  background: rgba(3, 4, 8, 0.55);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid var(--line);
+  transition: all 0.35s var(--ease);
 }
 nav.scrolled {
   height: 64px;
-  background: rgba(2, 3, 8, 0.88);
-  border-bottom-color: rgba(226, 234, 242, 0.12);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+  background: rgba(3, 4, 8, 0.9);
+  border-bottom-color: var(--line-active);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
-.logo {
+
+.nav-brand {
   display: flex;
   align-items: center;
   gap: 12px;
-  text-decoration: none;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--ink);
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: -0.025em;
+  text-decoration: none;
 }
-.mark-wrapper {
-  position: relative;
+.brand-mark {
   width: 32px;
   height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.mark {
+.brand-mark svg {
   width: 100%;
   height: 100%;
-  flex: none;
-  animation: markSpin 20s linear infinite;
+  animation: slowOrbit 24s linear infinite;
 }
-@keyframes markSpin { to { transform: rotate(360deg); } }
-.nav-links { display: flex; gap: 40px; }
+@keyframes slowOrbit { to { transform: rotate(360deg); } }
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
 .nav-links a {
-  position: relative;
   text-decoration: none;
-  color: var(--dim);
   font-size: 13.5px;
   font-weight: 500;
-  letter-spacing: 0.01em;
-  padding: 6px 0;
-  transition: color 0.3s;
-}
-.nav-links a i {
-  font-style: normal;
-  font-family: var(--mono);
-  font-size: 8.5px;
-  color: rgba(226, 234, 242, 0.32);
-  margin-right: 7px;
-  vertical-align: 2px;
-  letter-spacing: 0.12em;
-}
-.nav-links a::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  bottom: -2px;
-  height: 1px;
-  width: 100%;
-  background: #fff;
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 0.45s var(--ez);
-}
-.nav-links a:hover { color: #fff; }
-.nav-links a:hover::after { transform: scaleX(1); }
-.nav-links a.on { color: #fff; }
-.nav-links a.on::after {
-  transform: scaleX(1);
-  background: rgb(var(--ac));
-  box-shadow: 0 0 10px rgb(var(--ac));
-}
-.nav-right { display: flex; align-items: center; gap: 22px; }
-.nav-status {
+  color: var(--dim);
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.24em;
-  color: rgba(110, 225, 175, 0.85);
+  transition: color 0.2s;
+  padding: 6px 0;
+  position: relative;
 }
-.nav-status i {
+.nav-links a.active {
+  color: #fff;
+}
+.nav-links a.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 1.5px;
+  background: var(--ac);
+}
+.nav-links a:hover {
+  color: var(--ink);
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.telemetry-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  border-radius: 99px;
+  background: rgba(255, 171, 77, 0.08);
+  border: 1px solid rgba(255, 171, 77, 0.25);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: var(--ac);
+}
+.telemetry-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--ok);
-  box-shadow: 0 0 10px var(--ok);
-  animation: dotPulse 2.4s ease infinite;
+  background: var(--ac);
+  box-shadow: 0 0 10px var(--ac);
+  animation: pulseDot 2s ease infinite;
 }
-@keyframes dotPulse {
+@keyframes pulseDot {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.35; transform: scale(0.85); }
+  50% { opacity: 0.4; transform: scale(0.85); }
 }
-.nav-btn {
+
+.btn-signin {
   font-size: 13px;
   font-weight: 600;
   color: var(--ink);
   text-decoration: none;
-  padding: 10px 22px;
-  border-radius: 10px;
-  border: 1px solid rgba(226, 234, 242, 0.16);
-  background: rgba(226, 234, 242, 0.04);
-  backdrop-filter: blur(12px);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  transition: all 0.3s var(--ez);
+  padding: 8px 18px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(10px);
+  transition: all 0.25s var(--ease);
 }
-.nav-btn:hover {
-  background: rgba(226, 234, 242, 0.12);
-  border-color: rgba(226, 234, 242, 0.36);
-  box-shadow: 0 0 20px rgba(var(--ac), 0.2);
+.btn-signin:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 171, 77, 0.4);
+  transform: translateY(-1px);
 }
 
-.burger {
-  display: none;
-  width: 44px;
-  height: 44px;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 6px;
-  background: none;
-  border: 0;
-  cursor: pointer;
-}
-.burger span {
-  display: block;
-  width: 22px;
-  height: 1.5px;
-  background: var(--ink);
-  transition: transform 0.35s var(--ez);
-}
-body.m-open .burger span:first-child { transform: translateY(3.75px) rotate(45deg); }
-body.m-open .burger span:last-child { transform: translateY(-3.75px) rotate(-45deg); }
-
-.mmenu {
-  position: fixed;
-  inset: 0;
-  z-index: 95;
-  background: rgba(2, 3, 8, 0.94);
-  backdrop-filter: blur(28px);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 8px;
-  padding: 0 clamp(28px, 8vw, 60px);
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.4s var(--ez), visibility 0.4s;
-}
-body.m-open .mmenu { opacity: 1; visibility: visible; }
-.mmenu a {
-  display: flex;
-  align-items: baseline;
-  gap: 16px;
-  text-decoration: none;
-  color: var(--ink);
-  font-size: clamp(34px, 8.5vw, 50px);
+.btn-primary {
+  font-size: 13px;
   font-weight: 600;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--line);
-  transform: translateY(24px);
-  opacity: 0;
-  transition: transform 0.55s var(--ez), opacity 0.55s;
+  color: #030408;
+  text-decoration: none;
+  padding: 8px 20px;
+  border-radius: 9px;
+  background: var(--ac);
+  box-shadow: 0 4px 20px rgba(255, 171, 77, 0.3);
+  transition: all 0.25s var(--ease);
 }
-body.m-open .mmenu a { transform: none; opacity: 1; }
+.btn-primary:hover {
+  background: #ffbe76;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 28px rgba(255, 171, 77, 0.45);
+}
 
-/* Hero Section */
-.hero {
+/* ── MAIN CONTENT ── */
+main {
   position: relative;
   z-index: 10;
   min-height: 100vh;
-  min-height: 100svh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 130px var(--pad) 110px;
-  overflow: hidden;
-}
-.hero-stage {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: all;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-#forge3d {
-  width: 100%;
-  height: 100%;
-  display: block;
 }
 
-.hud {
-  position: absolute;
-  z-index: 5;
-  font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.18em;
-  color: rgba(226, 234, 242, 0.35);
-  text-transform: uppercase;
-  line-height: 2.2;
-  pointer-events: none;
-  text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
-}
-.hud-bl { left: var(--pad); bottom: 34px; display: flex; flex-direction: column; text-align: left; }
-.hud-br { right: var(--pad); bottom: 34px; display: flex; align-items: center; gap: 12px; }
-
-.hero-inner {
-  position: relative;
-  z-index: 10;
+/* ── HERO ── */
+.hero {
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   align-items: center;
-  pointer-events: none;
-  max-width: 960px;
+  text-align: center;
+  padding: 130px var(--pad) 80px;
+  max-width: 1180px;
+  margin: 0 auto;
 }
-.hero-inner a, .hero-inner button { pointer-events: all; }
 
-.tag {
+.badge-forge {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 18px;
+  padding: 6px 16px;
   border-radius: 99px;
-  border: 1px solid rgba(var(--ac), 0.25);
-  background: rgba(var(--ac), 0.05);
-  backdrop-filter: blur(16px);
-  box-shadow: 0 0 24px rgba(var(--ac), 0.12);
+  background: rgba(var(--ac-rgb), 0.08);
+  border: 1px solid rgba(var(--ac-rgb), 0.25);
   font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.22em;
-  color: rgba(var(--ac), 0.95);
-  margin-bottom: 36px;
-  animation: softUp 1s 0.1s var(--ez) both;
-}
-.tag .dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: rgb(var(--ac));
-  box-shadow: 0 0 10px rgb(var(--ac));
-  animation: dotPulse 2.6s ease infinite;
+  font-size: 10.5px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--ac);
+  margin-bottom: 28px;
+  box-shadow: 0 0 30px rgba(var(--ac-rgb), 0.1);
 }
 
-.title {
-  font-size: clamp(56px, 11vw, 158px);
-  font-weight: 600;
-  letter-spacing: -0.045em;
-  line-height: 0.94;
-  margin-bottom: 32px;
-  text-shadow: 0 0 100px rgba(255, 171, 77, 0.12);
+.hero-title {
+  font-size: clamp(52px, 9vw, 120px);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+  margin-bottom: 28px;
+  text-shadow: 0 0 80px rgba(var(--ac-rgb), 0.15);
 }
-.title em {
+.hero-title em {
   font-family: var(--serif);
   font-style: italic;
   font-weight: 400;
-  font-size: 1.05em;
-  color: #fff;
-  text-shadow: 0 0 40px rgba(var(--ac), 0.4);
+  color: var(--ac);
+  text-shadow: 0 0 40px rgba(var(--ac-rgb), 0.4);
 }
 
-.msk { display: block; overflow: hidden; }
-.msk-in {
-  display: inline-block;
-  animation: mskUp 1.2s var(--ez) both;
-}
-@keyframes mskUp {
-  from { transform: translateY(120%); opacity: 0; filter: blur(4px); }
-  to { transform: translateY(0); opacity: 1; filter: blur(0); }
-}
-@keyframes softUp {
-  from { opacity: 0; transform: translateY(28px); filter: blur(6px); }
-  to { opacity: 1; transform: translateY(0); filter: blur(0); }
-}
-
-.sub {
-  max-width: 520px;
-  font-size: clamp(15px, 1.7vw, 17.5px);
-  line-height: 1.82;
+.hero-lead {
+  font-size: clamp(16px, 2vw, 20px);
+  line-height: 1.68;
   color: var(--dim);
-  margin-bottom: 48px;
-  animation: softUp 1s 0.55s var(--ez) both;
-  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.8);
+  max-width: 680px;
+  margin: 0 auto 44px;
 }
 
-.ctas {
+.hero-cta-group {
   display: flex;
-  gap: 15px;
-  flex-wrap: wrap;
+  gap: 16px;
   justify-content: center;
-  animation: softUp 1s 0.7s var(--ez) both;
+  flex-wrap: wrap;
+  margin-bottom: 60px;
 }
-.btn {
+.btn-forge-main {
   display: inline-flex;
   align-items: center;
-  gap: 11px;
-  padding: 15px 32px;
+  gap: 10px;
+  padding: 14px 34px;
+  font-size: 15px;
+  font-weight: 600;
   border-radius: 12px;
-  font-size: 14.5px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  background: var(--ac);
+  color: #030408;
   text-decoration: none;
-  transition: all 0.35s var(--ez);
+  box-shadow: 0 10px 30px rgba(var(--ac-rgb), 0.25);
+  transition: all 0.3s var(--ease);
 }
-.btn-p {
-  background: #ffffff;
-  color: #030611;
-  box-shadow: 0 10px 40px rgba(255, 255, 255, 0.12);
-}
-.btn-p:hover {
+.btn-forge-main:hover {
+  background: #ffbe76;
   transform: translateY(-2px);
-  box-shadow: 0 16px 60px rgba(255, 255, 255, 0.22), 0 0 24px rgba(var(--ac), 0.3);
-}
-.btn-g {
-  border: 1px solid rgba(226, 234, 242, 0.18);
-  color: var(--dim);
-  background: rgba(226, 234, 242, 0.03);
-  backdrop-filter: blur(14px);
-}
-.btn-g:hover {
-  color: #fff;
-  border-color: rgba(var(--ac), 0.5);
-  background: rgba(var(--ac), 0.08);
-  transform: translateY(-2px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 14px 40px rgba(var(--ac-rgb), 0.4);
 }
 
-.stats-row {
-  display: flex;
-  gap: clamp(32px, 5.5vw, 76px);
-  margin-top: 68px;
-  flex-wrap: wrap;
-  justify-content: center;
-  animation: softUp 1s 0.85s var(--ez) both;
-}
-.stat {
-  display: flex;
-  flex-direction: column;
+.btn-forge-sub {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-}
-.sv {
-  font-family: var(--mono);
-  font-size: clamp(22px, 3vw, 32px);
-  font-weight: 600;
+  gap: 10px;
+  padding: 14px 30px;
+  font-size: 15px;
+  font-weight: 500;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
   color: var(--ink);
-  letter-spacing: -0.02em;
+  text-decoration: none;
+  border: 1px solid var(--line);
+  backdrop-filter: blur(14px);
+  transition: all 0.3s var(--ease);
 }
-.sv em {
-  font-style: normal;
-  color: rgb(var(--ac));
-}
-.sl {
-  font-family: var(--mono);
-  font-size: 9px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: rgba(226, 234, 242, 0.38);
+.btn-forge-sub:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(var(--ac-rgb), 0.4);
+  transform: translateY(-2px);
 }
 
-/* ─────────────────────────────── BENTO 3D FEATURE GRID ─────────────────────────────── */
-.bento-section {
-  position: relative;
-  z-index: 10;
-  padding: clamp(90px, 10vw, 160px) var(--pad);
-  max-width: 1320px;
+/* Terminal Snippet Box */
+.terminal-snippet {
+  width: 100%;
+  max-width: 640px;
+  background: rgba(8, 7, 6, 0.85);
+  border: 1px solid rgba(255, 171, 77, 0.2);
+  border-radius: 14px;
+  padding: 16px 20px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 auto;
+}
+.term-code {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.term-prompt {
+  color: var(--ac);
+  user-select: none;
+}
+.btn-copy {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--line);
+  color: var(--dim);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-copy:hover {
+  color: #fff;
+  border-color: var(--ac);
+  background: rgba(var(--ac-rgb), 0.15);
+}
+
+/* ── BENTO FEATURES ── */
+.section-features {
+  padding: 100px var(--pad) 80px;
+  max-width: 1280px;
   margin: 0 auto;
 }
 .section-head {
   text-align: center;
-  margin-bottom: 64px;
+  margin-bottom: 60px;
 }
 .sec-tag {
   display: inline-flex;
   align-items: center;
   gap: 10px;
   font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.3em;
+  font-size: 10px;
+  letter-spacing: 0.28em;
   text-transform: uppercase;
-  color: rgba(var(--ac), 0.85);
+  color: var(--ac);
   margin-bottom: 16px;
 }
 .sec-tag::before, .sec-tag::after {
   content: '';
   width: 24px;
   height: 1px;
-  background: rgba(var(--ac), 0.5);
+  background: rgba(var(--ac-rgb), 0.4);
 }
 .sec-title {
-  font-size: clamp(38px, 5.5vw, 68px);
-  font-weight: 600;
-  letter-spacing: -0.035em;
+  font-size: clamp(34px, 5vw, 56px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
   line-height: 1.05;
 }
 .sec-title em {
   font-family: var(--serif);
   font-style: italic;
   font-weight: 400;
+  color: var(--ac);
 }
 
 .bento-grid {
@@ -611,647 +444,421 @@ body.m-open .mmenu a { transform: none; opacity: 1; }
 .col-6 { grid-column: span 6; }
 .col-12 { grid-column: span 12; }
 
-/* 3D Bento Card with Conic Rim Highlight */
 .bento-card {
   position: relative;
-  background: rgba(14, 11, 8, 0.72);
+  background: var(--bg-card);
+  border: 1px solid var(--line);
   border-radius: 20px;
-  padding: 38px 34px;
-  backdrop-filter: blur(24px) saturate(150%);
-  -webkit-backdrop-filter: blur(24px) saturate(150%);
-  border: 1px solid rgba(226, 234, 242, 0.1);
-  box-shadow: 0 24px 60px rgba(0, 0, 4, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  transform-style: preserve-3d;
-  will-change: transform;
+  padding: 36px 32px;
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   overflow: hidden;
-  transition: transform 0.4s var(--ez), border-color 0.4s ease, box-shadow 0.4s ease;
+  transition: transform 0.4s var(--ease), border-color 0.4s, box-shadow 0.4s;
 }
-
-.bento-card::after {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  padding: 1.5px;
-  background: conic-gradient(from var(--rim-angle, 0deg) at var(--mouse-x, 50%) var(--mouse-y, 50%),
-    rgba(255, 255, 255, 0.6) 0deg,
-    rgba(255, 255, 255, 0.06) 60deg,
-    rgba(var(--ac), 0.6) 180deg,
-    rgba(255, 255, 255, 0.06) 300deg,
-    rgba(255, 255, 255, 0.6) 360deg);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-  opacity: 0.75;
-}
-
 .bento-card:hover {
-  box-shadow: 0 32px 80px rgba(0, 0, 8, 0.65), 0 0 30px rgba(var(--ac), 0.15);
+  transform: translateY(-4px);
+  border-color: rgba(var(--ac-rgb), 0.35);
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.65), 0 0 30px rgba(var(--ac-rgb), 0.1);
 }
 
 .card-badge {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 5px 12px;
+  padding: 4px 10px;
   border-radius: 99px;
-  background: rgba(var(--ac), 0.08);
-  border: 1px solid rgba(var(--ac), 0.25);
+  background: rgba(var(--ac-rgb), 0.1);
+  border: 1px solid rgba(var(--ac-rgb), 0.3);
   font-family: var(--mono);
-  font-size: 8.5px;
-  letter-spacing: 0.2em;
+  font-size: 9px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: rgb(var(--ac));
+  color: var(--ac);
   margin-bottom: 20px;
 }
-.card-title {
+.card-h {
   font-size: 24px;
   font-weight: 600;
   letter-spacing: -0.02em;
   margin-bottom: 12px;
 }
-.card-desc {
+.card-p {
   font-size: 14.5px;
   line-height: 1.7;
   color: var(--dim);
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
-/* Terminal Box */
-.terminal-box {
-  background: rgba(3, 2, 2, 0.88);
-  border: 1px solid rgba(226, 234, 242, 0.08);
-  border-radius: 12px;
-  padding: 18px 20px;
+.terminal-mock {
+  background: rgba(4, 3, 2, 0.85);
+  border: 1px solid rgba(255, 171, 77, 0.15);
+  border-radius: 10px;
+  padding: 16px;
   font-family: var(--mono);
   font-size: 12px;
-  line-height: 2;
-  color: rgba(226, 234, 242, 0.65);
+  line-height: 1.8;
+  color: rgba(240, 244, 248, 0.7);
 }
 
-/* Comparison Matrix */
-.matrix-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-family: var(--mono);
-  font-size: 12.5px;
-  margin-top: 20px;
-}
-.matrix-table th {
-  text-align: left;
-  padding: 12px 16px;
-  color: rgba(226, 234, 242, 0.4);
-  border-bottom: 1px solid rgba(226, 234, 242, 0.08);
-  font-size: 10px;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-}
-.matrix-table td {
-  padding: 14px 16px;
-  border-bottom: 1px solid rgba(226, 234, 242, 0.06);
-}
-
-/* Footer */
+/* ── FOOTER ── */
 footer {
   position: relative;
   z-index: 10;
   border-top: 1px solid var(--line);
-  padding: 36px var(--pad);
+  padding: 40px var(--pad);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 24px;
   flex-wrap: wrap;
-  background: rgba(2, 3, 8, 0.7);
-  backdrop-filter: blur(16px);
+  background: rgba(3, 4, 8, 0.8);
+  backdrop-filter: blur(20px);
 }
-.ft-logo {
+.ft-brand {
   display: flex;
   align-items: center;
   gap: 10px;
-  text-decoration: none;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--ink);
-  font-weight: 600;
-  font-size: 15.5px;
+  text-decoration: none;
 }
-.ft-logo .mark { width: 22px; height: 22px; }
-.ft-m {
+.ft-copy {
   font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.18em;
-  color: rgba(226, 234, 242, 0.28);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  color: var(--faint);
   text-transform: uppercase;
 }
-.ft-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.ft-clock {
   font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.2em;
-  color: rgba(110, 225, 175, 0.8);
-  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--dim);
 }
 
 @media (max-width: 960px) {
   .col-8, .col-4, .col-6 { grid-column: span 12; }
-  .nav-links, .nav-status, .hud-bl { display: none; }
-  .burger { display: flex; }
+  .nav-links { display: none; }
 }
-@media (max-width: 560px) {
-  .ctas { flex-direction: column; width: 100%; }
-  .btn { justify-content: center; }
+@media (max-width: 580px) {
+  .hero-cta-group { flex-direction: column; width: 100%; }
   footer { flex-direction: column; text-align: center; }
 }
 </style>
 </head>
 <body>
 
-<canvas id="sky" aria-hidden="true"></canvas>
-<div class="grain" aria-hidden="true"></div>
-<div class="vig" aria-hidden="true"></div>
-<div class="cur" id="curDot" aria-hidden="true"></div>
-<div class="cur" id="curRing" aria-hidden="true"><span>DRAG</span></div>
+<!-- Three.js Ambient Particle Space Canvas -->
+<canvas id="webgl-bg" aria-hidden="true"></canvas>
+<div class="cosmic-grain" aria-hidden="true"></div>
+<div class="cosmic-vignette" aria-hidden="true"></div>
 
-<!-- Navigation -->
+<!-- Top Navigation -->
 <nav id="nav">
-  <a class="logo" href="/">
-    <div class="mark-wrapper">
-      <svg class="mark" viewBox="0 0 34 34" aria-hidden="true">
-        <ellipse cx="17" cy="17" rx="14.5" ry="6" fill="none" stroke="rgba(238,243,248,.6)" stroke-width="1.2" transform="rotate(-24 17 17)"/>
+  <a href="/" class="nav-brand">
+    <div class="brand-mark">
+      <svg viewBox="0 0 34 34">
+        <ellipse cx="17" cy="17" rx="14.5" ry="5.5" fill="none" stroke="rgba(240,244,248,.4)" stroke-width="1.2" transform="rotate(-24 17 17)"/>
         <circle cx="17" cy="17" r="4.6" fill="#eef3f8"/>
-        <circle cx="27.4" cy="12.2" r="1.9" fill="rgb(var(--ac))"/>
+        <circle cx="27.4" cy="12.2" r="1.9" fill="var(--ac)"/>
       </svg>
     </div>
-    <span>Cosmos</span>
+    <span>Cosmos Forge</span>
   </a>
+
   <div class="nav-links">
-    <a href="/git" class="on"><i>01</i>Forge</a>
-    <a href="/oort"><i>02</i>Oort</a>
-    <a href="/orbit"><i>03</i>Orbit</a>
+    <a href="/git" class="active">Forge Git</a>
+    <a href="/oort">Oort NAS</a>
+    <a href="/orbit">Orbit PaaS</a>
   </div>
-  <div class="nav-right">
-    <span class="nav-status"><i></i>NOMINAL</span>
-    <a class="nav-btn mag" href="/git/login">Sign In</a>
-    <button class="burger" id="burger" aria-label="Open menu"><span></span><span></span></button>
+
+  <div class="nav-actions">
+    <div class="telemetry-pill">
+      <div class="telemetry-dot"></div>
+      <span>FORGE NOMINAL</span>
+    </div>
+    <a href="/git/login" class="btn-signin">Sign In</a>
+    <a href="/git/signup" class="btn-primary">Create Account</a>
   </div>
 </nav>
 
-<!-- Mobile Menu -->
-<div class="mmenu" id="mmenu">
-  <a href="/git"><i>01</i>Forge</a>
-  <a href="/oort"><i>02</i>Oort</a>
-  <a href="/orbit"><i>03</i>Orbit</a>
-  <a href="/git/login"><i>→</i>Sign In</a>
-</div>
-
-<!-- Hero Section with Fullscreen 3D Volcanic Planet -->
-<main class="hero">
-  <div class="hero-stage" data-cursor="drag">
-    <canvas id="forge3d" aria-hidden="true"></canvas>
-  </div>
-
-  <div class="hud hud-bl">
-    <span>FORGE CLUSTER · INNER SYSTEM</span>
-    <span>PROTOCOL GIT/2 · SSH READY</span>
-  </div>
-  <div class="hud hud-br">
-    <span id="utc">00:00:00 UTC</span>
-    <em>·</em>
-    <span>ALL SYSTEMS NOMINAL</span>
-  </div>
-
-  <div class="hero-inner">
-    <div class="tag">
-      <span class="dot"></span>
-      <span data-scr>MODULE 01 · SOVEREIGN SOURCE CONTROL</span>
+<main>
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="badge-forge">
+      <span>MODULE 01 · SOVEREIGN REPOSITORIES</span>
     </div>
-    <h1 class="title">
-      <span class="msk"><span class="msk-in">Source</span></span>
-      <span class="msk"><span class="msk-in"><em>Code.</em></span></span>
+    <h1 class="hero-title">
+      Source Code.<br>
+      <em>Forged in Isolation.</em>
     </h1>
-    <p class="sub">Self-hosted Git infrastructure engineered for engineering teams that cannot afford exposure. Branch protection, cryptographic audit logs, high-speed SSH/HTTPS, and zero third-party telemetry.</p>
-    <div class="ctas">
-      <a class="btn btn-p mag" href="/git/login">Sign In to Forge</a>
-      <a class="btn btn-g mag" href="/git/signup">Create Repository Account</a>
+    <p class="hero-lead">
+      Self-hosted Git infrastructure engineered for teams that cannot afford exposure. Complete branch protection, cryptographic audit logs, high-speed SSH/HTTPS push, and zero third-party telemetry.
+    </p>
+
+    <div class="hero-cta-group">
+      <a href="/git/login" class="btn-forge-main">Sign In to Forge →</a>
+      <a href="/git/signup" class="btn-forge-sub">Create Repository Account</a>
     </div>
 
-    <div class="stats-row">
-      <div class="stat">
-        <div class="sv">100<span class="u">%</span></div>
-        <div class="sl">Sovereignty</div>
+    <!-- Terminal Code Box -->
+    <div class="terminal-snippet">
+      <div class="term-code">
+        <span class="term-prompt">$</span>
+        <span id="clone-cmd">git clone https://cosmos.local/source/core-engine.git</span>
       </div>
-      <div class="stat">
-        <div class="sv">&lt;1<span class="u">ms</span></div>
-        <div class="sl">Push Latency</div>
+      <button class="btn-copy" onclick="copyClone()">COPY</button>
+    </div>
+  </section>
+
+  <!-- Bento Capabilities Grid -->
+  <section class="section-features">
+    <div class="section-head">
+      <div class="sec-tag">REPOSITORY CAPABILITIES</div>
+      <h2 class="sec-title">Forged for teams that <em>demand sovereignty.</em></h2>
+    </div>
+
+    <div class="bento-grid">
+      <!-- Card 1: Branch Protection -->
+      <div class="bento-card col-8">
+        <span class="card-badge">Governance</span>
+        <h3 class="card-h">Enforced Branch Protection &amp; Merge Gateways</h3>
+        <p class="card-p">
+          Safeguard production code with granular rule sets: require peer reviews, enforce clean linear histories, verify status checks, and restrict direct push privileges.
+        </p>
+        <div class="terminal-mock">
+          <div style="color:var(--ac);margin-bottom:6px"># Direct push to main rejected by sovereign ACL</div>
+          <div>$ git push origin main</div>
+          <div style="color:#ef4444">remote: error: GH006: Protected branch update failed for refs/heads/main.</div>
+          <div style="color:#ef4444">remote: error: At least 1 approving review required from team leads.</div>
+        </div>
       </div>
-      <div class="stat">
-        <div class="sv">SSH<span class="u">/HTTPS</span></div>
-        <div class="sl">Protocols</div>
+
+      <!-- Card 2: Orbit CI/CD Integration -->
+      <div class="bento-card col-4">
+        <span class="card-badge">PaaS Pipeline</span>
+        <h3 class="card-h">Orbit Auto Deployments</h3>
+        <p class="card-p">
+          Pushing code directly triggers Cosmos Orbit container builds. Multi-stage Docker builds deploy behind edge reverse proxies in seconds.
+        </p>
+        <div style="margin-top:20px;padding:12px;background:rgba(255,255,255,0.03);border-radius:8px;font-family:var(--mono);font-size:11.5px;display:flex;justify-content:space-between">
+          <span>Webhook Pipeline</span>
+          <span style="color:var(--ok)">✓ 200 OK</span>
+        </div>
       </div>
-      <div class="stat">
-        <div class="sv">∞</div>
-        <div class="sl">Repositories</div>
+
+      <!-- Card 3: Cryptographic Integrity -->
+      <div class="bento-card col-4">
+        <span class="card-badge">Compliance</span>
+        <h3 class="card-h">GPG Verification</h3>
+        <p class="card-p">
+          Every commit, tag, and merge is cryptographically validated. ScyllaDB authentication records guarantee user audit trails.
+        </p>
+      </div>
+
+      <!-- Card 4: Architecture Comparison -->
+      <div class="bento-card col-8">
+        <span class="card-badge">Airgap Security</span>
+        <h3 class="card-h">Cosmos Forge vs. Public SaaS Git</h3>
+        <p class="card-p">
+          Complete immunity from third-party outages, hidden telemetry, IP scraping, and arbitrary seat licensing fees.
+        </p>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px;text-align:center">
+          <div style="background:rgba(255,255,255,0.03);padding:14px;border-radius:10px">
+            <div style="font-family:var(--mono);font-size:18px;font-weight:700;color:var(--ok)">100%</div>
+            <div style="font-size:11px;color:var(--dim);margin-top:4px">Private &amp; Airgapped</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.03);padding:14px;border-radius:10px">
+            <div style="font-family:var(--mono);font-size:18px;font-weight:700;color:var(--ok)">&lt; 1ms</div>
+            <div style="font-size:11px;color:var(--dim);margin-top:4px">Push Latency</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.03);padding:14px;border-radius:10px">
+            <div style="font-family:var(--mono);font-size:18px;font-weight:700;color:var(--ok)">$0</div>
+            <div style="font-size:11px;color:var(--dim);margin-top:4px">Per-Seat Cloud Fees</div>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
+  </section>
 </main>
-
-<!-- Bento 3D Capability Grid (Jockey/Stuudio Inspired) -->
-<section class="bento-section">
-  <div class="section-head">
-    <p class="sec-tag">VERSION CONTROL CAPABILITIES</p>
-    <h2 class="sec-title">Forged for teams that <em>demand sovereignty.</em></h2>
-  </div>
-
-  <div class="bento-grid">
-    <!-- Card 1: Branch Protection & ACL -->
-    <div class="bento-card col-8 tilt-card">
-      <span class="card-badge">Governance</span>
-      <h3 class="card-title">Enforced Branch Protection &amp; Merge Gateways</h3>
-      <p class="card-desc">Safeguard production code with granular rule sets: require peer reviews, enforce clean linear histories, verify status checks, and restrict push privileges by team role.</p>
-      
-      <div class="terminal-box">
-        <div style="color:rgb(var(--ac));margin-bottom:8px"># Direct push to main rejected by sovereign ACL</div>
-        <div>$ git push origin main</div>
-        <div style="color:#ef4444">remote: error: GH006: Protected branch update failed for refs/heads/main.</div>
-        <div style="color:#ef4444">remote: error: At least 1 approving review required from team leads.</div>
-      </div>
-    </div>
-
-    <!-- Card 2: Orbit CI/CD Webhooks -->
-    <div class="bento-card col-4 tilt-card">
-      <span class="card-badge">PaaS Integration</span>
-      <h3 class="card-title">Cosmos Orbit Automated Pipelines</h3>
-      <p class="card-desc">Connect directly to Orbit PaaS. Pushing code automatically triggers zero-config multi-stage Docker builds and routes transparent edge reverse proxies.</p>
-      <div style="margin-top:20px;display:flex;align-items:center;justify-content:space-between;padding:14px;background:rgba(255,255,255,0.03);border-radius:10px;font-family:var(--mono);font-size:12px;">
-        <span>Webhook Status</span>
-        <span style="color:var(--ok)">✓ Active (200 OK)</span>
-      </div>
-    </div>
-
-    <!-- Card 3: Cryptographic Auditability -->
-    <div class="bento-card col-4 tilt-card">
-      <span class="card-badge">Compliance</span>
-      <h3 class="card-title">Cryptographic Integrity</h3>
-      <p class="card-desc">Every commit, tag, and merge request is verified with GPG signatures and immutable commit histories. ScyllaDB authentication records guarantee user audit trails.</p>
-    </div>
-
-    <!-- Card 4: Comparison Matrix -->
-    <div class="bento-card col-8 tilt-card">
-      <span class="card-badge">Sovereign Architecture</span>
-      <h3 class="card-title">Cosmos Forge vs. Public Cloud Git</h3>
-      <p class="card-desc">Complete freedom from foreign SaaS downtime, IP scanning, code training, and arbitrary seat licensing fees.</p>
-      
-      <table class="matrix-table">
-        <thead>
-          <tr>
-            <th>Capability</th>
-            <th>Cosmos Forge</th>
-            <th>Cloud SaaS (GitHub/GitLab)</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Code Privacy</td>
-            <td style="color:var(--ok)">100% Airgapped Sovereign</td>
-            <td style="color:#f87171">Third-party Cloud Hosted</td>
-          </tr>
-          <tr>
-            <td>Code AI Training</td>
-            <td style="color:var(--ok)">Never (Zero telemetry)</td>
-            <td style="color:#f87171">Subject to Cloud Terms</td>
-          </tr>
-          <tr>
-            <td>Seat Pricing</td>
-            <td style="color:var(--ok)">$0 / Unlimited Users</td>
-            <td style="color:#f87171">$21+ / user / month</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</section>
 
 <!-- Footer -->
 <footer>
-  <div class="ft-l">
-    <a class="ft-logo" href="/">
-      <svg class="mark" viewBox="0 0 34 34" aria-hidden="true">
-        <ellipse cx="17" cy="17" rx="14.5" ry="6" fill="none" stroke="rgba(238,243,248,.6)" stroke-width="1.2" transform="rotate(-24 17 17)"/>
-        <circle cx="17" cy="17" r="4.6" fill="#eef3f8"/>
-        <circle cx="27.4" cy="12.2" r="1.9" fill="rgb(var(--ac))"/>
-      </svg>
-      Cosmos
-    </a>
-    <p style="font-family:var(--mono);font-size:9.5px;letter-spacing:0.18em;color:rgba(226,234,242,0.28);margin-top:8px">SELF-HOSTED GIT PLATFORM · FULL AIRGAP CAPABILITY</p>
-  </div>
-  <div class="ft-m">
-    <span>51.4778° N · 0.0015° W</span>
-    <span id="ftUp">SESSION T+00:00:00</span>
-  </div>
-  <div class="ft-r"><span class="ft-status"><i></i>All systems nominal</span></div>
+  <a href="/" class="ft-brand">
+    <svg width="22" height="22" viewBox="0 0 34 34">
+      <ellipse cx="17" cy="17" rx="14.5" ry="5.5" fill="none" stroke="rgba(240,244,248,.6)" stroke-width="1.2" transform="rotate(-24 17 17)"/>
+      <circle cx="17" cy="17" r="4.6" fill="#eef3f8"/>
+      <circle cx="27.4" cy="12.2" r="1.9" fill="var(--ac)"/>
+    </svg>
+    Cosmos Forge
+  </a>
+  <div class="ft-copy">SOVEREIGN GIT VERSION CONTROL · ALL SYSTEMS OPERATIONAL</div>
+  <div class="ft-clock" id="live-utc">UTC 00:00:00</div>
 </footer>
 
 <script>
+function copyClone() {
+  const text = document.getElementById('clone-cmd').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.btn-copy');
+    btn.textContent = 'COPIED!';
+    btn.style.color = 'var(--ok)';
+    btn.style.borderColor = 'var(--ok)';
+    setTimeout(() => {
+      btn.textContent = 'COPY';
+      btn.style.color = '';
+      btn.style.borderColor = '';
+    }, 2000);
+  });
+}
+
+// Three.js Amber Solar Constellation Space Background
 (() => {
   'use strict';
-  const $ = s => document.querySelector(s);
-  const $$ = s => [...document.querySelectorAll(s)];
-  const TAU = Math.PI * 2;
-  const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
-  const p2 = n => String(n).padStart(2, '0');
-  const RM = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const FINE = window.matchMedia('(pointer: fine)').matches;
-  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+  if (typeof THREE === 'undefined') return;
 
-  const mouse = { x: 0.5, y: 0.5, sx: 0.5, sy: 0.5, px: window.innerWidth / 2, py: window.innerHeight / 2 };
+  const canvas = document.getElementById('webgl-bg');
+  const renderer = new THREE.WebGLRenderer({
+    canvas: canvas,
+    alpha: true,
+    antialias: true,
+    powerPreference: 'high-performance'
+  });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
 
-  /* 3D WebGL Volcanic Planetary Core */
-  const canvas = $('#forge3d');
-  let renderer = null, scene = null, camera = null;
-  let planet = null, embers = null, dirLight = null;
-  let drag = false, lx = 0, ly = 0, rotY = 0, rotX = 0;
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x030408, 0.004);
 
-  function initForgeHero3D() {
-    if (typeof THREE === 'undefined') return;
-    try {
-      const w = canvas.parentElement.clientWidth;
-      const h = canvas.parentElement.clientHeight;
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.set(0, 0, 80);
 
-      renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-      renderer.setPixelRatio(DPR);
-      renderer.setSize(w, h);
+  // Lights
+  scene.add(new THREE.AmbientLight(0x160f08, 2.5));
+  const lightAmber = new THREE.PointLight(0xffab4d, 4, 300);
+  lightAmber.position.set(50, 40, 40);
+  scene.add(lightAmber);
 
-      scene = new THREE.Scene();
-      camera = new THREE.PerspectiveCamera(46, w / h, 0.1, 1000);
-      camera.position.set(0, 0, 10.5);
+  // Amber Starfield
+  const starCount = 3000;
+  const starGeo = new THREE.BufferGeometry();
+  const starPos = new Float32Array(starCount * 3);
+  const starCol = new Float32Array(starCount * 3);
 
-      scene.add(new THREE.AmbientLight(0xffffff, 0.25));
-      dirLight = new THREE.DirectionalLight(0xffab4d, 3.2);
-      dirLight.position.set(-6, 5, 5);
-      scene.add(dirLight);
+  const colors = [
+    [1.0, 0.72, 0.38], // Warm Amber
+    [1.0, 0.9, 0.75],  // Soft White
+    [1.0, 0.5, 0.2]    // Deep Ember
+  ];
 
-      /* Procedural Molten Basalt Shader */
-      const planetVert = `
-        varying vec2 vUv;
-        varying vec3 vNormal;
-        varying vec3 vViewPos;
-        void main() {
-          vUv = uv;
-          vNormal = normalize(normalMatrix * normal);
-          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-          vViewPos = -mvPosition.xyz;
-          gl_Position = projectionMatrix * mvPosition;
-        }
-      `;
-      const planetFrag = `
-        uniform float uTime;
-        uniform vec3 uLightPos;
-        varying vec2 vUv;
-        varying vec3 vNormal;
-        varying vec3 vViewPos;
+  for (let i = 0; i < starCount; i++) {
+    starPos[i * 3]     = (Math.random() - 0.5) * 320;
+    starPos[i * 3 + 1] = (Math.random() - 0.5) * 260;
+    starPos[i * 3 + 2] = (Math.random() - 0.5) * 260;
 
-        float hash(vec2 p) { return fract(1e4 * sin(17.0 * p.x + p.y * 0.1) * (0.1 + abs(sin(p.y * 13.0 + p.x)))); }
-        float noise(vec2 x) {
-          vec2 i = floor(x);
-          vec2 f = fract(x);
-          float a = hash(i);
-          float b = hash(i + vec2(1.0, 0.0));
-          float c = hash(i + vec2(0.0, 1.0));
-          float d = hash(i + vec2(1.0, 1.0));
-          vec2 u = f * f * (3.0 - 2.0 * f);
-          return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
-        }
-
-        void main() {
-          vec3 N = normalize(vNormal);
-          vec3 V = normalize(vViewPos);
-          vec3 L = normalize(uLightPos);
-
-          float diff = max(dot(N, L), 0.05);
-
-          vec2 uvCoords = vUv * 16.0;
-          float n = noise(uvCoords + vec2(uTime * 0.03, 0.0));
-          float n2 = noise(uvCoords * 2.2 - vec2(0.0, uTime * 0.05));
-          float magma = smoothstep(0.68, 0.95, n * 0.6 + n2 * 0.4);
-
-          vec3 basaltColor = vec3(0.08, 0.05, 0.04) * diff;
-          vec3 lavaColor = vec3(1.0, 0.42, 0.12) * (1.6 + 0.6 * sin(uTime * 2.4 + n * 8.0));
-
-          float fresnel = pow(1.0 - max(dot(N, V), 0.0), 3.0);
-          vec3 atmosphere = vec3(1.0, 0.55, 0.2) * fresnel * 1.8;
-
-          vec3 finalColor = mix(basaltColor, lavaColor, magma) + atmosphere;
-          gl_FragColor = vec4(finalColor, 1.0);
-        }
-      `;
-
-      const planetMat = new THREE.ShaderMaterial({
-        vertexShader: planetVert,
-        fragmentShader: planetFrag,
-        uniforms: {
-          uTime: { value: 0 },
-          uLightPos: { value: new THREE.Vector3(-6, 5, 5) }
-        }
-      });
-
-      planet = new THREE.Mesh(new THREE.SphereGeometry(2.35, 64, 64), planetMat);
-      scene.add(planet);
-
-      /* Orbiting Molten Ring */
-      const rMat = new THREE.MeshStandardMaterial({
-        color: 0xffab4d,
-        emissive: 0xff7b22,
-        emissiveIntensity: 0.35,
-        side: THREE.DoubleSide,
-        transparent: true,
-        opacity: 0.45
-      });
-      const ring = new THREE.Mesh(new THREE.RingGeometry(3.2, 4.8, 64), rMat);
-      ring.rotation.x = Math.PI / 2.4;
-      ring.rotation.y = -0.3;
-      scene.add(ring);
-
-      /* Rising Embers */
-      const emberCount = 80;
-      const emberPos = new Float32Array(emberCount * 3);
-      for (let i = 0; i < emberCount; i++) {
-        emberPos[i * 3] = (Math.random() - 0.5) * 6;
-        emberPos[i * 3 + 1] = (Math.random() - 0.5) * 6;
-        emberPos[i * 3 + 2] = (Math.random() - 0.5) * 4;
-      }
-      const emberGeo = new THREE.BufferGeometry();
-      emberGeo.setAttribute('position', new THREE.BufferAttribute(emberPos, 3));
-      embers = new THREE.Points(emberGeo, new THREE.PointsMaterial({
-        color: 0xffab4d,
-        size: 0.14,
-        transparent: true,
-        opacity: 0.85,
-        blending: THREE.AdditiveBlending
-      }));
-      scene.add(embers);
-
-      /* Drag */
-      canvas.addEventListener('pointerdown', e => {
-        drag = true;
-        lx = e.clientX; ly = e.clientY;
-        document.body.classList.add('grabbing');
-      });
-      window.addEventListener('pointermove', e => {
-        if (!drag) return;
-        const dx = e.clientX - lx;
-        const dy = e.clientY - ly;
-        lx = e.clientX; ly = e.clientY;
-        rotY += dx * 0.007;
-        rotX = clamp(rotX + dy * 0.005, -0.6, 1.2);
-      });
-      window.addEventListener('pointerup', () => {
-        drag = false;
-        document.body.classList.remove('grabbing');
-      });
-
-    } catch (e) {
-      console.warn('[FORGE] 3D initialization failed:', e);
-    }
+    const c = colors[Math.floor(Math.random() * colors.length)];
+    starCol[i * 3]     = c[0];
+    starCol[i * 3 + 1] = c[1];
+    starCol[i * 3 + 2] = c[2];
   }
 
-  /* 3D Bento Card Tilt */
-  function initBentoCards() {
-    if (RM) return;
-    const cards = $$('.tilt-card');
-    cards.forEach(card => {
-      let raf = null;
-      let curX = 0, curY = 0, tarX = 0, tarY = 0;
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+  starGeo.setAttribute('color', new THREE.BufferAttribute(starCol, 3));
 
-      card.addEventListener('pointermove', e => {
-        const r = card.getBoundingClientRect();
-        const x = e.clientX - r.left;
-        const y = e.clientY - r.top;
-        const cx = r.width / 2;
-        const cy = r.height / 2;
+  const starMat = new THREE.PointsMaterial({
+    size: 0.65,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.85,
+    blending: THREE.AdditiveBlending,
+    sizeAttenuation: true
+  });
+  const starField = new THREE.Points(starGeo, starMat);
+  scene.add(starField);
 
-        tarY = ((x - cx) / cx) * 10;
-        tarX = -((y - cy) / cy) * 10;
+  // Off-axis Solar Forge Orbital Accretion Rings (placed to the right & back)
+  const ringGroup = new THREE.Group();
+  ringGroup.position.set(40, -12, -25);
+  scene.add(ringGroup);
 
-        const angle = Math.atan2(y - cy, x - cx) * (180 / Math.PI) + 90;
-        card.style.setProperty('--rim-angle', `${angle.toFixed(1)}deg`);
-        card.style.setProperty('--mouse-x', `${(x / r.width) * 100}%`);
-        card.style.setProperty('--mouse-y', `${(y / r.height) * 100}%`);
-
-        if (!raf) {
-          const update = () => {
-            curX += (tarX - curX) * 0.12;
-            curY += (tarY - curY) * 0.12;
-            card.style.transform = `perspective(800px) rotateX(${curX.toFixed(2)}deg) rotateY(${curY.toFixed(2)}deg) translateZ(8px)`;
-            if (Math.abs(tarX - curX) > 0.05 || Math.abs(tarY - curY) > 0.05) {
-              raf = requestAnimationFrame(update);
-            } else {
-              raf = null;
-            }
-          };
-          raf = requestAnimationFrame(update);
-        }
-      });
-
-      card.addEventListener('pointerleave', () => {
-        tarX = 0; tarY = 0;
-        const reset = () => {
-          curX += (0 - curX) * 0.12;
-          curY += (0 - curY) * 0.12;
-          card.style.transform = `perspective(800px) rotateX(${curX.toFixed(2)}deg) rotateY(${curY.toFixed(2)}deg) translateZ(0px)`;
-          if (Math.abs(curX) > 0.05 || Math.abs(curY) > 0.05) {
-            requestAnimationFrame(reset);
-          } else {
-            card.style.transform = '';
-          }
-        };
-        requestAnimationFrame(reset);
-      });
+  function createRing(r, tube, col, op, rx, ry) {
+    const geo = new THREE.TorusGeometry(r, tube, 16, 128);
+    const mat = new THREE.MeshBasicMaterial({
+      color: col,
+      transparent: true,
+      opacity: op,
+      blending: THREE.AdditiveBlending
     });
+    const m = new THREE.Mesh(geo, mat);
+    m.rotation.x = rx;
+    m.rotation.y = ry;
+    return m;
   }
 
-  /* Clock & Uptime */
-  const utc = $('#utc'), ftUp = $('#ftUp');
-  const t0 = Date.now();
-  setInterval(() => {
-    const d = new Date();
-    utc.textContent = `${p2(d.getUTCHours())}:${p2(d.getUTCMinutes())}:${p2(d.getUTCSeconds())} UTC`;
-    const s = ((Date.now() - t0) / 1000) | 0;
-    if (ftUp) ftUp.textContent = `SESSION T+${p2((s / 3600) | 0)}:${p2(((s / 60) | 0) % 60)}:${p2(s % 60)}`;
-  }, 1000);
+  const r1 = createRing(22, 0.12, 0xffab4d, 0.45, Math.PI / 2.8, 0.2);
+  const r2 = createRing(16, 0.09, 0xff8822, 0.35, -Math.PI / 4, 0.4);
+  const r3 = createRing(28, 0.07, 0xffd29d, 0.25, Math.PI / 3.2, -0.3);
 
-  /* Cursor */
-  const curDot = $('#curDot'), curRing = $('#curRing');
-  let crx = window.innerWidth / 2, cry = window.innerHeight / 2, seen = false;
-  if (FINE && !RM && curDot && curRing) {
-    document.body.classList.add('has-cur');
-    window.addEventListener('mousemove', e => {
-      mouse.px = e.clientX; mouse.py = e.clientY;
-      if (!seen) { seen = true; crx = e.clientX; cry = e.clientY; document.body.classList.add('cur-vis'); }
-      const el = e.target instanceof Element ? e.target : null;
-      curRing.classList.toggle('act', !!(el && el.closest('a, button')));
-      curRing.classList.toggle('drag', !!(el && el.closest('[data-cursor="drag"]')));
-    }, { passive: true });
-    document.addEventListener('mouseleave', () => { document.body.classList.remove('cur-vis'); seen = false; });
-  }
+  ringGroup.add(r1);
+  ringGroup.add(r2);
+  ringGroup.add(r3);
 
-  /* Nav */
-  const nav = $('#nav');
-  window.addEventListener('scroll', () => {
-    nav.classList.toggle('scrolled', window.scrollY > 40);
+  // Mouse Parallax
+  let mouseX = 0, mouseY = 0;
+  let targetCamX = 0, targetCamY = 0;
+
+  window.addEventListener('mousemove', e => {
+    mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+    mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+    targetCamX = mouseX * 7;
+    targetCamY = -mouseY * 5;
   }, { passive: true });
 
-  $('#burger').addEventListener('click', () => document.body.classList.toggle('m-open'));
-  $$('#mmenu a').forEach(a => a.addEventListener('click', () => document.body.classList.remove('m-open')));
-
-  initForgeHero3D();
-  initBentoCards();
-
-  let lastT = performance.now();
-  function masterLoop(t) {
-    const dt = RM ? 0 : Math.min(0.05, (t - lastT) / 1000) || 0.016;
-    lastT = t;
-
-    if (curDot && curRing && seen) {
-      curDot.style.transform = `translate(${mouse.px}px, ${mouse.py}px)`;
-      crx += (mouse.px - crx) * 0.22;
-      cry += (mouse.py - cry) * 0.22;
-      curRing.style.transform = `translate(${crx.toFixed(1)}px, ${cry.toFixed(1)}px)`;
-    }
-
-    if (renderer && scene) {
-      if (planet) {
-        if (!drag) rotY += dt * 0.15;
-        planet.rotation.y = rotY;
-        planet.rotation.x = rotX;
-        planet.material.uniforms.uTime.value = t * 0.001;
-      }
-      if (embers) {
-        const p = embers.geometry.attributes.position.array;
-        for (let i = 0; i < p.length; i += 3) {
-          p[i + 1] += dt * 0.45;
-          if (p[i + 1] > 3.5) p[i + 1] = -3.5;
-        }
-        embers.geometry.attributes.position.needsUpdate = true;
-      }
-      renderer.render(scene, camera);
-    }
-
-    requestAnimationFrame(masterLoop);
-  }
-  requestAnimationFrame(masterLoop);
+  window.addEventListener('scroll', () => {
+    const nav = document.getElementById('nav');
+    if (nav) nav.classList.toggle('scrolled', window.scrollY > 40);
+  }, { passive: true });
 
   window.addEventListener('resize', () => {
-    if (renderer && canvas && canvas.parentElement) {
-      const w = canvas.parentElement.clientWidth;
-      const h = canvas.parentElement.clientHeight;
-      renderer.setSize(w, h);
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-    }
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
   });
+
+  // UTC Clock
+  const utcEl = document.getElementById('live-utc');
+  function updateTime() {
+    if (!utcEl) return;
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    utcEl.textContent = `UTC ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
+  }
+  setInterval(updateTime, 1000);
+  updateTime();
+
+  // Render loop
+  const clock = new THREE.Clock();
+  function animate() {
+    requestAnimationFrame(animate);
+    const dt = clock.getDelta();
+    const t = clock.getElapsedTime();
+
+    camera.position.x += (targetCamX - camera.position.x) * 0.05;
+    camera.position.y += (targetCamY - camera.position.y) * 0.05;
+
+    starField.rotation.y = t * 0.012;
+    starField.rotation.x = t * 0.006;
+
+    r1.rotation.z += 0.005;
+    r2.rotation.x += 0.007;
+    r3.rotation.y += 0.004;
+    ringGroup.rotation.y = t * 0.02;
+
+    renderer.render(scene, camera);
+  }
+  animate();
 })();
 </script>
 </body>

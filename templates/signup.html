@@ -3,55 +3,54 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Create Account — Cosmos {{.Service}}</title>
-<meta name="description" content="Create your Cosmos {{.Service}} sovereign account."/>
-<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="6" fill="%23eef3f8"/><ellipse cx="16" cy="16" rx="14" ry="5.5" fill="none" stroke="%238fd9ff" stroke-width="1.5" transform="rotate(-24 16 16)"/></svg>'/>
+<title>Create Space — Cosmos {{.Service}}</title>
+<meta name="description" content="Register your sovereign space on Cosmos {{.Service}}."/>
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="6" fill="%23eef3f8"/><ellipse cx="16" cy="16" rx="14" ry="5.5" fill="none" stroke="%2338bdf8" stroke-width="1.5" transform="rotate(-24 16 16)"/></svg>'/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="/three.min.js"></script>
+<script>
+if (typeof THREE === 'undefined') {
+  document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
+}
+</script>
+
 <style>
 :root {
-  --bg: #020308;
-  --ink: #eef3f8;
-  --dim: rgba(226, 234, 242, 0.58);
-  --faint: rgba(226, 234, 242, 0.32);
-  --line: rgba(226, 234, 242, 0.08);
-  --line-strong: rgba(226, 234, 242, 0.16);
-  --ok: #43e5a0;
-  --ac: 143, 216, 255;
-  --ac-rgb: 143, 216, 255;
-  --mono: 'JetBrains Mono', ui-monospace, monospace;
-  --disp: 'Space Grotesk', -apple-system, sans-serif;
-  --serif: 'Instrument Serif', Georgia, serif;
-  --pad: clamp(24px, 5vw, 72px);
+  --bg: #03050d;
+  --card-bg: rgba(7, 12, 24, 0.82);
+  --ink: #f1f5f9;
+  --dim: rgba(226, 232, 240, 0.65);
+  --faint: rgba(226, 232, 240, 0.35);
+  --border: rgba(255, 255, 255, 0.08);
+  --cyan: #38bdf8;
+  --violet: #a855f7;
+  --amber: #f59e0b;
+  --emerald: #10b981;
+  --rose: #f43f5e;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Space Grotesk', system-ui, sans-serif;
   --ez: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { min-height: 100%; }
+html, body { min-height: 100%; height: 100%; }
 
 body {
-  font-family: var(--disp);
+  font-family: var(--sans);
   background: var(--bg);
   color: var(--ink);
-  min-height: 100vh;
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   position: relative;
+  perspective: 1200px;
 }
 
-::selection { background: rgba(var(--ac-rgb), 0.3); color: #fff; }
-
-a:focus-visible, button:focus-visible, input:focus-visible {
-  outline: 1px solid rgba(var(--ac-rgb), 0.7);
-  outline-offset: 3px;
-  border-radius: 6px;
-}
-
-/* ── 3D Viewport & Atmospheric Layers ── */
+/* ── 3D Canvas Background ── */
 #webgl-bg {
   position: fixed;
   inset: 0;
@@ -61,700 +60,697 @@ a:focus-visible, button:focus-visible, input:focus-visible {
   pointer-events: none;
 }
 
-.noise-overlay {
-  position: fixed;
-  inset: -10%;
-  width: 120%;
-  height: 120%;
-  z-index: 2;
-  pointer-events: none;
-  opacity: 0.045;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size: 160px 160px;
-}
-
-.radial-vignette {
+.cosmic-vignette {
   position: fixed;
   inset: 0;
   z-index: 2;
   pointer-events: none;
-  background: radial-gradient(ellipse at 50% 45%, transparent 40%, rgba(2, 3, 8, 0.7) 85%, #020308 100%);
+  background: radial-gradient(circle at 50% 50%, transparent 20%, rgba(3, 5, 13, 0.6) 70%, #03050d 100%);
 }
 
-/* ── Top Navigation Bar ── */
-.authbar {
+.cosmic-grid {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.15;
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(circle at 50% 50%, black 30%, transparent 80%);
+}
+
+/* ── Header Bar ── */
+.auth-nav {
   position: relative;
   z-index: 10;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 28px var(--pad) 12px;
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  padding: 24px 32px;
 }
 
-.authbar a.back-link {
-  color: var(--dim);
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  transition: color 0.25s, transform 0.25s var(--ez);
-}
-
-.authbar a.back-link:hover {
-  color: #fff;
-  transform: translateX(-3px);
-}
-
-.authbar .channel-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  padding: 5px 12px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--line);
-  color: var(--dim);
-  font-size: 9.5px;
-  backdrop-filter: blur(10px);
-}
-
-.authbar .pulse-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--ok);
-  box-shadow: 0 0 10px var(--ok);
-  animation: dotPulse 2.4s ease infinite;
-}
-
-@keyframes dotPulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.85); }
-}
-
-/* ── Main Auth Card Container ── */
-.auth-shell {
-  position: relative;
-  z-index: 10;
-  flex: 1;
-  display: grid;
-  place-items: center;
-  padding: 20px var(--pad) 50px;
-  perspective: 1200px;
-}
-
-.card-wrapper {
-  width: 100%;
-  max-width: 520px;
-  will-change: transform;
-}
-
-/* ── Signature Stuudio/Jockey Floating 3D Card with Conic Edge Lighting ── */
-.card-3d {
-  position: relative;
-  border-radius: 20px;
-  padding: 42px 40px 38px;
-  background: linear-gradient(145deg, rgba(10, 15, 28, 0.82), rgba(4, 7, 14, 0.88)) padding-box,
-              conic-gradient(from var(--rim-angle, 0deg) at var(--mx, 50%) var(--my, 50%),
-                rgba(143, 216, 255, 0.85) 0deg,
-                rgba(255, 255, 255, 0.1) 60deg,
-                rgba(143, 216, 255, 0.05) 160deg,
-                rgba(143, 216, 255, 0.45) 260deg,
-                rgba(143, 216, 255, 0.85) 360deg) border-box;
-  border: 1px solid transparent;
-  backdrop-filter: blur(28px);
-  -webkit-backdrop-filter: blur(28px);
-  box-shadow: 0 35px 85px rgba(0, 0, 0, 0.65), 0 0 50px rgba(143, 216, 255, 0.05);
-  transform-style: preserve-3d;
-  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.3, 1), box-shadow 0.3s;
-}
-
-.card-3d:hover {
-  box-shadow: 0 45px 100px rgba(0, 0, 0, 0.75), 0 0 60px rgba(143, 216, 255, 0.1);
-}
-
-/* Corner Reticle Accents */
-.cnr {
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  border: 1px solid rgba(var(--ac-rgb), 0.35);
-  pointer-events: none;
-  transition: border-color 0.3s, width 0.3s var(--ez), height 0.3s var(--ez);
-}
-.c1 { top: -1px; left: -1px; border-right: 0; border-bottom: 0; border-top-left-radius: 8px; }
-.c2 { top: -1px; right: -1px; border-left: 0; border-bottom: 0; border-top-right-radius: 8px; }
-.c3 { bottom: -1px; left: -1px; border-right: 0; border-top: 0; border-bottom-left-radius: 8px; }
-.c4 { bottom: -1px; right: -1px; border-left: 0; border-top: 0; border-bottom-right-radius: 8px; }
-
-.card-3d:focus-within .cnr {
-  border-color: rgba(var(--ac-rgb), 0.95);
-  width: 20px;
-  height: 20px;
-  box-shadow: 0 0 10px rgba(var(--ac-rgb), 0.2);
-}
-
-/* ── Brand Mark ── */
-.brand {
+.brand-link {
   display: inline-flex;
   align-items: center;
   gap: 12px;
   text-decoration: none;
-  color: var(--ink);
-  margin-bottom: 28px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: -0.3px;
+  transition: transform 0.25s var(--ez), opacity 0.25s;
 }
+
+.brand-link:hover { transform: translateY(-1px); opacity: 0.9; }
 
 .brand-icon {
-  width: 34px;
-  height: 34px;
-  animation: markSpin 24s linear infinite;
-  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(168, 85, 247, 0.2));
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 15px rgba(56, 189, 248, 0.25);
 }
 
-@keyframes markSpin {
-  to { transform: rotate(360deg); }
+.hud-badge {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  color: var(--dim);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.brand-text {
-  font-size: 18px;
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+  animation: pulse 2s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+/* ── Center Stage & Floating 3D Card ── */
+.auth-stage {
+  position: relative;
+  z-index: 10;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 24px;
+}
+
+.tilt-wrapper {
+  perspective: 1200px;
+  width: 100%;
+  max-width: 520px;
+}
+
+.auth-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 34px 32px;
+  box-shadow: 
+    0 30px 80px rgba(0, 0, 0, 0.8),
+    0 0 40px rgba(56, 189, 248, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transition: transform 0.15s ease-out, box-shadow 0.3s var(--ez);
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--cyan), var(--violet), transparent);
+  opacity: 0.8;
+}
+
+{{if eq .Service "git"}}
+.auth-card::before {
+  background: linear-gradient(90deg, transparent, var(--amber), var(--emerald), transparent);
+}
+{{else if eq .Service "orbit"}}
+.auth-card::before {
+  background: linear-gradient(90deg, transparent, #6366f1, var(--cyan), transparent);
+}
+{{end}}
+
+/* Top Tabs */
+.tab-pills {
+  display: flex;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 22px;
+}
+
+.tab-pill {
+  flex: 1;
+  text-align: center;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  padding: 8px 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--dim);
+  transition: all 0.25s var(--ez);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
-.brand-text em {
-  font-family: var(--serif);
-  font-style: italic;
-  font-weight: 400;
-  color: rgb(var(--ac-rgb));
-  margin-left: 2px;
+.tab-pill.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-/* Headings */
-.h-title {
-  font-size: 26px;
+.tab-pill:not(.active):hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.card-title-wrap {
+  text-align: center;
+  margin-bottom: 22px;
+}
+
+.card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 3px 10px;
+  border-radius: 99px;
+  background: rgba(56, 189, 248, 0.1);
+  color: var(--cyan);
+  border: 1px solid rgba(56, 189, 248, 0.25);
   margin-bottom: 8px;
+}
+
+{{if eq .Service "git"}}
+.card-badge {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--amber);
+  border-color: rgba(245, 158, 11, 0.25);
+}
+{{else if eq .Service "orbit"}}
+.card-badge {
+  background: rgba(99, 102, 241, 0.1);
+  color: #818cf8;
+  border-color: rgba(99, 102, 241, 0.25);
+}
+{{end}}
+
+.card-h1 {
+  font-size: 23px;
+  font-weight: 700;
+  letter-spacing: -0.6px;
   color: #fff;
 }
 
-.h-sub {
-  font-size: 14px;
+.card-sub {
+  font-size: 12.5px;
   color: var(--dim);
-  margin-bottom: 26px;
-  line-height: 1.5;
+  margin-top: 4px;
 }
 
-/* Error Alert Box */
-.error-box {
-  background: rgba(248, 113, 113, 0.08);
-  border: 1px solid rgba(248, 113, 113, 0.3);
-  border-radius: 10px;
-  padding: 12px 16px;
-  margin-bottom: 20px;
-  font-size: 13.5px;
-  color: #f87171;
-  font-weight: 500;
-  display: none;
-}
-.error-box.visible { display: block; }
-
-/* Grid Row for Name and Username */
-.row2 {
+/* Grid Layout for Form */
+.form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
+  margin-bottom: 14px;
 }
 
-/* ── Form Inputs ── */
+@media (max-width: 480px) {
+  .form-row { grid-template-columns: 1fr; gap: 12px; }
+}
+
 .form-group {
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 }
 
-.form-label {
+.input-label {
   display: block;
-  font-family: var(--mono);
-  font-size: 9.5px;
-  font-weight: 500;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: rgba(226, 234, 242, 0.6);
-  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dim);
+  margin-bottom: 6px;
 }
 
-.form-label .opt {
-  color: rgba(226, 234, 242, 0.32);
-  text-transform: none;
-  letter-spacing: 0.05em;
-  margin-left: 4px;
-}
-
-.input-ctrl {
-  width: 100%;
-  background: rgba(226, 234, 242, 0.03);
-  border: 1px solid var(--line-strong);
-  color: #fff;
-  padding: 12px 15px;
-  border-radius: 11px;
-  font-size: 14px;
-  font-weight: 500;
-  font-family: inherit;
-  outline: none;
-  transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
-}
-
-.input-ctrl::placeholder {
-  color: rgba(226, 234, 242, 0.28);
-}
-
-.input-ctrl:focus {
-  border-color: rgba(var(--ac-rgb), 0.65);
-  box-shadow: 0 0 0 3px rgba(var(--ac-rgb), 0.15);
-  background: rgba(226, 234, 242, 0.05);
-}
-
-.pwd-wrap {
+.input-box {
   position: relative;
-}
-
-.pwd-wrap .input-ctrl {
-  padding-right: 48px;
-}
-
-.pwd-toggle {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: rgba(226, 234, 242, 0.38);
   display: flex;
-  padding: 6px;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 13px;
+  width: 15px;
+  height: 15px;
+  color: var(--faint);
+  pointer-events: none;
   transition: color 0.2s;
 }
 
-.pwd-toggle:hover {
-  color: var(--ink);
-}
-
-.pwd-toggle svg { width: 17px; height: 17px; }
-.pwd-toggle .slash { display: none; }
-.pwd-toggle.shown .slash { display: block; }
-
-.caps-warn {
-  display: none;
-  font-family: var(--mono);
-  font-size: 9px;
-  letter-spacing: 0.14em;
-  color: #fbbf24;
-  margin-top: 6px;
-  align-items: center;
-  gap: 6px;
-  text-transform: uppercase;
-}
-.caps-warn.on { display: flex; }
-.caps-warn i {
-  width: 5px;
-  height: 5px;
-  background: #fbbf24;
-  border-radius: 1px;
-  box-shadow: 0 0 8px #fbbf24;
-  flex: none;
-}
-
-.field-hint {
-  font-size: 10px;
-  font-family: var(--mono);
-  color: rgba(226, 234, 242, 0.35);
-  margin-top: 6px;
-  letter-spacing: 0.06em;
-  transition: color 0.25s;
-}
-.field-hint.error { color: #f87171; }
-.field-hint.ok { color: #43e5a0; }
-
-/* ── Password Strength Bar ── */
-.strength-bar {
-  display: flex;
-  gap: 4px;
-  margin-top: 8px;
-  align-items: center;
-}
-
-.strength-seg {
-  flex: 1;
-  height: 3px;
-  border-radius: 2px;
-  background: rgba(226, 234, 242, 0.1);
-  transition: background 0.3s, box-shadow 0.3s;
-}
-
-.slabel {
-  font-family: var(--mono);
-  font-size: 8.5px;
-  letter-spacing: 0.16em;
-  color: rgba(226, 234, 242, 0.4);
-  margin-left: 8px;
-  white-space: nowrap;
-  min-width: 50px;
-  text-align: right;
-}
-
-/* ── File Upload Drop Area ── */
-.file-upload-area {
+.form-input {
   width: 100%;
-  border: 1.5px dashed rgba(226, 234, 242, 0.18);
-  border-radius: 12px;
-  padding: 18px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 11px;
+  padding: 11px 36px 11px 36px;
+  font-family: inherit;
+  font-size: 13.5px;
+  color: #fff;
+  outline: none;
+  transition: all 0.25s var(--ez);
+}
+
+.form-input:focus {
+  border-color: var(--cyan);
+  background: rgba(56, 189, 248, 0.04);
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.2);
+}
+
+.form-input:focus + .input-icon,
+.input-box:focus-within .input-icon {
+  color: var(--cyan);
+}
+
+/* Avatar Upload styling */
+.avatar-row {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 14px;
+  padding: 10px 14px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 11px;
   cursor: pointer;
-  transition: border-color 0.25s, background 0.25s;
-  background: rgba(226, 234, 242, 0.02);
-  text-align: center;
-  position: relative;
+  transition: border-color 0.2s, background 0.2s;
+  margin-bottom: 16px;
+}
+.avatar-row:hover {
+  border-color: var(--cyan);
+  background: rgba(56, 189, 248, 0.03);
 }
 
-.file-upload-area:hover, .file-upload-area.dragover {
-  border-color: rgba(var(--ac-rgb), 0.65);
-  background: rgba(var(--ac-rgb), 0.06);
+.avatar-preview {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
-.file-upload-area input[type=file] {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
+.avatar-preview img {
   width: 100%;
   height: 100%;
+  object-fit: cover;
+  display: none;
 }
 
-.file-upload-icon {
-  color: rgb(var(--ac-rgb));
+.avatar-text {
+  flex: 1;
+  font-size: 12px;
+  color: var(--dim);
 }
 
-.file-upload-icon svg { width: 24px; height: 24px; }
-.file-upload-label { font-size: 13px; font-weight: 500; }
-.file-upload-label span { color: rgb(var(--ac-rgb)); }
-.file-upload-hint { font-size: 11px; color: rgba(226, 234, 242, 0.32); }
-.file-selected { color: rgb(var(--ac-rgb)); font-weight: 600; font-family: var(--mono); font-size: 11.5px; word-break: break-all; }
+.avatar-text strong {
+  color: #fff;
+  display: block;
+  font-size: 12.5px;
+}
 
-/* ── Submit Button ── */
-.btn-submit {
+/* Primary Button */
+.submit-btn {
   width: 100%;
-  padding: 14px 24px;
-  border-radius: 11px;
+  cursor: pointer;
+  background: linear-gradient(135deg, #38bdf8, #818cf8, #a855f7);
+  background-size: 200% 200%;
+  color: #fff;
   border: none;
-  background: #fff;
-  color: #04060d;
+  border-radius: 12px;
+  padding: 14px 20px;
   font-family: inherit;
   font-size: 14.5px;
   font-weight: 700;
-  cursor: pointer;
-  letter-spacing: -0.01em;
-  box-shadow: 0 8px 30px rgba(255, 255, 255, 0.12);
-  transition: transform 0.2s var(--ez), box-shadow 0.25s, opacity 0.25s;
-  margin-top: 6px;
+  letter-spacing: -0.2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+  box-shadow: 0 4px 20px rgba(56, 189, 248, 0.35);
+  transition: all 0.3s var(--ez);
 }
 
-.btn-submit:hover {
-  box-shadow: 0 12px 40px rgba(255, 255, 255, 0.22);
-  transform: translateY(-1px);
+{{if eq .Service "git"}}
+.submit-btn {
+  background: linear-gradient(135deg, #f59e0b, #ea580c, #10b981);
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.35);
+}
+{{else if eq .Service "orbit"}}
+.submit-btn {
+  background: linear-gradient(135deg, #6366f1, #3b82f6, #06b6d4);
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.35);
+}
+{{end}}
+
+.submit-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+  box-shadow: 0 8px 28px rgba(56, 189, 248, 0.5);
 }
 
-.btn-submit:active { transform: scale(0.985); }
-.btn-submit:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
-
-.terms-note {
-  font-size: 11.5px;
-  color: rgba(226, 234, 242, 0.32);
-  text-align: center;
-  margin-top: 16px;
-  line-height: 1.6;
+.submit-btn:active {
+  transform: translateY(0);
 }
 
-/* ── Auth Footer ── */
-.auth-footer {
-  text-align: center;
+/* Card Footer */
+.card-footer {
   margin-top: 22px;
-  font-size: 13.5px;
-  color: rgba(226, 234, 242, 0.42);
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  font-size: 12px;
+  color: var(--dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  font-family: var(--mono);
 }
 
-.auth-footer a {
-  color: rgb(var(--ac-rgb));
+.card-footer a {
+  color: var(--dim);
   text-decoration: none;
-  font-weight: 600;
-  margin-left: 4px;
   transition: color 0.2s;
 }
+.card-footer a:hover { color: #fff; }
 
-.auth-footer a:hover { color: #fff; }
-
-/* ── Page Footer ── */
-.authfoot {
+/* ── Bottom Bar ── */
+.auth-foot {
   position: relative;
   z-index: 10;
-  padding: 20px var(--pad);
+  padding: 16px 32px 24px;
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
   font-family: var(--mono);
-  font-size: 9px;
-  letter-spacing: 0.2em;
-  color: rgba(226, 234, 242, 0.25);
-  text-transform: uppercase;
-  gap: 18px;
+  color: var(--faint);
   flex-wrap: wrap;
+  gap: 12px;
 }
 
-@media (max-width: 560px) {
-  .row2 { grid-template-columns: 1fr; }
-  .card-3d { padding: 34px 22px 28px; }
+.auth-foot a {
+  color: var(--faint);
+  text-decoration: none;
+  transition: color 0.2s;
 }
-
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-  }
-}
+.auth-foot a:hover { color: #fff; }
 </style>
 </head>
+
 <body>
+<div id="webgl-bg"></div>
+<div class="cosmic-vignette"></div>
+<div class="cosmic-grid"></div>
 
-<!-- Three.js Ambient 3D Starfield & Orbital Precession Viewport -->
-<div id="webgl-bg" aria-hidden="true"></div>
-<div class="noise-overlay" aria-hidden="true"></div>
-<div class="radial-vignette" aria-hidden="true"></div>
+<!-- Top Navigation -->
+<header class="auth-nav">
+  <a href="/" class="brand-link">
+    <div class="brand-icon">
+      <svg width="18" height="18" viewBox="0 0 32 32"><ellipse cx="16" cy="16" rx="14" ry="5.5" fill="none" stroke="#38bdf8" stroke-width="1.8" transform="rotate(-24 16 16)"/><circle cx="16" cy="16" r="5" fill="#f8fafc"/></svg>
+    </div>
+    <span>Cosmos Cloud</span>
+  </a>
 
-<header class="authbar">
-  <a href="/" class="back-link">&#8592; Cosmos Core</a>
-  <div class="channel-badge">
-    <span class="pulse-dot"></span>
-    <span data-scr>SECURE CHANNEL · {{.Service}}</span>
+  <div class="hud-badge">
+    <span class="status-dot"></span>
+    <span>Sovereign Identity Gateway</span>
   </div>
 </header>
 
-<main class="auth-shell">
-  <div class="card-wrapper" id="cardWrapper">
-    <div class="card-3d" id="card">
-      <i class="cnr c1"></i><i class="cnr c2"></i><i class="cnr c3"></i><i class="cnr c4"></i>
+<!-- Main Interactive 3D Card Stage -->
+<main class="auth-stage">
+  <div class="tilt-wrapper" id="cardTilt">
+    <div class="auth-card">
+      <!-- Mode Tabs -->
+      <div class="tab-pills">
+        <a href="/{{.Service}}/login" class="tab-pill">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          Sign In
+        </a>
+        <a href="/{{.Service}}/signup" class="tab-pill active">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+          Create Space
+        </a>
+      </div>
 
-      <a href="/" class="brand">
-        <svg class="brand-icon" viewBox="0 0 34 34" aria-hidden="true">
-          <ellipse cx="17" cy="17" rx="14.5" ry="6" fill="none" stroke="rgba(238,243,248,.55)" stroke-width="1.2" transform="rotate(-24 17 17)"/>
-          <circle cx="17" cy="17" r="4.4" fill="#eef3f8"/>
-          <circle cx="27.4" cy="12.2" r="1.8" fill="rgb(var(--ac-rgb))"/>
-        </svg>
-        <span class="brand-text">Cosmos <em>{{.Service}}</em></span>
-      </a>
+      <div class="card-title-wrap">
+        {{if eq .Service "git"}}
+        <span class="card-badge">Forge Git Provisioning</span>
+        <h1 class="card-h1">Initialize Forge Developer Account</h1>
+        <p class="card-sub">Deploy repositories, CI workflows, and manage SSH authentication keys.</p>
+        {{else if eq .Service "orbit"}}
+        <span class="card-badge">Orbit Compute Node</span>
+        <h1 class="card-h1">Provision Cluster Access</h1>
+        <p class="card-sub">Deploy containerized web services, microVMs, and private network routing.</p>
+        {{else}}
+        <span class="card-badge">Oort NAS Storage</span>
+        <h1 class="card-h1">Initialize Sovereign Space</h1>
+        <p class="card-sub">Automatic 10GB S3 bucket and dedicated Mornye NAS streaming endpoint.</p>
+        {{end}}
+      </div>
 
-      <h1 class="h-title">Create your account</h1>
-      <p class="h-sub">Provision your sovereign workspace and encryption keys</p>
-
-      {{if .Error}}
-      <div class="error-box visible">{{.Error}}</div>
-      {{end}}
-
-      <form action="/{{.Service}}/signup" method="POST" enctype="multipart/form-data" id="signupForm">
-        <div class="row2">
-          <div class="form-group">
-            <label class="form-label" for="su-name">Full Name</label>
-            <input type="text" id="su-name" name="name" class="input-ctrl" placeholder="Jane Doe" required autocomplete="name"/>
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="fld-username">Username</label>
-            <input type="text" name="username" id="fld-username" class="input-ctrl" placeholder="janedoe" required pattern="^[a-zA-Z0-9_]{3,20}$" title="3–20 characters: letters, numbers, underscores" autocomplete="username"/>
-            <div class="field-hint" id="hint-username">3–20 chars, letters/numbers/_</div>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="su-email">Email Address</label>
-          <input type="email" id="su-email" name="email" class="input-ctrl" placeholder="jane@example.com" required autocomplete="email"/>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Profile Image <span class="opt">(Optional)</span></label>
-          <div class="file-upload-area" id="uploadArea">
-            <input type="file" name="profile_image" accept="image/*" id="fileInput" onchange="handleFileSelect(this)"/>
-            <div class="file-upload-icon">
-              <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                <polyline points="17 8 12 3 7 8"/>
-                <line x1="12" y1="3" x2="12" y2="15"/>
-              </svg>
+      <form action="/{{.Service}}/signup" method="POST" enctype="multipart/form-data" id="signupForm" onsubmit="return validateForm()">
+        <div class="form-row">
+          <div>
+            <label class="input-label" for="su-name">Full Name</label>
+            <div class="input-box">
+              <svg class="input-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <input type="text" id="su-name" name="name" class="form-input" placeholder="Jane Doe" required autocomplete="name" autofocus/>
             </div>
-            <div class="file-upload-label" id="uploadLabel"><span>Click to upload</span> or drag &amp; drop</div>
-            <div class="file-upload-hint">PNG, JPG, GIF up to 5MB</div>
+          </div>
+
+          <div>
+            <label class="input-label" for="su-user">Username</label>
+            <div class="input-box">
+              <svg class="input-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"/></svg>
+              <input type="text" id="su-user" name="username" class="form-input" placeholder="janedoe" pattern="^[a-zA-Z0-9_\-]+$" title="Letters, numbers, underscores, and dashes only" required autocomplete="username" oninput="this.value=this.value.toLowerCase()"/>
+            </div>
           </div>
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="pwd1">Password</label>
-          <div class="pwd-wrap">
-            <input type="password" name="password" id="pwd1" class="input-ctrl" placeholder="Minimum 8 characters" required minlength="8" autocomplete="new-password" oninput="checkStrength(this.value)"/>
-            <button type="button" class="pwd-toggle" onclick="togglePwd('pwd1')" aria-label="Toggle password visibility">
-              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                <circle cx="12" cy="12" r="3"/>
-                <line class="slash" x1="4" y1="4" x2="20" y2="20" stroke-linecap="round"/>
-              </svg>
-            </button>
+          <label class="input-label" for="su-email">Email Address</label>
+          <div class="input-box">
+            <svg class="input-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <input type="email" id="su-email" name="email" class="form-input" placeholder="jane@domain.com" required autocomplete="email"/>
           </div>
-          <div class="strength-bar">
-            <div class="strength-seg" id="s1"></div>
-            <div class="strength-seg" id="s2"></div>
-            <div class="strength-seg" id="s3"></div>
-            <div class="strength-seg" id="s4"></div>
-            <span class="slabel" id="slab"></span>
-          </div>
-          <div class="caps-warn"><i></i>Caps Lock is on</div>
         </div>
 
-        <div class="form-group">
-          <label class="form-label" for="pwd2">Confirm Password</label>
-          <div class="pwd-wrap">
-            <input type="password" name="confirm_password" id="pwd2" class="input-ctrl" placeholder="••••••••" required minlength="8" autocomplete="new-password"/>
-            <button type="button" class="pwd-toggle" onclick="togglePwd('pwd2')" aria-label="Toggle password visibility">
-              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                <circle cx="12" cy="12" r="3"/>
-                <line class="slash" x1="4" y1="4" x2="20" y2="20" stroke-linecap="round"/>
-              </svg>
-            </button>
+        <div class="form-row">
+          <div>
+            <label class="input-label" for="su-pwd">Password</label>
+            <div class="input-box">
+              <svg class="input-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <input type="password" id="su-pwd" name="password" class="form-input" placeholder="Min. 8 characters" minlength="8" required autocomplete="new-password"/>
+            </div>
           </div>
-          <div class="field-hint" id="hint-pwd2"></div>
+
+          <div>
+            <label class="input-label" for="su-conf">Confirm Password</label>
+            <div class="input-box">
+              <svg class="input-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+              <input type="password" id="su-conf" name="confirm_password" class="form-input" placeholder="Repeat password" minlength="8" required autocomplete="new-password"/>
+            </div>
+          </div>
         </div>
 
-        <button type="submit" class="btn-submit" id="submitBtn">Create Account</button>
+        <!-- Optional Profile Picture Upload -->
+        <label class="avatar-row" for="su-avatar">
+          <input type="file" id="su-avatar" name="profile_image" accept="image/*" style="display:none" onchange="previewAvatar(this)"/>
+          <div class="avatar-preview" id="avatarPreviewBox">
+            <svg id="avatarDefaultIcon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <img id="avatarImg" alt="Avatar"/>
+          </div>
+          <div class="avatar-text">
+            <strong>Profile Avatar (Optional)</strong>
+            <span id="avatarLabel">Click to select a photo</span>
+          </div>
+        </label>
+
+        <button type="submit" class="submit-btn" id="submitBtn">
+          <span>Initialize Sovereign Account</span>
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
       </form>
 
-      <p class="terms-note">By creating an account you agree to cryptographic isolation terms and private data sovereignty.</p>
-
-      <div class="auth-footer">
-        Already have an account? <a href="/{{.Service}}/login">Sign In</a>
+      <div class="card-footer">
+        <a href="/">← Cosmos Central</a>
+        <span>·</span>
+        <a href="/{{.Service}}/login">Already have an account? Sign In</a>
       </div>
     </div>
   </div>
 </main>
 
-<footer class="authfoot">
-  <span>51.4778° N · 0.0015° W</span>
-  <span>Zero Cloud Leakage</span>
-  <span>Sovereign Enclave</span>
+<!-- Bottom Bar -->
+<footer class="auth-foot">
+  <div>Encrypted with AES-256-GCM · Sovereign Infrastructure</div>
+  <div>Portals Go v2.4 · Zero Telemetry</div>
 </footer>
 
-<!-- Local Zero-Latency Three.js Engine -->
-<script src="/three.min.js"></script>
+<!-- ══ Three.js 3D Space Interactive Engine ══ -->
 <script>
-/* ══ 1. THREE.JS 3D CELESTIAL BACKGROUND ══ */
-(function(){
-  'use strict';
-  var container = document.getElementById('webgl-bg');
-  if(!window.THREE || !container) return;
+(function() {
+  const container = document.getElementById('webgl-bg');
+  if (!window.THREE || !container) return;
 
-  var scene = new THREE.Scene();
-  var camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 2000);
   camera.position.z = 28;
 
-  var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: "high-performance" });
   renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   container.appendChild(renderer.domElement);
 
-  // Deep Starfield Particle Nodes
-  var starCount = 1400;
-  var starGeo = new THREE.BufferGeometry();
-  var starPos = new Float32Array(starCount * 3);
-  var starColors = new Float32Array(starCount * 3);
+  // 1. Starfield
+  const starCount = 1800;
+  const starGeo = new THREE.BufferGeometry();
+  const starPositions = new Float32Array(starCount * 3);
+  const starColors = new Float32Array(starCount * 3);
 
-  var colA = new THREE.Color(0x8fd9ff);
-  var colB = new THREE.Color(0xffffff);
-  var colC = new THREE.Color(0x43e5a0);
-
-  for(var i = 0; i < starCount; i++){
-    var i3 = i * 3;
-    starPos[i3]     = (Math.random() - 0.5) * 80;
-    starPos[i3 + 1] = (Math.random() - 0.5) * 60;
-    starPos[i3 + 2] = (Math.random() - 0.5) * 50 - 5;
-
-    var roll = Math.random();
-    var c = roll < 0.6 ? colB : (roll < 0.85 ? colA : colC);
-    starColors[i3]     = c.r;
-    starColors[i3 + 1] = c.g;
-    starColors[i3 + 2] = c.b;
+  const serviceType = "{{.Service}}";
+  let primaryHue = 0.58; // Cyan default (Oort)
+  let accentHue = 0.78;  // Violet default
+  if (serviceType === 'git') {
+    primaryHue = 0.08; // Amber
+    accentHue = 0.42;  // Emerald
+  } else if (serviceType === 'orbit') {
+    primaryHue = 0.65; // Indigo
+    accentHue = 0.52;  // Cyan
   }
-  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+
+  for (let i = 0; i < starCount; i++) {
+    const x = (Math.random() - 0.5) * 140;
+    const y = (Math.random() - 0.5) * 140;
+    const z = (Math.random() - 0.5) * 120;
+    starPositions[i * 3] = x;
+    starPositions[i * 3 + 1] = y;
+    starPositions[i * 3 + 2] = z;
+
+    const col = new THREE.Color();
+    const mix = Math.random();
+    col.setHSL(mix > 0.3 ? primaryHue : accentHue, 0.7, 0.6 + Math.random() * 0.4);
+    starColors[i * 3] = col.r;
+    starColors[i * 3 + 1] = col.g;
+    starColors[i * 3 + 2] = col.b;
+  }
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
   starGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
 
-  var starMat = new THREE.PointsMaterial({
+  const starMat = new THREE.PointsMaterial({
     size: 0.18,
     vertexColors: true,
     transparent: true,
-    opacity: 0.75,
+    opacity: 0.85,
     blending: THREE.AdditiveBlending
   });
-  var starField = new THREE.Points(starGeo, starMat);
-  scene.add(starField);
+  const stars = new THREE.Points(starGeo, starMat);
+  scene.add(stars);
 
-  // Subtle 3D Gyroscopic Rings Floating in Celestial Horizon
-  var ringGroup = new THREE.Group();
-  scene.add(ringGroup);
+  // 2. Central 3D Gyroscopic Rings
+  const group = new THREE.Group();
+  scene.add(group);
 
-  var r1Geo = new THREE.TorusGeometry(13, 0.02, 16, 120);
-  var r1Mat = new THREE.MeshBasicMaterial({ color: 0x8fd9ff, transparent: true, opacity: 0.18 });
-  var ring1 = new THREE.Mesh(r1Geo, r1Mat);
+  const ringColor = serviceType === 'git' ? 0xf59e0b : (serviceType === 'orbit' ? 0x818cf8 : 0x38bdf8);
+  const coreColor = serviceType === 'git' ? 0x10b981 : (serviceType === 'orbit' ? 0x38bdf8 : 0xa855f7);
+
+  const ring1Geo = new THREE.RingGeometry(8.5, 8.55, 96);
+  const ring1Mat = new THREE.MeshBasicMaterial({ color: ringColor, side: THREE.DoubleSide, transparent: true, opacity: 0.55 });
+  const ring1 = new THREE.Mesh(ring1Geo, ring1Mat);
   ring1.rotation.x = Math.PI / 3;
-  ringGroup.add(ring1);
+  group.add(ring1);
 
-  var r2Geo = new THREE.TorusGeometry(16, 0.015, 16, 120);
-  var r2Mat = new THREE.MeshBasicMaterial({ color: 0x43e5a0, transparent: true, opacity: 0.1 });
-  var ring2 = new THREE.Mesh(r2Geo, r2Mat);
+  const ring2Geo = new THREE.RingGeometry(6.2, 6.24, 80);
+  const ring2Mat = new THREE.MeshBasicMaterial({ color: coreColor, side: THREE.DoubleSide, transparent: true, opacity: 0.45 });
+  const ring2 = new THREE.Mesh(ring2Geo, ring2Mat);
   ring2.rotation.y = Math.PI / 4;
-  ring2.rotation.x = Math.PI / 5;
-  ringGroup.add(ring2);
+  ring2.rotation.x = -Math.PI / 6;
+  group.add(ring2);
 
-  var mouse = { x: 0, y: 0, targetX: 0, targetY: 0 };
-  window.addEventListener('mousemove', function(e){
-    mouse.targetX = (e.clientX / window.innerWidth - 0.5) * 2;
-    mouse.targetY = -(e.clientY / window.innerHeight - 0.5) * 2;
-  }, { passive: true });
+  const sphereGeo = new THREE.IcosahedronGeometry(2.4, 2);
+  const sphereMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    wireframe: true,
+    transparent: true,
+    opacity: 0.18
+  });
+  const coreSphere = new THREE.Mesh(sphereGeo, sphereMat);
+  group.add(coreSphere);
 
-  window.addEventListener('resize', function(){
+  // Mouse Parallax & Card Tilt
+  let mouseX = 0, mouseY = 0;
+  let targetX = 0, targetY = 0;
+  const windowHalfX = window.innerWidth / 2;
+  const windowHalfY = window.innerHeight / 2;
+
+  document.addEventListener('mousemove', (e) => {
+    mouseX = (e.clientX - windowHalfX);
+    mouseY = (e.clientY - windowHalfY);
+    targetX = mouseX * 0.0008;
+    targetY = mouseY * 0.0008;
+
+    const card = document.getElementById('cardTilt');
+    if (card) {
+      const rx = -(e.clientY - windowHalfY) * 0.012;
+      const ry = (e.clientX - windowHalfX) * 0.012;
+      card.style.transform = `perspective(1200px) rotateX(${rx}deg) rotateY(${ry}deg)`;
+    }
+  });
+
+  window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
-  var clock = new THREE.Clock();
-  function animate(){
+  let clock = new THREE.Clock();
+  function animate() {
     requestAnimationFrame(animate);
-    if(document.hidden) return;
+    const delta = clock.getDelta();
 
-    var elapsedTime = clock.getElapsedTime();
-    mouse.x += (mouse.targetX - mouse.x) * 0.05;
-    mouse.y += (mouse.targetY - mouse.y) * 0.05;
+    group.rotation.y += 0.22 * delta;
+    group.rotation.x += 0.14 * delta;
+    ring1.rotation.z += 0.08 * delta;
+    ring2.rotation.z -= 0.1 * delta;
 
-    starField.rotation.y = elapsedTime * 0.015;
-    starField.rotation.x = elapsedTime * 0.008;
+    stars.rotation.y += 0.02 * delta;
 
-    ring1.rotation.z = elapsedTime * 0.04;
-    ring2.rotation.z = -elapsedTime * 0.03;
-
-    ringGroup.position.x = mouse.x * 1.5;
-    ringGroup.position.y = mouse.y * 1.2;
-
-    camera.position.x = mouse.x * 2;
-    camera.position.y = mouse.y * 1.5;
+    camera.position.x += (targetX * 20 - camera.position.x) * 0.05;
+    camera.position.y += (-targetY * 20 - camera.position.y) * 0.05;
     camera.lookAt(scene.position);
 
     renderer.render(scene, camera);
@@ -762,204 +758,36 @@ a:focus-visible, button:focus-visible, input:focus-visible {
   animate();
 })();
 
-/* ══ 2. STUUDIO/JOCKEY SIGNATURE 3D CARD TILT & CONIC RIM LIGHT ══ */
-(function(){
-  'use strict';
-  var card = document.getElementById('card');
-  var wrapper = document.getElementById('cardWrapper');
-  if(!card || !wrapper) return;
-
-  var rect = null;
-  function updateRect(){ rect = card.getBoundingClientRect(); }
-  window.addEventListener('resize', updateRect);
-  updateRect();
-
-  var currentTiltX = 0, currentTiltY = 0;
-  var targetTiltX = 0, targetTiltY = 0;
-
-  window.addEventListener('mousemove', function(e){
-    if(!rect) updateRect();
-    var cx = rect.left + rect.width / 2;
-    var cy = rect.top + rect.height / 2;
-    var dx = e.clientX - cx;
-    var dy = e.clientY - cy;
-
-    // Conic Rim Lighting angle and position
-    var angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
-    card.style.setProperty('--rim-angle', angle + 'deg');
-    var mxPercent = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
-    var myPercent = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
-    card.style.setProperty('--mx', mxPercent + '%');
-    card.style.setProperty('--my', myPercent + '%');
-
-    // 3D perspective tilt calculation
-    var dist = Math.hypot(dx, dy);
-    var maxDist = Math.hypot(window.innerWidth, window.innerHeight) / 2;
-    if(dist < maxDist){
-      targetTiltY = (dx / (rect.width * 2)) * 10;
-      targetTiltX = -(dy / (rect.height * 2)) * 10;
-    } else {
-      targetTiltX = 0;
-      targetTiltY = 0;
-    }
-  }, { passive: true });
-
-  window.addEventListener('mouseleave', function(){
-    targetTiltX = 0;
-    targetTiltY = 0;
-  });
-
-  function tiltLoop(){
-    currentTiltX += (targetTiltX - currentTiltX) * 0.08;
-    currentTiltY += (targetTiltY - currentTiltY) * 0.08;
-    card.style.transform = 'rotateX(' + currentTiltX.toFixed(2) + 'deg) rotateY(' + currentTiltY.toFixed(2) + 'deg)';
-    requestAnimationFrame(tiltLoop);
-  }
-  tiltLoop();
-})();
-
-/* ══ 3. ORIGINAL PRESERVED SIGNUP FORM LOGIC ══ */
-function togglePwd(id) {
-  var el = document.getElementById(id);
-  el.type = el.type === 'password' ? 'text' : 'password';
-  var b = el.parentElement.querySelector('.pwd-toggle');
-  if (b) b.classList.toggle('shown');
-}
-
-function checkStrength(val) {
-  var segs = [document.getElementById('s1'), document.getElementById('s2'), document.getElementById('s3'), document.getElementById('s4')];
-  var lab = document.getElementById('slab');
-  var colors = ['transparent', '#f87171', '#fbbf24', '#43e5a0', '#8fd9ff'];
-  var names = ['', 'WEAK', 'FAIR', 'GOOD', 'STRONG'];
-  var score = 0;
-  if (val.length >= 8) score++;
-  if (/[A-Z]/.test(val)) score++;
-  if (/[0-9]/.test(val)) score++;
-  if (/[^A-Za-z0-9]/.test(val)) score++;
-  segs.forEach(function(s, i) {
-    if(s) {
-      s.style.background = i < score ? colors[score] : 'rgba(226,234,242,.1)';
-      s.style.boxShadow = (i < score && score >= 3) ? '0 0 8px ' + colors[score] : 'none';
-    }
-  });
-  if (lab) lab.textContent = names[score];
-}
-
-function handleFileSelect(input) {
-  var label = document.getElementById('uploadLabel');
-  var area = document.getElementById('uploadArea');
-  if (input.files && input.files[0]) {
-    var f = input.files[0];
-    label.innerHTML = '<span class="file-selected">&#10003; ' + f.name + ' &middot; ' + (f.size / 1024).toFixed(0) + ' KB</span>';
-    area.style.borderColor = 'rgba(143,216,255,.55)';
-  }
-}
-
-var area = document.getElementById('uploadArea');
-if(area){
-  area.addEventListener('dragover', function(e) { e.preventDefault(); area.classList.add('dragover'); });
-  area.addEventListener('dragleave', function() { area.classList.remove('dragover'); });
-  area.addEventListener('drop', function(e) {
-    e.preventDefault();
-    area.classList.remove('dragover');
-    var files = e.dataTransfer.files;
-    if (files.length) {
-      var fi = document.getElementById('fileInput');
-      if(fi){
-        fi.files = files;
-        handleFileSelect(fi);
-      }
-    }
-  });
-}
-
-var pwd2Inp = document.getElementById('pwd2');
-if(pwd2Inp){
-  pwd2Inp.addEventListener('input', function() {
-    var hint = document.getElementById('hint-pwd2');
-    var p1 = document.getElementById('pwd1') ? document.getElementById('pwd1').value : '';
-    if (this.value && this.value !== p1) {
-      hint.textContent = 'Passwords do not match';
-      hint.className = 'field-hint error';
-    } else {
-      hint.textContent = '';
-      hint.className = 'field-hint';
-    }
-  });
-}
-
-document.getElementById('signupForm').addEventListener('submit', function(e) {
-  var p1 = document.getElementById('pwd1') ? document.getElementById('pwd1').value : '';
-  var p2 = document.getElementById('pwd2') ? document.getElementById('pwd2').value : '';
+// Password Match Validation
+function validateForm() {
+  const p1 = document.getElementById('su-pwd').value;
+  const p2 = document.getElementById('su-conf').value;
   if (p1 !== p2) {
-    e.preventDefault();
-    var hint = document.getElementById('hint-pwd2');
-    if(hint){
-      hint.textContent = 'Passwords do not match';
-      hint.className = 'field-hint error';
-    }
-    document.getElementById('pwd2').scrollIntoView({ behavior: 'smooth' });
-    return;
+    alert("Passwords do not match. Please verify both fields.");
+    document.getElementById('su-conf').focus();
+    return false;
   }
-  var btn = document.getElementById('submitBtn');
-  btn.textContent = 'Creating account…';
+  const btn = document.getElementById('submitBtn');
   btn.disabled = true;
-});
+  btn.innerHTML = '<span>Provisioning Space…</span>';
+  return true;
+}
 
-/* live username format check */
-(function(){
-  'use strict';
-  var un = document.getElementById('fld-username'), uh = document.getElementById('hint-username');
-  if(!un || !uh) return;
-  un.addEventListener('input', function(){
-    if(un.value === '' || /^[a-zA-Z0-9_]{3,20}$/.test(un.value)){
-      uh.textContent = '3–20 chars, letters/numbers/_';
-      uh.className = 'field-hint';
-    } else {
-      uh.textContent = 'Invalid format — letters, numbers, _ only';
-      uh.className = 'field-hint error';
-    }
-  });
-})();
-
-/* Caps Lock detection */
-document.querySelectorAll('input[type=password]').forEach(function(inp){
-  function checkCaps(e){
-    var on = e.getModifierState && e.getModifierState('CapsLock');
-    var group = inp.closest('.form-group');
-    if(!group) return;
-    var warn = group.querySelector('.caps-warn');
-    if(warn) warn.classList.toggle('on', !!on);
+// Avatar Image Preview
+function previewAvatar(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = document.getElementById('avatarImg');
+      const icon = document.getElementById('avatarDefaultIcon');
+      img.src = e.target.result;
+      img.style.display = 'block';
+      icon.style.display = 'none';
+      document.getElementById('avatarLabel').textContent = input.files[0].name;
+    };
+    reader.readAsDataURL(input.files[0]);
   }
-  inp.addEventListener('keyup', checkCaps);
-  inp.addEventListener('keydown', checkCaps);
-});
-
-/* Scramble decode on secure channel badge */
-(function(){
-  'use strict';
-  function scramble(el){
-    var tgt = el.dataset.txt;
-    var f = 0, total = Math.max(16, tgt.length * 1.2), CH = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<>/[]·';
-    var iv = setInterval(function(){
-      f++;
-      var done = Math.floor(tgt.length * f / total), s = '';
-      for(var i = 0; i < tgt.length; i++){
-        var ch = tgt[i];
-        s += i < done ? ch : (ch === ' ' ? ' ' : CH[Math.random() * CH.length | 0]);
-      }
-      el.textContent = s;
-      if(f >= total){ el.textContent = tgt; clearInterval(iv); }
-    }, 28);
-  }
-  document.querySelectorAll('[data-scr]').forEach(function(el){
-    el.dataset.txt = el.textContent;
-  });
-  setTimeout(function(){
-    var t = document.querySelector('[data-scr]');
-    if(t) scramble(t);
-  }, 350);
-})();
+}
 </script>
 </body>
 </html>

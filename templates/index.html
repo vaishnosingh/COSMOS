@@ -2,1276 +2,1245 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cosmos — Sovereign Cloud Platform</title>
-<meta name="description" content="Self-hosted Git, infinite storage, container orchestration. Your infrastructure. Zero compromises.">
+<meta name="description" content="Self-hosted Git, Mornye-optimized NAS & S3 storage, and zero-config container orchestration. 100% sovereign cloud on your bare metal.">
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="5" fill="%23eef3f8"/><ellipse cx="16" cy="16" rx="14" ry="5" fill="none" stroke="%238fd9ff" stroke-width="1.5" transform="rotate(-28 16 16)"/></svg>'>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="/three.min.js"></script>
+<script>
+if (typeof THREE === 'undefined') {
+  document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
+}
+</script>
+
 <style>
-/* ═══════════════ RESET + TOKENS ═══════════════ */
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#020308;
-  --ink:#eef3f8;
-  --dim:rgba(238,243,248,.5);
-  --faint:rgba(238,243,248,.18);
-  --line:rgba(238,243,248,.07);
-  --ac:#8fd9ff;
-  --ok:#43e5a0;
-  --ember:#ff6b35;
-  --violet:#a855f7;
-  --mono:'JetBrains Mono',monospace;
-  --sans:'Space Grotesk',system-ui,sans-serif;
-  --serif:'Instrument Serif',Georgia,serif;
-  --pad:clamp(20px,5vw,80px);
-  --ease:cubic-bezier(.16,1,.3,1);
-}
-html{
-  background:var(--bg);color:var(--ink);
-  overflow-x:hidden;
-}
-body{
-  font-family:var(--sans);background:var(--bg);
-  overflow-x:hidden;-webkit-font-smoothing:antialiased;
-}
-a{color:inherit;text-decoration:none}
-button{font-family:inherit;cursor:pointer;border:none;background:none}
-::selection{background:rgba(143,217,255,.25)}
-::-webkit-scrollbar{width:3px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:#1c2640;border-radius:2px}
-
-/* ═══════════════ THREE.JS CANVAS ═══════════════ */
-#cvs{
-  position:fixed;inset:0;width:100%;height:100%;
-  z-index:0;pointer-events:none;
+/* ── RESET & DESIGN TOKENS ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #02040a;
+  --bg-card: rgba(8, 14, 28, 0.72);
+  --bg-card-hover: rgba(14, 22, 42, 0.85);
+  --ink: #f0f4f8;
+  --dim: rgba(240, 244, 248, 0.65);
+  --faint: rgba(240, 244, 248, 0.28);
+  --line: rgba(240, 244, 248, 0.08);
+  --line-active: rgba(240, 244, 248, 0.2);
+  --cyan: #8fd9ff;
+  --cyan-rgb: 143, 217, 255;
+  --amber: #ffab4d;
+  --amber-rgb: 255, 171, 77;
+  --violet: #c084fc;
+  --violet-rgb: 192, 132, 252;
+  --green: #4ade80;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+  --sans: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --serif: 'Instrument Serif', Georgia, serif;
+  --pad: clamp(20px, 5vw, 64px);
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* ═══════════════ FILM GRAIN + VIGNETTE ═══════════════ */
-.grain{
-  position:fixed;inset:0;z-index:1;pointer-events:none;
-  opacity:.028;mix-blend-mode:overlay;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size:200px;
-}
-.vignette{
-  position:fixed;inset:0;z-index:1;pointer-events:none;
-  background:radial-gradient(ellipse 85% 70% at 50% 45%,transparent 30%,rgba(2,3,8,.6) 70%,#020308 100%);
+html {
+  scroll-behavior: smooth;
+  background: var(--bg);
+  color: var(--ink);
+  overflow-x: hidden;
 }
 
-/* ═══════════════ 3D WORLD CONTAINER ═══════════════
-   This is the key:
-   - perspective creates the 3D vanishing point
-   - preserve-3d lets children exist in 3D space
-   - stations are placed at different translateZ depths
-   - scrolling drives translateZ on the world wrapper
-═══════════════════════════════════════════════════ */
-#world{
-  position:fixed;inset:0;
-  z-index:3;
-  perspective:1200px;
-  perspective-origin:50% 50%;
-  overflow:hidden;
-  pointer-events:none;
-}
-#tunnel{
-  position:absolute;
-  width:100%;height:100%;
-  transform-style:preserve-3d;
-  will-change:transform;
-  pointer-events:none;
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--ink);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  position: relative;
+  min-height: 100vh;
 }
 
-/* Each station is positioned in the 3D world */
-.station{
-  position:absolute;
-  left:0;top:0;right:0;bottom:0;
-  display:flex;align-items:center;justify-content:center;
-  transform-style:preserve-3d;
-  pointer-events:none;
-  opacity:0;
-  visibility:hidden;
-  will-change:transform,opacity;
-}
-.station.active{
-  pointer-events:auto;
-}
-/* Station inner layout */
-.st-inner{
-  width:100%;max-width:1200px;
-  padding:0 var(--pad);
-  transform-style:preserve-3d;
+::selection {
+  background: rgba(143, 217, 255, 0.35);
+  color: #fff;
 }
 
-/* ═══════════════ 3D DEPTH LAYERS ═══════════════
-   Elements within a station are offset on Z for parallax
-═══════════════════════════════════════════════════ */
-.d0{transform:translateZ(0px)}
-.d1{transform:translateZ(40px)}
-.d2{transform:translateZ(80px)}
-.d3{transform:translateZ(120px)}
-.d4{transform:translateZ(160px)}
-.d-1{transform:translateZ(-60px)}
-.d-2{transform:translateZ(-140px)}
-.d-3{transform:translateZ(-240px)}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
 
-/* ═══════════════ SCROLL SPACER ═══════════════
-   Invisible tall element that gives us scroll height
-═══════════════════════════════════════════════════ */
-#scroll-spacer{
-  position:relative;z-index:-1;
-  width:100%;pointer-events:none;
+/* ── 3D CANVAS & BACKGROUND OVERLAYS ── */
+#webgl-bg {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
 }
 
-/* ═══════════════ PROGRESS BAR ═══════════════ */
-#prog{
-  position:fixed;top:0;left:0;width:100%;height:1.5px;z-index:900;
-  transform-origin:left;transform:scaleX(0);
-  background:linear-gradient(90deg,var(--ac),var(--ok),var(--violet));
-  pointer-events:none;
+.cosmic-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* ═══════════════ SECTION ID ═══════════════ */
-#sect-id{
-  position:fixed;right:24px;bottom:24px;z-index:800;
-  font-family:var(--mono);font-size:9px;letter-spacing:.18em;
-  color:rgba(238,243,248,.25);text-transform:uppercase;
-  pointer-events:none;
+.cosmic-vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 30%, transparent 20%, rgba(2, 4, 10, 0.6) 70%, #02040a 100%);
 }
 
-/* ═══════════════ NAV ═══════════════ */
-nav{
-  position:fixed;top:0;left:0;right:0;z-index:850;
-  display:flex;align-items:center;justify-content:space-between;
-  padding:20px var(--pad);
-  transition:padding .4s,background .4s,backdrop-filter .4s,border-color .4s;
-  border-bottom:1px solid transparent;
+/* ── NAVIGATION ── */
+nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--pad);
+  background: rgba(2, 4, 10, 0.55);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid var(--line);
+  transition: all 0.35s var(--ease);
 }
-nav.stuck{
-  padding:12px var(--pad);
-  background:rgba(2,3,8,.85);
-  backdrop-filter:blur(28px);
-  border-color:var(--line);
-}
-.nav-logo{
-  display:flex;align-items:center;gap:11px;
-  font-weight:600;font-size:16px;letter-spacing:-.02em;
-}
-.nav-logo svg{width:28px;height:28px;animation:spin-slow 28s linear infinite}
-@keyframes spin-slow{to{transform:rotate(360deg)}}
-.nav-logo em{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--ac)}
-.nav-r{display:flex;align-items:center;gap:4px}
-.nav-r a{
-  padding:7px 14px;font-size:13px;font-weight:500;
-  color:var(--dim);border-radius:8px;
-  transition:color .2s,background .2s;
-}
-.nav-r a:hover{color:var(--ink);background:rgba(238,243,248,.06)}
-.nav-cta{
-  background:#fff!important;color:#020308!important;
-  font-weight:700!important;padding:8px 20px!important;
-  border-radius:9px!important;
-  box-shadow:0 4px 22px rgba(255,255,255,.1)!important;
-  transition:transform .2s,box-shadow .2s!important;
-}
-.nav-cta:hover{transform:translateY(-1px)!important;box-shadow:0 7px 30px rgba(255,255,255,.2)!important}
-
-/* ═══════════════ HERO ═══════════════ */
-.hero-center{
-  text-align:center;
-  transform-style:preserve-3d;
-}
-.hero-tag{
-  font-family:var(--mono);font-size:10px;letter-spacing:.28em;
-  text-transform:uppercase;color:var(--ac);
-  display:flex;align-items:center;justify-content:center;gap:14px;
-  margin-bottom:40px;
-  transform:translateZ(100px);
-}
-.hero-tag::before,.hero-tag::after{
-  content:'';height:1px;width:36px;background:var(--ac);opacity:.4;
-}
-.hero-h1{
-  font-size:clamp(60px,10vw,150px);
-  font-weight:700;letter-spacing:-.05em;line-height:.9;
-  margin-bottom:32px;
-  transform:translateZ(60px);
-}
-.hero-h1 em{
-  font-family:var(--serif);font-style:italic;font-weight:400;
-  color:var(--ac);display:block;
-}
-.hero-sub{
-  font-size:clamp(16px,2vw,22px);color:var(--dim);
-  line-height:1.6;max-width:540px;margin:0 auto 48px;
-  transform:translateZ(30px);
-}
-.hero-btns{
-  display:flex;gap:12px;justify-content:center;flex-wrap:wrap;
-  transform:translateZ(80px);
-}
-.scroll-cue{
-  position:absolute;bottom:-140px;left:50%;
-  transform:translateX(-50%) translateZ(20px);
-  display:flex;flex-direction:column;align-items:center;gap:12px;
-}
-.scroll-cue span{
-  font-family:var(--mono);font-size:9px;letter-spacing:.22em;
-  color:rgba(238,243,248,.25);text-transform:uppercase;
-}
-.scroll-line{
-  width:1px;height:50px;
-  background:linear-gradient(180deg,rgba(238,243,248,.28),transparent);
-  animation:scroll-pulse 2.4s ease-in-out infinite;
-}
-@keyframes scroll-pulse{
-  0%{transform:scaleY(0);transform-origin:top;opacity:1}
-  50%{transform:scaleY(1);transform-origin:top}
-  51%{transform-origin:bottom}
-  100%{transform:scaleY(0);transform-origin:bottom;opacity:0}
+nav.scrolled {
+  height: 64px;
+  background: rgba(2, 4, 10, 0.88);
+  border-bottom-color: var(--line-active);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
-/* ═══════════════ BUTTONS ═══════════════ */
-.btn{
-  display:inline-flex;align-items:center;gap:8px;
-  padding:13px 28px;font-size:14px;font-weight:600;
-  border-radius:10px;font-family:var(--sans);
-  transition:transform .25s var(--ease),box-shadow .25s;
-  /* 3D button effect */
-  transform-style:preserve-3d;
-  position:relative;
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  text-decoration: none;
 }
-.btn::after{
-  content:'';position:absolute;inset:0;border-radius:inherit;
-  background:inherit;filter:blur(18px);opacity:.35;z-index:-1;
-  transform:translateZ(-10px) scale(1.05);
+.brand-mark {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
 }
-.btn-w{background:#fff;color:#020308;box-shadow:0 5px 28px rgba(255,255,255,.12)}
-.btn-w:hover{transform:translateY(-2px) translateZ(8px);box-shadow:0 10px 36px rgba(255,255,255,.25)}
-.btn-o{
-  background:rgba(238,243,248,.04);color:var(--ink);
-  border:1px solid rgba(238,243,248,.18);
-  backdrop-filter:blur(10px);
+.brand-mark svg {
+  width: 100%;
+  height: 100%;
+  animation: slowOrbit 28s linear infinite;
 }
-.btn-o:hover{
-  border-color:rgba(238,243,248,.4);
-  transform:translateY(-2px) translateZ(8px);
-  background:rgba(238,243,248,.08);
+@keyframes slowOrbit { to { transform: rotate(360deg); } }
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+.nav-links a {
+  text-decoration: none;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--dim);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.2s;
+  padding: 6px 0;
+  position: relative;
+}
+.nav-links a::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 1.5px;
+  background: var(--cyan);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s var(--ease);
+}
+.nav-links a:hover {
+  color: var(--ink);
+}
+.nav-links a:hover::after {
+  transform: scaleX(1);
+}
+.nav-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
 }
 
-/* ═══════════════ EYEBROW ═══════════════ */
-.ch-tag{
-  font-family:var(--mono);font-size:9px;letter-spacing:.24em;
-  text-transform:uppercase;color:rgba(238,243,248,.3);
-  margin-bottom:28px;display:block;
-  transform:translateZ(20px);
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.telemetry-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  border-radius: 99px;
+  background: rgba(74, 222, 128, 0.08);
+  border: 1px solid rgba(74, 222, 128, 0.25);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: var(--green);
+}
+.telemetry-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 10px var(--green);
+  animation: pulseDot 2s ease infinite;
+}
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
 }
 
-/* ═══════════════ MANIFESTO ═══════════════ */
-.manifesto-wrap{
-  max-width:900px;margin:0 auto;
-  transform-style:preserve-3d;
+.btn-signin {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+  padding: 8px 18px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(10px);
+  transition: all 0.25s var(--ease);
 }
-.manifesto-q{
-  font-size:clamp(32px,5.5vw,76px);
-  font-weight:600;letter-spacing:-.03em;line-height:1.08;
-  margin-bottom:52px;
-  transform:translateZ(50px);
-}
-.manifesto-q .word{
-  display:inline-block;
-  opacity:.08;transform:translateY(14px) translateZ(-30px);
-  transition:opacity .5s ease,transform .5s ease;
-  margin-right:.28em;
-}
-.manifesto-q .word.lit{
-  opacity:1;
-  transform:translateY(0) translateZ(0);
-}
-.manifesto-q em{font-family:var(--serif);font-style:italic;color:var(--ac);font-weight:400}
-.manifesto-body{
-  font-size:clamp(16px,1.6vw,20px);color:var(--dim);
-  line-height:1.75;max-width:620px;margin-bottom:56px;
-  transform:translateZ(25px);
-}
-.pillars{
-  display:grid;grid-template-columns:repeat(4,1fr);gap:24px;
-  transform:translateZ(40px);
-}
-.pillar{
-  border-top:1px solid var(--line);padding-top:20px;
-  transform-style:preserve-3d;
-  transition:transform .4s var(--ease);
-}
-.pillar:hover{transform:translateZ(18px)}
-.pillar-n{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--ac);margin-bottom:10px}
-.pillar-h{font-size:16px;font-weight:600;margin-bottom:7px;letter-spacing:-.02em}
-.pillar-p{font-size:13px;color:var(--dim);line-height:1.6}
-
-/* ═══════════════ PRODUCT SECTIONS ═══════════════ */
-.prod-wrap{
-  display:grid;grid-template-columns:1fr 1fr;gap:80px;
-  align-items:center;width:100%;
-  transform-style:preserve-3d;
-}
-.prod-wrap.rev{direction:rtl}
-.prod-wrap.rev > *{direction:ltr}
-.prod-copy{transform-style:preserve-3d}
-.prod-h{
-  font-size:clamp(40px,5.5vw,82px);
-  font-weight:700;letter-spacing:-.04em;line-height:.96;
-  margin-bottom:24px;
-  transform:translateZ(50px);
-}
-.prod-h em{font-family:var(--serif);font-style:italic;font-weight:400;display:block}
-.prod-h .forge-em{color:var(--ember)}
-.prod-h .oort-em{color:var(--ac)}
-.prod-h .orbit-em{color:var(--violet)}
-.prod-p{
-  font-size:clamp(15px,1.4vw,18px);color:var(--dim);
-  line-height:1.7;margin-bottom:36px;max-width:460px;
-  transform:translateZ(25px);
-}
-.prod-stats{
-  display:flex;gap:32px;margin-bottom:40px;flex-wrap:wrap;
-  transform:translateZ(40px);
-}
-.pstat-v{
-  font-size:32px;font-weight:700;letter-spacing:-.04em;
-  font-family:var(--mono);line-height:1;
-}
-.pstat-v em{font-style:normal}
-.pstat-l{font-size:11px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;margin-top:4px}
-
-/* ═══════════════ 3D PANEL (live metrics) ═══════════════ */
-.panel-3d{
-  background:rgba(238,243,248,.025);
-  border:1px solid var(--line);
-  border-radius:20px;padding:28px;
-  min-height:380px;
-  display:flex;flex-direction:column;justify-content:space-between;
-  backdrop-filter:blur(8px);
-  position:relative;overflow:hidden;
-  /* 3D tilt effect */
-  transform:translateZ(70px) rotateY(-4deg) rotateX(2deg);
-  transform-style:preserve-3d;
-  transition:transform .5s var(--ease);
-}
-.panel-3d:hover{
-  transform:translateZ(90px) rotateY(-1deg) rotateX(0deg);
-}
-.panel-3d::before{
-  content:'';position:absolute;inset:0;border-radius:inherit;
-  pointer-events:none;
-}
-.forge-panel::before{background:radial-gradient(ellipse at 50% 0%,rgba(255,107,53,.07) 0%,transparent 55%)}
-.oort-panel::before{background:radial-gradient(ellipse at 50% 0%,rgba(143,217,255,.08) 0%,transparent 55%)}
-.orbit-panel::before{background:radial-gradient(ellipse at 50% 0%,rgba(168,85,247,.08) 0%,transparent 55%)}
-.panel-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
-.panel-chip{
-  font-family:var(--mono);font-size:9px;letter-spacing:.18em;
-  text-transform:uppercase;padding:5px 12px;
-  border-radius:100px;border:1px solid var(--line);color:var(--dim);
-}
-.panel-status{
-  display:flex;align-items:center;gap:6px;
-  font-family:var(--mono);font-size:10px;color:var(--ok);
-}
-.panel-status::before{
-  content:'';width:6px;height:6px;border-radius:50%;
-  background:var(--ok);box-shadow:0 0 10px var(--ok);
-  animation:blink 2s ease-in-out infinite;
-}
-@keyframes blink{50%{opacity:.3}}
-.panel-bars{display:flex;align-items:flex-end;gap:3px;height:80px;margin-bottom:18px}
-.bar{flex:1;border-radius:3px 3px 0 0;transition:height .5s var(--ease);min-height:3px}
-.bar-forge{background:linear-gradient(180deg,var(--ember),rgba(255,107,53,.25))}
-.bar-oort{background:linear-gradient(180deg,var(--ac),rgba(143,217,255,.25))}
-.bar-orbit{background:linear-gradient(180deg,var(--violet),rgba(168,85,247,.25))}
-.panel-metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.metric{
-  background:rgba(238,243,248,.035);border-radius:10px;
-  padding:14px;border:1px solid var(--line);
-  transform-style:preserve-3d;
-  transition:transform .3s var(--ease);
-}
-.metric:hover{transform:translateZ(12px)}
-.metric-v{font-family:var(--mono);font-size:18px;font-weight:500;letter-spacing:-.02em;margin-bottom:4px}
-.metric-l{font-size:11px;color:var(--dim)}
-.forge-m .metric-v{color:var(--ember)}
-.oort-m .metric-v{color:var(--ac)}
-.orbit-m .metric-v{color:var(--violet)}
-.panel-cta{
-  display:flex;align-items:center;justify-content:space-between;
-  margin-top:18px;border-top:1px solid var(--line);padding-top:16px;
-}
-.panel-cta span{font-size:12px;color:var(--dim)}
-.panel-link{
-  font-size:13px;font-weight:600;color:var(--ac);
-  display:flex;align-items:center;gap:6px;transition:gap .2s;
-}
-.panel-link:hover{gap:12px}
-
-/* ═══════════════ SCALE SECTION ═══════════════ */
-.scale-wrap{
-  max-width:1200px;width:100%;
-  transform-style:preserve-3d;
-}
-.scale-h{
-  font-size:clamp(48px,6vw,90px);font-weight:700;
-  letter-spacing:-.04em;line-height:.95;margin-bottom:60px;
-  transform:translateZ(50px);
-}
-.scale-h em{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--ok)}
-.scale-grid{
-  display:grid;grid-template-columns:repeat(3,1fr);gap:1px;
-  background:var(--line);border-radius:16px;overflow:hidden;
-  transform:translateZ(30px);
-}
-.scale-item{
-  background:var(--bg);padding:40px 28px;
-  transform-style:preserve-3d;transition:transform .3s var(--ease),background .3s;
-}
-.scale-item:hover{background:rgba(238,243,248,.02);transform:translateZ(12px)}
-.scale-n{font-family:var(--mono);font-size:clamp(34px,4vw,56px);font-weight:500;letter-spacing:-.03em;margin-bottom:8px}
-.scale-n.ac{color:var(--ac)}.scale-n.ok{color:var(--ok)}.scale-n.em{color:var(--ember)}.scale-n.vi{color:var(--violet)}
-.scale-l{font-size:14px;color:var(--dim);line-height:1.5}
-
-/* ═══════════════ COMPARE TABLE ═══════════════ */
-.cmp-wrap{
-  max-width:1100px;width:100%;
-  transform-style:preserve-3d;
-}
-.cmp-h{
-  font-size:clamp(40px,5vw,74px);font-weight:700;
-  letter-spacing:-.04em;line-height:.98;margin-bottom:48px;
-  transform:translateZ(40px);
-}
-.cmp-h em{font-family:var(--serif);font-style:italic;color:var(--ac);font-weight:400}
-.cmp-tbl{
-  width:100%;border-collapse:collapse;
-  transform:translateZ(20px);
-}
-.cmp-tbl th,.cmp-tbl td{
-  padding:16px 18px;text-align:left;border-bottom:1px solid var(--line);font-size:14px;
-}
-.cmp-tbl th{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);font-weight:400}
-.cmp-tbl td:first-child{color:var(--dim);font-size:13px}
-.cmp-yes{color:var(--ok);font-weight:600}
-.cmp-no{color:rgba(238,243,248,.25)}
-.cmp-cosmos-th{background:rgba(143,217,255,.06);border:1px solid rgba(143,217,255,.15);border-radius:8px}
-
-/* ═══════════════ CTA ═══════════════ */
-.cta-wrap{
-  max-width:800px;margin:0 auto;text-align:center;
-  transform-style:preserve-3d;
-}
-.cta-h{
-  font-size:clamp(56px,8vw,120px);font-weight:700;
-  letter-spacing:-.045em;line-height:.93;margin-bottom:28px;
-  transform:translateZ(60px);
-}
-.cta-h em{font-family:var(--serif);font-style:italic;color:var(--ac);font-weight:400;display:block}
-.cta-p{
-  font-size:clamp(16px,1.8vw,20px);color:var(--dim);
-  line-height:1.65;max-width:500px;margin:0 auto 44px;
-  transform:translateZ(30px);
-}
-.cta-btns{transform:translateZ(70px)}
-.cta-note{
-  margin-top:28px;font-family:var(--mono);font-size:11px;
-  letter-spacing:.1em;color:rgba(238,243,248,.2);text-transform:uppercase;
-  transform:translateZ(10px);
+.btn-signin:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
 }
 
-/* ═══════════════ FOOTER ═══════════════ */
-footer{
-  position:fixed;bottom:0;left:0;right:0;z-index:4;
-  border-top:1px solid var(--line);
-  padding:32px var(--pad);
-  display:flex;align-items:center;justify-content:space-between;
-  flex-wrap:wrap;gap:16px;
-  background:rgba(2,3,8,.9);backdrop-filter:blur(18px);
-  transform:translateY(100%);
-  transition:transform .6s var(--ease);
+.btn-primary {
+  font-size: 13px;
+  font-weight: 600;
+  color: #02040a;
+  text-decoration: none;
+  padding: 8px 20px;
+  border-radius: 9px;
+  background: #ffffff;
+  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.15);
+  transition: all 0.25s var(--ease);
 }
-footer.show{transform:translateY(0)}
-.ft-logo{display:flex;align-items:center;gap:10px;font-weight:600;font-size:14px}
-.ft-links{display:flex;gap:20px}
-.ft-links a{font-size:13px;color:var(--dim);transition:color .2s}
-.ft-links a:hover{color:var(--ink)}
-.ft-right{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:rgba(238,243,248,.25);text-align:right}
+.btn-primary:hover {
+  background: #eef3f8;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 28px rgba(255, 255, 255, 0.28);
+}
 
-/* ═══════════════ RESPONSIVE ═══════════════ */
-@media(max-width:900px){
-  .prod-wrap{grid-template-columns:1fr;gap:40px}
-  .prod-wrap.rev{direction:ltr}
-  .pillars{grid-template-columns:1fr 1fr}
-  .scale-grid{grid-template-columns:1fr 1fr}
-  .nav-r a:not(.nav-cta){display:none}
-  .hero-h1{font-size:clamp(48px,13vw,90px)}
-  .panel-3d{transform:translateZ(40px) rotateY(0) rotateX(0)}
+/* ── MAIN CONTENT WRAPPER ── */
+main {
+  position: relative;
+  z-index: 10;
+  min-height: 100vh;
 }
-@media(max-width:600px){
-  .pillars{grid-template-columns:1fr}
-  .scale-grid{grid-template-columns:1fr}
-  .prod-stats{gap:18px}
+
+/* ── HERO SECTION ── */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 130px var(--pad) 80px;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.badge-sovereign {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 16px;
+  border-radius: 99px;
+  background: rgba(143, 217, 255, 0.08);
+  border: 1px solid rgba(143, 217, 255, 0.25);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin-bottom: 28px;
+  box-shadow: 0 0 30px rgba(143, 217, 255, 0.1);
+}
+
+.hero-title {
+  font-size: clamp(48px, 8.5vw, 110px);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 0.98;
+  margin-bottom: 28px;
+  text-shadow: 0 0 80px rgba(143, 217, 255, 0.15);
+}
+.hero-title em {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--cyan);
+  text-shadow: 0 0 40px rgba(143, 217, 255, 0.4);
+}
+
+.hero-lead {
+  font-size: clamp(16px, 2vw, 20px);
+  line-height: 1.65;
+  color: var(--dim);
+  max-width: 680px;
+  margin: 0 auto 44px;
+}
+
+.hero-cta-group {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 70px;
+}
+.hero-btn-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 34px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #02040a;
+  text-decoration: none;
+  box-shadow: 0 10px 30px rgba(255, 255, 255, 0.18);
+  transition: all 0.3s var(--ease);
+}
+.hero-btn-main:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 40px rgba(255, 255, 255, 0.3);
+}
+
+.hero-btn-sub {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 30px;
+  font-size: 15px;
+  font-weight: 500;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+  text-decoration: none;
+  border: 1px solid var(--line);
+  backdrop-filter: blur(14px);
+  transition: all 0.3s var(--ease);
+}
+.hero-btn-sub:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+/* ── HUD METRICS STRIP ── */
+.metrics-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+.metric-box {
+  background: rgba(8, 14, 28, 0.6);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 20px 16px;
+  backdrop-filter: blur(16px);
+  text-align: center;
+  transition: all 0.3s var(--ease);
+}
+.metric-box:hover {
+  border-color: var(--line-active);
+  transform: translateY(-2px);
+  background: rgba(14, 22, 42, 0.7);
+}
+.metric-val {
+  font-family: var(--mono);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+.metric-lbl {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+/* ── STATIONS SHOWCASE ── */
+.section-stations {
+  padding: 100px var(--pad) 80px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.section-head {
+  text-align: center;
+  margin-bottom: 60px;
+}
+.section-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin-bottom: 16px;
+}
+.section-tag::before, .section-tag::after {
+  content: '';
+  width: 24px;
+  height: 1px;
+  background: rgba(143, 217, 255, 0.4);
+}
+.section-title {
+  font-size: clamp(34px, 5vw, 56px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+.section-title em {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--cyan);
+}
+
+/* 3D Stations Grid */
+.stations-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+}
+
+.station-card {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 36px 30px;
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  transition: transform 0.45s var(--ease), border-color 0.45s, box-shadow 0.45s;
+}
+
+.station-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.65);
+}
+
+.station-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 160px;
+  pointer-events: none;
+  opacity: 0.15;
+  transition: opacity 0.4s;
+}
+.station-card:hover .station-glow {
+  opacity: 0.28;
+}
+
+.card-forge .station-glow {
+  background: radial-gradient(ellipse at 50% 0%, rgb(var(--amber-rgb)) 0%, transparent 70%);
+}
+.card-oort .station-glow {
+  background: radial-gradient(ellipse at 50% 0%, rgb(var(--cyan-rgb)) 0%, transparent 70%);
+}
+.card-orbit .station-glow {
+  background: radial-gradient(ellipse at 50% 0%, rgb(var(--violet-rgb)) 0%, transparent 70%);
+}
+
+.station-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+.station-id {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.station-badge {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  padding: 4px 10px;
+  border-radius: 99px;
+  text-transform: uppercase;
+}
+.card-forge .station-badge {
+  background: rgba(var(--amber-rgb), 0.12);
+  border: 1px solid rgba(var(--amber-rgb), 0.35);
+  color: var(--amber);
+}
+.card-oort .station-badge {
+  background: rgba(var(--cyan-rgb), 0.12);
+  border: 1px solid rgba(var(--cyan-rgb), 0.35);
+  color: var(--cyan);
+}
+.card-orbit .station-badge {
+  background: rgba(var(--violet-rgb), 0.12);
+  border: 1px solid rgba(var(--violet-rgb), 0.35);
+  color: var(--violet);
+}
+
+.station-title {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin-bottom: 8px;
+}
+.station-subtitle {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--dim);
+  margin-bottom: 20px;
+}
+.card-forge .station-subtitle { color: var(--amber); }
+.card-oort .station-subtitle { color: var(--cyan); }
+.card-orbit .station-subtitle { color: var(--violet); }
+
+.station-desc {
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--dim);
+  margin-bottom: 28px;
+}
+
+.station-features {
+  list-style: none;
+  margin-bottom: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.station-features li {
+  font-size: 13.5px;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.feature-bullet {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.card-forge .feature-bullet { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+.card-oort .feature-bullet { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+.card-orbit .feature-bullet { background: var(--violet); box-shadow: 0 0 8px var(--violet); }
+
+.station-bottom {
+  border-top: 1px solid var(--line);
+  padding-top: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.station-link {
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: gap 0.25s var(--ease);
+}
+.station-link:hover { gap: 14px; }
+.card-forge .station-link { color: var(--amber); }
+.card-oort .station-link { color: var(--cyan); }
+.card-orbit .station-link { color: var(--violet); }
+
+/* ── ARCHITECTURE SECTION ── */
+.section-arch {
+  padding: 80px var(--pad);
+  max-width: 1280px;
+  margin: 0 auto;
+}
+.arch-card {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 48px 40px;
+  backdrop-filter: blur(24px);
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 48px;
+  align-items: center;
+}
+.arch-title {
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin-bottom: 20px;
+}
+.arch-title em {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--cyan);
+}
+.arch-desc {
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--dim);
+  margin-bottom: 28px;
+}
+.arch-diagram {
+  background: rgba(2, 4, 10, 0.7);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 24px;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.8;
+  color: rgba(240, 244, 248, 0.75);
+}
+.diag-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--cyan);
+}
+
+/* ── COMPARISON TABLE ── */
+.section-compare {
+  padding: 80px var(--pad);
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.compare-table-wrap {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  overflow: hidden;
+  backdrop-filter: blur(24px);
+}
+.cmp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.cmp-table th, .cmp-table td {
+  padding: 18px 24px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+.cmp-table th {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--dim);
+  background: rgba(255, 255, 255, 0.02);
+}
+.cmp-table th.highlight, .cmp-table td.highlight {
+  background: rgba(143, 217, 255, 0.05);
+  font-weight: 600;
+  color: var(--cyan);
+}
+.cmp-table td:first-child {
+  font-weight: 500;
+  color: var(--ink);
+}
+.cmp-yes { color: var(--green); font-weight: 600; }
+.cmp-no { color: rgba(240, 244, 248, 0.35); }
+
+/* ── FINAL CALL TO ACTION ── */
+.section-cta {
+  padding: 120px var(--pad) 140px;
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto;
+}
+.cta-title {
+  font-size: clamp(40px, 6vw, 76px);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+  margin-bottom: 24px;
+}
+.cta-title em {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--cyan);
+}
+.cta-sub {
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--dim);
+  margin-bottom: 40px;
+}
+
+/* ── FOOTER ── */
+footer {
+  position: relative;
+  z-index: 10;
+  border-top: 1px solid var(--line);
+  padding: 40px var(--pad);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  background: rgba(2, 4, 10, 0.75);
+  backdrop-filter: blur(20px);
+}
+.ft-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: none;
+}
+.ft-copy {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  color: var(--faint);
+  text-transform: uppercase;
+}
+.ft-clock {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--dim);
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 980px) {
+  .stations-grid { grid-template-columns: 1fr; }
+  .metrics-strip { grid-template-columns: repeat(2, 1fr); }
+  .arch-card { grid-template-columns: 1fr; gap: 32px; }
+  .nav-links { display: none; }
+}
+@media (max-width: 580px) {
+  .metrics-strip { grid-template-columns: 1fr; }
+  footer { flex-direction: column; text-align: center; }
+  .hero-cta-group { flex-direction: column; width: 100%; }
 }
 </style>
 </head>
 <body>
 
-<!-- THREE.JS canvas at z-index:0 -->
-<canvas id="cvs" aria-hidden="true"></canvas>
-<div class="grain" aria-hidden="true"></div>
-<div class="vignette" aria-hidden="true"></div>
-<div id="prog" aria-hidden="true"></div>
-<div id="sect-id">01 — COSMOS</div>
+<!-- Three.js Background Canvas -->
+<canvas id="webgl-bg" aria-hidden="true"></canvas>
+<div class="cosmic-grain" aria-hidden="true"></div>
+<div class="cosmic-vignette" aria-hidden="true"></div>
 
-<!-- NAV -->
+<!-- Top Navigation -->
 <nav id="nav">
-  <a href="/" class="nav-logo">
-    <svg viewBox="0 0 34 34" aria-label="Cosmos">
-      <ellipse cx="17" cy="17" rx="14" ry="5.5" fill="none" stroke="rgba(238,243,248,.45)" stroke-width="1.1" transform="rotate(-28 17 17)"/>
-      <ellipse cx="17" cy="17" rx="14" ry="5.5" fill="none" stroke="rgba(143,217,255,.25)" stroke-width=".7" transform="rotate(28 17 17)"/>
-      <circle cx="17" cy="17" r="4.5" fill="#eef3f8"/>
-      <circle cx="28" cy="12" r="1.8" fill="#8fd9ff"/>
-    </svg>
-    Cosmos<em>.</em>
+  <a href="/" class="nav-brand">
+    <div class="brand-mark">
+      <svg viewBox="0 0 34 34">
+        <ellipse cx="17" cy="17" rx="14.5" ry="5.5" fill="none" stroke="rgba(240,244,248,.4)" stroke-width="1.2" transform="rotate(-28 17 17)"/>
+        <ellipse cx="17" cy="17" rx="14.5" ry="5.5" fill="none" stroke="rgba(143,217,255,.2)" stroke-width=".8" transform="rotate(28 17 17)"/>
+        <circle cx="17" cy="17" r="4.6" fill="#eef3f8"/>
+        <circle cx="28" cy="12" r="1.8" fill="#8fd9ff"/>
+      </svg>
+    </div>
+    <span>Cosmos</span>
   </a>
-  <div class="nav-r">
-    <a href="/git">Forge</a>
-    <a href="/oort">Oort</a>
-    <a href="/orbit">Orbit</a>
-    <a href="/oort/login" class="nav-cta">Get Started</a>
+
+  <div class="nav-links">
+    <a href="/git"><span class="nav-dot" style="color:var(--amber)"></span>Forge Git</a>
+    <a href="/oort"><span class="nav-dot" style="color:var(--cyan)"></span>Oort NAS</a>
+    <a href="/orbit"><span class="nav-dot" style="color:var(--violet)"></span>Orbit PaaS</a>
+  </div>
+
+  <div class="nav-actions">
+    <div class="telemetry-pill">
+      <div class="telemetry-dot"></div>
+      <span>ONLINE</span>
+    </div>
+    <a href="/oort/login" class="btn-signin">Sign In</a>
+    <a href="/oort/signup" class="btn-primary">Get Started</a>
   </div>
 </nav>
 
-<!-- ══════════════════════════════════════════════
-  3D WORLD — all content lives inside this perspective container.
-  #tunnel is translated on Z based on scroll position.
-  Each .station is at a specific translateZ() depth.
-═══════════════════════════════════════════════════ -->
-<div id="world">
-<div id="tunnel">
+<main>
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="badge-sovereign">
+      <span>SOVEREIGN CLOUD ARCHITECTURE</span>
+    </div>
+    <h1 class="hero-title">
+      Your Infrastructure.<br>
+      <em>Zero Compromises.</em>
+    </h1>
+    <p class="hero-lead">
+      Cosmos delivers full-spectrum self-hosted cloud sovereign power. High-speed Git version control, dedicated Mornye streaming NAS &amp; S3 object storage, and automated container deployment on your own bare metal.
+    </p>
 
-  <!-- ★ STATION 0 — HERO  (Z = 0) -->
-  <div class="station active" id="st0" style="opacity:1;visibility:visible" data-label="01 — COSMOS">
-    <div class="st-inner">
-      <div class="hero-center">
-        <div class="hero-tag">Sovereign Cloud Platform</div>
-        <h1 class="hero-h1">Your sky.<em>Your rules.</em></h1>
-        <p class="hero-sub">
-          Self-hosted Git, infinite object storage, container orchestration —
-          encrypted, isolated, no third-party ever.
-        </p>
-        <div class="hero-btns">
-          <a href="/oort/signup" class="btn btn-w">Create Account</a>
-          <a href="/oort" class="btn btn-o">Explore Platform ↗</a>
-        </div>
-        <div class="scroll-cue" aria-hidden="true">
-          <span>Scroll to explore</span>
-          <div class="scroll-line"></div>
-        </div>
+    <div class="hero-cta-group">
+      <a href="#stations" class="hero-btn-main">Explore Stations ↓</a>
+      <a href="/oort/login" class="hero-btn-sub">Access Console →</a>
+    </div>
+
+    <!-- Live Telemetry Strip -->
+    <div class="metrics-strip">
+      <div class="metric-box">
+        <div class="metric-val" style="color:var(--cyan)">100%</div>
+        <div class="metric-lbl">Data Sovereignty</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-val" style="color:var(--amber)">&lt; 1ms</div>
+        <div class="metric-lbl">Local Bus Latency</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-val" style="color:var(--green)">ScyllaDB</div>
+        <div class="metric-lbl">Auth Engine</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-val" style="color:var(--violet)">Docker API</div>
+        <div class="metric-lbl">Container Mesh</div>
       </div>
     </div>
-  </div>
+  </section>
 
-  <!-- ★ STATION 1 — MANIFESTO  (Z = -2400) -->
-  <div class="station" id="st1" data-label="00 — SOVEREIGNTY">
-    <div class="st-inner">
-      <div class="manifesto-wrap">
-        <span class="ch-tag">00 — Sovereignty</span>
-        <h2 class="manifesto-q" id="mq" aria-label="Your cloud should obey you. Not the other way around."></h2>
-        <p class="manifesto-body">
-          The cloud promised freedom and delivered surveillance.
-          Every file you store, every commit you push, every container you spin —
-          recorded, indexed, monetised.
-          Cosmos was built to end that.
-        </p>
-        <div class="pillars">
-          <div class="pillar"><div class="pillar-n">01</div><div class="pillar-h">Zero telemetry</div><p class="pillar-p">Nothing phones home. No analytics, no crash reports, no data leaving your hardware.</p></div>
-          <div class="pillar"><div class="pillar-n">02</div><div class="pillar-h">End-to-end encryption</div><p class="pillar-p">AES-256 at rest, mutual TLS in transit. Keys never leave your server.</p></div>
-          <div class="pillar"><div class="pillar-n">03</div><div class="pillar-h">Air-gap capable</div><p class="pillar-p">Runs entirely offline. No external DNS, no CDN, no cloud dependencies.</p></div>
-          <div class="pillar"><div class="pillar-n">04</div><div class="pillar-h">You own the keys</div><p class="pillar-p">Root access guaranteed. Export, migrate, delete — no lock-in, no permission needed.</p></div>
-        </div>
-      </div>
+  <!-- Stations Section -->
+  <section class="section-stations" id="stations">
+    <div class="section-head">
+      <div class="section-tag">COSMOS CORE PLATFORMS</div>
+      <h2 class="section-title">Engineered for absolute <em>independence.</em></h2>
     </div>
-  </div>
 
-  <!-- ★ STATION 2 — FORGE  (Z = -5400) -->
-  <div class="station" id="st2" data-label="01 — FORGE">
-    <div class="st-inner">
-      <div class="prod-wrap">
-        <div class="prod-copy">
-          <span class="ch-tag">01 — Forge</span>
-          <h2 class="prod-h">Private Git.<br><em class="forge-em">Infinite repos.</em></h2>
-          <p class="prod-p">
-            Full-featured self-hosted Git forge. Code review, CI pipelines,
-            protected branches, SSH and HTTPS — none of the surveillance.
+    <div class="stations-grid">
+      <!-- Station 1: Forge -->
+      <div class="station-card card-forge">
+        <div class="station-glow"></div>
+        <div>
+          <div class="station-top">
+            <span class="station-id">STATION 01</span>
+            <span class="station-badge">GIT REPOSITORIES</span>
+          </div>
+          <h3 class="station-title">Forge</h3>
+          <div class="station-subtitle">Sovereign Source Control</div>
+          <p class="station-desc">
+            Ultra-fast self-hosted Git version control platform. Granular branch protection, commit signing verification, and zero third-party telemetry or code scraping.
           </p>
-          <div class="prod-stats">
-            <div><div class="pstat-v"><em id="fCommits" style="color:var(--ember)">1,218</em></div><div class="pstat-l">Commits today</div></div>
-            <div><div class="pstat-v"><em style="color:var(--ember)">∞</em></div><div class="pstat-l">Repositories</div></div>
-            <div><div class="pstat-v"><em style="color:var(--ember)">0</em></div><div class="pstat-l">Third parties</div></div>
-          </div>
-          <a href="/git" class="btn btn-w" style="transform:translateZ(60px)">Open Forge ↗</a>
+          <ul class="station-features">
+            <li><span class="feature-bullet"></span>SSH &amp; HTTPS Dual Protocol Push</li>
+            <li><span class="feature-bullet"></span>Mandatory Peer Review Gateways</li>
+            <li><span class="feature-bullet"></span>Seamless Orbit CI/CD Webhooks</li>
+          </ul>
         </div>
-        <div class="panel-3d forge-panel">
-          <div class="panel-top"><span class="panel-chip">forge · live</span><span class="panel-status">Nominal</span></div>
-          <div class="panel-bars" id="forge-bars"></div>
-          <div class="panel-metrics">
-            <div class="metric forge-m"><div class="metric-v" id="fC2">1,218</div><div class="metric-l">Commits / day</div></div>
-            <div class="metric forge-m"><div class="metric-v" id="fK">12</div><div class="metric-l">SSH keys</div></div>
-            <div class="metric forge-m"><div class="metric-v">4.1ms</div><div class="metric-l">Clone latency</div></div>
-            <div class="metric forge-m"><div class="metric-v">99.99%</div><div class="metric-l">Uptime (90d)</div></div>
-          </div>
-          <div class="panel-cta"><span>Git-compatible · Gitea-powered</span><a href="/git" class="panel-link">Open Forge →</a></div>
+        <div class="station-bottom">
+          <a href="/git" class="station-link">Enter Forge <span>→</span></a>
+          <a href="/git/login" style="font-family:var(--mono);font-size:12px;color:var(--dim);text-decoration:none;">Sign In</a>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- ★ STATION 3 — OORT  (Z = -8400) -->
-  <div class="station" id="st3" data-label="02 — MORNYE NAS">
-    <div class="st-inner">
-      <div class="prod-wrap rev">
-        <div class="prod-copy">
-          <span class="ch-tag">02 — Oort NAS for Mornye</span>
-          <h2 class="prod-h">Mornye NAS.<br><em class="oort-em">Your music hardware.</em></h2>
-          <p class="prod-p">
-            High-performance Network Attached Storage built for Mornye music streaming
-            and sovereign S3 object cloud. Unique isolated streaming URLs for every account,
-            lossless FLAC byte-range delivery, zero cloud bills.
+      <!-- Station 2: Oort -->
+      <div class="station-card card-oort">
+        <div class="station-glow"></div>
+        <div>
+          <div class="station-top">
+            <span class="station-id">STATION 02</span>
+            <span class="station-badge">NAS &amp; S3 CLOUD</span>
+          </div>
+          <h3 class="station-title">Oort</h3>
+          <div class="station-subtitle">NAS for Mornye &amp; Sovereign Storage</div>
+          <p class="station-desc">
+            High-performance Network Attached Storage engineered specifically for Mornye music streaming and sovereign S3 object cloud. Unique streaming URLs for every account, lossless FLAC byte-range streaming, zero cloud bills.
           </p>
-          <div class="prod-stats">
-            <div><div class="pstat-v"><em id="oRps" style="color:var(--ac)">34,210</em></div><div class="pstat-l">Req / second</div></div>
-            <div><div class="pstat-v"><em id="oLat" style="color:var(--ac)">3.8</em>ms</div><div class="pstat-l">p99 latency</div></div>
-            <div><div class="pstat-v"><em id="oStore" style="color:var(--ac)">4.7</em>TB</div><div class="pstat-l">Data stored</div></div>
-          </div>
-          <a href="/oort" class="btn btn-w" style="transform:translateZ(60px)">Open Mornye NAS ↗</a>
+          <ul class="station-features">
+            <li><span class="feature-bullet"></span>Native WebDAV &amp; HTTP(S) for Mornye</li>
+            <li><span class="feature-bullet"></span>Private Isolated Bucket Per User</li>
+            <li><span class="feature-bullet"></span>Full S3 API &amp; Web File Manager</li>
+          </ul>
         </div>
-        <div class="panel-3d oort-panel">
-          <div class="panel-top"><span class="panel-chip">oort · nas live</span><span class="panel-status">Nominal</span></div>
-          <div class="panel-bars" id="oort-bars"></div>
-          <div class="panel-metrics">
-            <div class="metric oort-m"><div class="metric-v" id="oR2">34,210</div><div class="metric-l">Req / s</div></div>
-            <div class="metric oort-m"><div class="metric-v" id="oL2">3.8ms</div><div class="metric-l">p99 latency</div></div>
-            <div class="metric oort-m"><div class="metric-v" id="oS2">4.7TB</div><div class="metric-l">Stored</div></div>
-            <div class="metric oort-m"><div class="metric-v">FLAC/24b</div><div class="metric-l">Hi-Res Ready</div></div>
-          </div>
-          <div class="panel-cta"><span>Mornye NAS · MinIO-powered</span><a href="/oort" class="panel-link">Open NAS →</a></div>
+        <div class="station-bottom">
+          <a href="/oort" class="station-link">Access Oort NAS <span>→</span></a>
+          <a href="/oort/login" style="font-family:var(--mono);font-size:12px;color:var(--dim);text-decoration:none;">Sign In</a>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- ★ STATION 4 — ORBIT  (Z = -11400) -->
-  <div class="station" id="st4" data-label="03 — ORBIT">
-    <div class="st-inner">
-      <div class="prod-wrap">
-        <div class="prod-copy">
-          <span class="ch-tag">03 — Orbit</span>
-          <h2 class="prod-h">Container cloud.<br><em class="orbit-em">No AWS needed.</em></h2>
-          <p class="prod-p">
-            Deploy, scale, and monitor containers from a single dashboard.
-            Real-time logs, resource metrics, reverse-proxy routing —
-            on your own server.
+      <!-- Station 3: Orbit -->
+      <div class="station-card card-orbit">
+        <div class="station-glow"></div>
+        <div>
+          <div class="station-top">
+            <span class="station-id">STATION 03</span>
+            <span class="station-badge">CONTAINER ENGINE</span>
+          </div>
+          <h3 class="station-title">Orbit</h3>
+          <div class="station-subtitle">Zero-Config App PaaS</div>
+          <p class="station-desc">
+            Continuous deployment application engine. Simply connect your Git repository or Docker image; Orbit builds, isolates, and routes edge traffic with live streaming logs.
           </p>
-          <div class="prod-stats">
-            <div><div class="pstat-v"><em id="orbP" style="color:var(--violet)">:4109</em></div><div class="pstat-l">Live port</div></div>
-            <div><div class="pstat-v"><em id="orbC" style="color:var(--violet)">7</em></div><div class="pstat-l">Containers</div></div>
-            <div><div class="pstat-v"><em style="color:var(--violet)">0</em></div><div class="pstat-l">Cold starts</div></div>
-          </div>
-          <a href="/orbit" class="btn btn-w" style="transform:translateZ(60px)">Open Orbit ↗</a>
+          <ul class="station-features">
+            <li><span class="feature-bullet"></span>Zero-Config Multi-Stage Docker Builds</li>
+            <li><span class="feature-bullet"></span>Dynamic Reverse Proxy &amp; Custom Domains</li>
+            <li><span class="feature-bullet"></span>Real-time CPU/RAM Telemetry &amp; Logs</li>
+          </ul>
         </div>
-        <div class="panel-3d orbit-panel">
-          <div class="panel-top"><span class="panel-chip">orbit · live</span><span class="panel-status">Nominal</span></div>
-          <div class="panel-bars" id="orbit-bars"></div>
-          <div class="panel-metrics">
-            <div class="metric orbit-m"><div class="metric-v" id="oP2">:4109</div><div class="metric-l">Live port</div></div>
-            <div class="metric orbit-m"><div class="metric-v" id="oC2">7</div><div class="metric-l">Containers</div></div>
-            <div class="metric orbit-m"><div class="metric-v">0.4%</div><div class="metric-l">CPU overhead</div></div>
-            <div class="metric orbit-m"><div class="metric-v">mTLS</div><div class="metric-l">Inter-container</div></div>
-          </div>
-          <div class="panel-cta"><span>Docker-compatible · ScyllaDB-backed</span><a href="/orbit" class="panel-link">Open Orbit →</a></div>
+        <div class="station-bottom">
+          <a href="/orbit" class="station-link">Launch Orbit <span>→</span></a>
+          <a href="/oort/login?next=/orbit" style="font-family:var(--mono);font-size:12px;color:var(--dim);text-decoration:none;">Sign In</a>
         </div>
       </div>
     </div>
-  </div>
+  </section>
 
-  <!-- ★ STATION 5 — SCALE  (Z = -14000) -->
-  <div class="station" id="st5" data-label="04 — SCALE">
-    <div class="st-inner">
-      <div class="scale-wrap">
-        <span class="ch-tag">04 — Scale</span>
-        <h2 class="scale-h">Built to<br><em>never slow down.</em></h2>
-        <div class="scale-grid">
-          <div class="scale-item"><div class="scale-n ac">99.99</div><div class="scale-l">% uptime SLA<br>trailing 90 days</div></div>
-          <div class="scale-item"><div class="scale-n ok">∞</div><div class="scale-l">Storage capacity<br>limited by hardware</div></div>
-          <div class="scale-item"><div class="scale-n em">0</div><div class="scale-l">Third-party access<br>no vendors, ever</div></div>
-          <div class="scale-item"><div class="scale-n vi">34,200</div><div class="scale-l">Requests / second<br>Oort peak throughput</div></div>
-          <div class="scale-item"><div class="scale-n ac">3.8ms</div><div class="scale-l">p99 object latency<br>on commodity NVMe</div></div>
-          <div class="scale-item"><div class="scale-n ok">AES-256</div><div class="scale-l">Encryption at rest<br>keys never leave server</div></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ★ STATION 6 — COMPARE  (Z = -16500) -->
-  <div class="station" id="st6" data-label="05 — COMPARISON">
-    <div class="st-inner">
-      <div class="cmp-wrap">
-        <span class="ch-tag">05 — Comparison</span>
-        <h2 class="cmp-h">Why not<br><em>the cloud?</em></h2>
-        <table class="cmp-tbl"><thead><tr>
-          <th></th><th class="cmp-cosmos-th">Cosmos</th><th>AWS</th><th>GCP</th><th>Azure</th>
-        </tr></thead><tbody>
-          <tr><td>Data ownership</td><td class="cmp-yes">✓ You own it</td><td class="cmp-no">✗ Their TOS</td><td class="cmp-no">✗ Their TOS</td><td class="cmp-no">✗ Their TOS</td></tr>
-          <tr><td>Monthly cost</td><td class="cmp-yes">✓ Fixed</td><td class="cmp-no">$ Variable</td><td class="cmp-no">$ Variable</td><td class="cmp-no">$ Variable</td></tr>
-          <tr><td>Private Git</td><td class="cmp-yes">✓ Built-in</td><td class="cmp-no">✗ Extra cost</td><td class="cmp-no">✗ Cloud Source</td><td class="cmp-no">✗ DevOps add-on</td></tr>
-          <tr><td>S3 storage</td><td class="cmp-yes">✓ Included</td><td class="cmp-no">$ Per GB</td><td class="cmp-no">$ Per GB</td><td class="cmp-no">$ Per GB</td></tr>
-          <tr><td>Containers</td><td class="cmp-yes">✓ Included</td><td class="cmp-no">$ ECS/EKS</td><td class="cmp-no">$ GKE</td><td class="cmp-no">$ AKS</td></tr>
-          <tr><td>Vendor lock-in</td><td class="cmp-yes">✓ None</td><td class="cmp-no">✗ High</td><td class="cmp-no">✗ High</td><td class="cmp-no">✗ High</td></tr>
-        </tbody></table>
-      </div>
-    </div>
-  </div>
-
-  <!-- ★ STATION 7 — CTA  (Z = -19000) -->
-  <div class="station" id="st7" data-label="06 — BEGIN">
-    <div class="st-inner">
-      <div class="cta-wrap">
-        <span class="ch-tag">06 — Begin</span>
-        <h2 class="cta-h">Your cloud.<em>Starts now.</em></h2>
-        <p class="cta-p">
-          Deploy your sovereign stack today. Full control, no vendors, no compromise.
-          Every byte of storage — encrypted, isolated, yours.
+  <!-- Architecture Section -->
+  <section class="section-arch">
+    <div class="arch-card">
+      <div>
+        <div class="section-tag" style="margin-bottom:12px">UNIFIED SYSTEM FABRIC</div>
+        <h2 class="arch-title">Single Sign-On across your <em>entire cluster.</em></h2>
+        <p class="arch-desc">
+          One identity unlocks all three platforms. Authentication is backed by an ultra-fast ScyllaDB distributed database with cryptographic session hashing and strict role isolation.
         </p>
-        <div class="cta-btns" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-          <a href="/oort/signup" class="btn btn-w">Create Account</a>
-          <a href="/git" class="btn btn-o">Open Forge ↗</a>
-          <a href="/orbit" class="btn btn-o">Open Orbit ↗</a>
+        <div style="display:flex;gap:14px;flex-wrap:wrap">
+          <a href="/oort/signup" class="hero-btn-main" style="padding:10px 24px;font-size:13.5px">Create Sovereign Account</a>
+          <a href="/oort/login" class="hero-btn-sub" style="padding:10px 24px;font-size:13.5px">Sign In</a>
         </div>
-        <p class="cta-note">Self-hosted · Private · No third parties · No exceptions</p>
+      </div>
+
+      <div class="arch-diagram">
+        <div class="diag-header">
+          <span style="color:var(--green)">●</span>
+          <span>CLUSTER TOPOLOGY OVERVIEW</span>
+        </div>
+        <div style="color:var(--cyan)">[ CLIENT REQUEST ]</div>
+        <div style="color:var(--dim)">    │</div>
+        <div style="color:var(--dim)">    ▼</div>
+        <div style="color:#fff;background:rgba(255,255,255,0.06);padding:4px 8px;border-radius:4px;display:inline-block">NGINX REVERSE PROXY (:443) ── SSL TERMINATION</div>
+        <div style="color:var(--dim)">    │</div>
+        <div style="color:var(--dim)">    ▼</div>
+        <div style="color:#fff;background:rgba(143,217,255,0.08);padding:4px 8px;border-radius:4px;display:inline-block">COSMOS GO PORTAL GATEWAY (:8000)</div>
+        <div style="color:var(--dim)">    ├─── Auth &amp; Session Verification ──► ScyllaDB Cluster</div>
+        <div style="color:var(--amber)">    ├─── /git   ──► Forge Git Bare Repo Engine</div>
+        <div style="color:var(--cyan)">    ├─── /oort  ──► MinIO S3 &amp; WebDAV Mornye NAS Storage</div>
+        <div style="color:var(--violet)">    └─── /orbit ──► Docker Engine API &amp; App Routing</div>
       </div>
     </div>
-  </div>
+  </section>
 
-</div><!-- /tunnel -->
-</div><!-- /world -->
+  <!-- Comparison Matrix -->
+  <section class="section-compare">
+    <div class="section-head">
+      <div class="section-tag">COMPLIANCE &amp; SOVEREIGNTY</div>
+      <h2 class="section-title">Cosmos vs. <em>Public Cloud Lock-In</em></h2>
+    </div>
 
-<!-- Scroll height spacer — invisible, just gives us scroll distance -->
-<div id="scroll-spacer"></div>
+    <div class="compare-table-wrap">
+      <table class="cmp-table">
+        <thead>
+          <tr>
+            <th>Platform Feature</th>
+            <th class="highlight">Cosmos Cluster</th>
+            <th>Public SaaS (AWS / GitHub)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Data Sovereignty</td>
+            <td class="highlight cmp-yes">100% On-Premise Airgap</td>
+            <td class="cmp-no">Cloud Provider Owned</td>
+          </tr>
+          <tr>
+            <td>Mornye Music Streaming NAS</td>
+            <td class="highlight cmp-yes">Built-in Dedicated Server</td>
+            <td class="cmp-no">Complex Custom Setup</td>
+          </tr>
+          <tr>
+            <td>Code &amp; Data AI Scraping</td>
+            <td class="highlight cmp-yes">Zero (No Telemetry)</td>
+            <td class="cmp-no">Trained on Your Code</td>
+          </tr>
+          <tr>
+            <td>Per-Seat Licensing Fees</td>
+            <td class="highlight cmp-yes">$0 / Unlimited Users</td>
+            <td class="cmp-no">$21 - $250+ / user / month</td>
+          </tr>
+          <tr>
+            <td>Single Sign-On Database</td>
+            <td class="highlight cmp-yes">Ultra-low Latency ScyllaDB</td>
+            <td class="cmp-no">Fragmented Accounts</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
 
-<!-- Footer slides up at the very end -->
-<footer id="ft">
-  <a href="/" class="ft-logo">
-    <svg width="22" height="22" viewBox="0 0 34 34"><ellipse cx="17" cy="17" rx="14" ry="5.5" fill="none" stroke="rgba(238,243,248,.4)" stroke-width="1.1" transform="rotate(-28 17 17)"/><circle cx="17" cy="17" r="4" fill="#eef3f8"/></svg>
+  <!-- CTA Section -->
+  <section class="section-cta">
+    <h2 class="cta-title">Take command of your <em>digital universe.</em></h2>
+    <p class="cta-sub">
+      Deploy private repositories, launch Mornye streaming NAS storage, and orchestrate containers with total privacy and zero external dependencies.
+    </p>
+    <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+      <a href="/oort/signup" class="hero-btn-main">Deploy Your Sovereign Cloud</a>
+      <a href="/oort/login" class="hero-btn-sub">Sign In to Dashboard</a>
+    </div>
+  </section>
+</main>
+
+<!-- Footer -->
+<footer>
+  <a href="/" class="ft-brand">
+    <svg width="22" height="22" viewBox="0 0 34 34">
+      <ellipse cx="17" cy="17" rx="14.5" ry="5.5" fill="none" stroke="rgba(240,244,248,.6)" stroke-width="1.2" transform="rotate(-28 17 17)"/>
+      <circle cx="17" cy="17" r="4.6" fill="#eef3f8"/>
+      <circle cx="28" cy="12" r="1.8" fill="#8fd9ff"/>
+    </svg>
     Cosmos
   </a>
-  <nav class="ft-links"><a href="/git">Forge</a><a href="/oort">Oort</a><a href="/orbit">Orbit</a><a href="/oort/login">Login</a></nav>
-  <div class="ft-right"><div>51.4778° N · 0.0015° W</div><div style="color:var(--ok);margin-top:3px">● All systems nominal</div></div>
+  <div class="ft-copy">SOVEREIGN CLOUD INFRASTRUCTURE · ALL SYSTEMS NOMINAL</div>
+  <div class="ft-clock" id="live-utc">UTC 00:00:00</div>
 </footer>
 
-<noscript><style>.station{opacity:1!important;visibility:visible!important;position:relative!important;transform:none!important}.manifesto-q .word{opacity:1!important;transform:none!important}#world{position:relative!important;perspective:none!important}#tunnel{position:relative!important;transform:none!important}#scroll-spacer{display:none}</style></noscript>
-
-<!-- ═══════════════════════════════════════════════════
-   SCRIPT: 3D SCROLL ENGINE + THREE.JS
-═══════════════════════════════════════════════════ -->
+<!-- 3D Three.js Cosmic Scene -->
 <script>
-(function(){
-'use strict';
+(() => {
+  'use strict';
+  if (typeof THREE === 'undefined') return;
 
-/* ─── MATH ─── */
-var CL=function(v,a,b){return Math.max(a,Math.min(b,v))};
-var L=function(a,b,t){return a+(b-a)*t};
-var EIO=function(t){return t<.5?2*t*t:-1+(4-2*t)*t};
-var EO=function(t){return 1-(1-t)*(1-t)};
+  const canvas = document.getElementById('webgl-bg');
+  const renderer = new THREE.WebGLRenderer({
+    canvas: canvas,
+    alpha: true,
+    antialias: true,
+    powerPreference: 'high-performance'
+  });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
 
-/* ═══════════════════════════════════════════════
-   STATION DEFINITIONS
-   Each station has a Z-depth and a "dwell" zone.
-   Camera Z position = -scrollProgress * totalZDepth
-   Stations become active when camera Z is near their depth.
-═══════════════════════════════════════════════════ */
-var STATIONS = [
-  { id:'st0', z:0,      label:'01 — COSMOS' },
-  { id:'st1', z:-2400,  label:'00 — SOVEREIGNTY' },
-  { id:'st2', z:-5400,  label:'01 — FORGE' },
-  { id:'st3', z:-8400,  label:'02 — OORT' },
-  { id:'st4', z:-11400, label:'03 — ORBIT' },
-  { id:'st5', z:-14000, label:'04 — SCALE' },
-  { id:'st6', z:-16500, label:'05 — COMPARISON' },
-  { id:'st7', z:-19000, label:'06 — BEGIN' },
-];
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x02040a, 0.0035);
 
-/* Total Z depth the camera travels */
-var TOTAL_Z = 19000;
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.set(0, 0, 85);
 
-/* The scroll spacer height matches station progression */
-var SCROLL_HEIGHT = (STATIONS.length - 1) * 1000;
-document.getElementById('scroll-spacer').style.height = SCROLL_HEIGHT + 'px';
+  // Deep ambient & accent lights
+  scene.add(new THREE.AmbientLight(0x081024, 2.5));
+  const lightCyan = new THREE.PointLight(0x8fd9ff, 3.5, 300);
+  lightCyan.position.set(50, 40, 40);
+  scene.add(lightCyan);
 
-/* ─── STATE ─── */
-var scrollY = 0;
-var smoothZ = 0;
-var targetZ = 0;
-var currentStationIdx = 0;
-var targetStationIdx = 0;
-var lastNavTime = 0;
-var lastNavDir = 0;
-var wheelAccum = 0;
-var wheelDecay = null;
-var rafPending = false;
+  const lightAmber = new THREE.PointLight(0xffab4d, 2.8, 250);
+  lightAmber.position.set(-60, -30, 20);
+  scene.add(lightAmber);
 
-/* ─── DOM REFS ─── */
-var tunnel   = document.getElementById('tunnel');
-var progBar  = document.getElementById('prog');
-var labelEl  = document.getElementById('sect-id');
-var navEl    = document.getElementById('nav');
-var footerEl = document.getElementById('ft');
-var stationEls = STATIONS.map(function(s){ return document.getElementById(s.id); });
+  const lightViolet = new THREE.PointLight(0xc084fc, 2.8, 250);
+  lightViolet.position.set(20, -50, 30);
+  scene.add(lightViolet);
 
-/* ═══════════════════════════════════════════════
-   STATION-WISE CONTROLS
-   Each scroll action smoothly travels to the next/prev
-   station, coming to a complete, stable pause at each one.
-═══════════════════════════════════════════════════ */
-function goToStation(idx){
-  idx = CL(Math.round(idx), 0, STATIONS.length - 1);
-  targetStationIdx = idx;
-  currentStationIdx = idx;
-  targetZ = STATIONS[idx].z;
-  lastNavTime = Date.now();
+  // 1. Starfield
+  const starCount = 3200;
+  const starGeo = new THREE.BufferGeometry();
+  const starPos = new Float32Array(starCount * 3);
+  const starCol = new Float32Array(starCount * 3);
 
-  var maxScroll = Math.max(1, SCROLL_HEIGHT - window.innerHeight);
-  var targetY = (idx / (STATIONS.length - 1)) * maxScroll;
-  window.scrollTo(0, targetY);
-  scrollY = targetY;
-}
+  const colorPalette = [
+    [0.94, 0.96, 1.0],   // White-blue
+    [0.56, 0.85, 1.0],   // Cyan
+    [1.0, 0.72, 0.38],   // Amber
+    [0.78, 0.55, 1.0]    // Violet
+  ];
 
-function nextStation(){
-  if(targetStationIdx < STATIONS.length - 1){
-    lastNavDir = 1;
-    goToStation(targetStationIdx + 1);
-  }
-}
+  for (let i = 0; i < starCount; i++) {
+    starPos[i * 3]     = (Math.random() - 0.5) * 320;
+    starPos[i * 3 + 1] = (Math.random() - 0.5) * 260;
+    starPos[i * 3 + 2] = (Math.random() - 0.5) * 260;
 
-function prevStation(){
-  if(targetStationIdx > 0){
-    lastNavDir = -1;
-    goToStation(targetStationIdx - 1);
-  }
-}
-
-/* Expose to window for inline onclick handlers */
-window.goToStation = goToStation;
-window.nextStation = nextStation;
-window.prevStation = prevStation;
-
-/* Wheel gesture: instant direction reverse, one flick = one station transition + pause */
-window.addEventListener('wheel', function(e){
-  e.preventDefault();
-
-  // Instant reset on scroll direction change so user never has to overcome residual delta
-  if((e.deltaY > 0 && wheelAccum < 0) || (e.deltaY < 0 && wheelAccum > 0)){
-    wheelAccum = e.deltaY;
-  } else {
-    wheelAccum += e.deltaY;
+    const col = colorPalette[Math.floor(Math.random() * colorPalette.length)];
+    starCol[i * 3]     = col[0];
+    starCol[i * 3 + 1] = col[1];
+    starCol[i * 3 + 2] = col[2];
   }
 
-  var now = Date.now();
-  var dir = wheelAccum > 0 ? 1 : -1;
-  var isDirChange = (dir !== lastNavDir);
-  // Direction reversals respond ultra fast (180ms) for effortless backward scrolling!
-  var activeCooldown = isDirChange ? 180 : 420;
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+  starGeo.setAttribute('color', new THREE.BufferAttribute(starCol, 3));
 
-  if(Math.abs(wheelAccum) > 18 && (now - lastNavTime) > activeCooldown){
-    lastNavDir = dir;
-    if(dir > 0){
-      nextStation();
-    } else {
-      prevStation();
-    }
-    wheelAccum = 0;
-    lastNavTime = now;
+  const starMat = new THREE.PointsMaterial({
+    size: 0.65,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.85,
+    blending: THREE.AdditiveBlending,
+    sizeAttenuation: true
+  });
+  const starField = new THREE.Points(starGeo, starMat);
+  scene.add(starField);
+
+  // 2. Off-center Celestial Gyroscope / Orbital Ring Structure
+  // Placed off-axis so text is NEVER obscured
+  const gyroGroup = new THREE.Group();
+  gyroGroup.position.set(38, -10, -20); // Off to the right & slightly down
+  scene.add(gyroGroup);
+
+  function createOrbitRing(radius, tube, color, opacity, rotX, rotY) {
+    const geo = new THREE.TorusGeometry(radius, tube, 16, 128);
+    const mat = new THREE.MeshBasicMaterial({
+      color: color,
+      transparent: true,
+      opacity: opacity,
+      blending: THREE.AdditiveBlending
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.rotation.x = rotX;
+    mesh.rotation.y = rotY;
+    return mesh;
   }
 
-  clearTimeout(wheelDecay);
-  wheelDecay = setTimeout(function(){ wheelAccum = 0; }, 90);
-}, {passive: false});
+  const ring1 = createOrbitRing(22, 0.12, 0x8fd9ff, 0.38, Math.PI / 3, 0);
+  const ring2 = createOrbitRing(16, 0.1, 0xffab4d, 0.3, 0, Math.PI / 4);
+  const ring3 = createOrbitRing(28, 0.08, 0xc084fc, 0.25, Math.PI / 2.3, Math.PI / 5);
 
-/* Touch gestures: swipe up/down */
-var touchStartY = 0;
-window.addEventListener('touchstart', function(e){
-  touchStartY = e.touches[0].clientY;
-}, {passive: true});
+  gyroGroup.add(ring1);
+  gyroGroup.add(ring2);
+  gyroGroup.add(ring3);
 
-window.addEventListener('touchend', function(e){
-  var dy = touchStartY - e.changedTouches[0].clientY;
-  var now = Date.now();
-  var dir = dy > 0 ? 1 : -1;
-  var isDirChange = (dir !== lastNavDir);
-  var activeCooldown = isDirChange ? 180 : 380;
+  // Orbiting glowing satellites
+  const satGeo = new THREE.SphereGeometry(0.55, 16, 16);
+  const satMat1 = new THREE.MeshBasicMaterial({ color: 0x8fd9ff });
+  const sat1 = new THREE.Mesh(satGeo, satMat1);
+  gyroGroup.add(sat1);
 
-  if(Math.abs(dy) > 28 && (now - lastNavTime) > activeCooldown){
-    lastNavDir = dir;
-    if(dy > 0){
-      nextStation();
-    } else {
-      prevStation();
-    }
-    lastNavTime = now;
-  }
-}, {passive: true});
+  const satMat2 = new THREE.MeshBasicMaterial({ color: 0xffab4d });
+  const sat2 = new THREE.Mesh(satGeo, satMat2);
+  gyroGroup.add(sat2);
 
-/* Keyboard: arrows, space, page down/up */
-window.addEventListener('keydown', function(e){
-  if(e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' '){
-    e.preventDefault();
-    lastNavDir = 1;
-    nextStation();
-  } else if(e.key === 'ArrowUp' || e.key === 'PageUp'){
-    e.preventDefault();
-    lastNavDir = -1;
-    prevStation();
-  } else if(e.key === 'Home'){
-    goToStation(0);
-  } else if(e.key === 'End'){
-    goToStation(STATIONS.length - 1);
-  }
-});
+  // Mouse interaction
+  let mouseX = 0, mouseY = 0;
+  let targetCamX = 0, targetCamY = 0;
 
-/* ═══════════════════════════════════════════════
-   MANIFESTO WORDS
-═══════════════════════════════════════════════════ */
-var mqEl = document.getElementById('mq');
-var wordEls = [];
-if(mqEl){
-  var WORDS = 'Your cloud should obey you \u2014 not the other way around.'.split(' ');
-  mqEl.innerHTML = WORDS.map(function(w){
-    return '<span class="word">'+(w==='\u2014'?'<em>'+w+'</em>':w)+'</span>';
-  }).join(' ');
-  wordEls = Array.from(mqEl.querySelectorAll('.word'));
-}
+  window.addEventListener('mousemove', (e) => {
+    mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+    mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+    targetCamX = mouseX * 8;
+    targetCamY = -mouseY * 6;
+  }, { passive: true });
 
-/* ═══════════════════════════════════════════════
-   STATION VISIBILITY & 3D PARALLAX INTERPOLATION
-   Continuous, symmetrical cross-fade for forward AND backward scroll.
-   Stations stay safely within [-75px, +45px] of camera space so
-   CSS 3D perspective never suffers divide-by-zero or near-plane explosions.
-═══════════════════════════════════════════════════ */
-function updateStations(camZ){
-  // Clamp camZ to station limits
-  camZ = CL(camZ, STATIONS[STATIONS.length - 1].z, STATIONS[0].z);
+  // Scroll tracking
+  let scrollProgress = 0;
+  window.addEventListener('scroll', () => {
+    const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+    scrollProgress = window.scrollY / max;
+    const nav = document.getElementById('nav');
+    if (nav) nav.classList.toggle('scrolled', window.scrollY > 40);
+  }, { passive: true });
 
-  // Find the active segment
-  var segIdx = 0;
-  for(var i = 0; i < STATIONS.length - 1; i++){
-    if(camZ <= STATIONS[i].z && camZ >= STATIONS[i+1].z){
-      segIdx = i;
-      break;
-    }
-  }
-
-  var zA = STATIONS[segIdx].z;
-  var zB = STATIONS[segIdx + 1].z;
-  var span = zB - zA;
-  var t = span !== 0 ? (camZ - zA) / span : 0;
-  t = CL(t, 0, 1);
-
-  // Silky smooth cosine ease: 0 at zA, 1 at zB
-  var ease = (1 - Math.cos(t * Math.PI)) * 0.5;
-
-  stationEls.forEach(function(el, i){
-    if(!el) return;
-
-    if(i === segIdx){
-      // Station A (in view when ease=0, departing forward when ease->1)
-      var op = 1 - ease;
-      if(op > 0.005){
-        var z = ease * 45;
-        var s = 1 + ease * 0.03;
-        var y = -ease * 18;
-        el.style.visibility = 'visible';
-        el.style.opacity = op.toFixed(3);
-        el.style.transform = 'translate3d(0,' + y.toFixed(1) + 'px,' + z.toFixed(1) + 'px) scale(' + s.toFixed(3) + ')';
-        el.style.pointerEvents = ease < 0.25 ? 'auto' : 'none';
-        el.classList.toggle('active', ease < 0.35);
-      } else {
-        el.style.visibility = 'hidden';
-        el.style.opacity = '0';
-        el.style.pointerEvents = 'none';
-        el.classList.remove('active');
-      }
-    } else if(i === segIdx + 1){
-      // Station B (in view when ease=1, arriving from depth when ease->1)
-      var op = ease;
-      if(op > 0.005){
-        var z = (ease - 1) * 75;
-        var s = 0.96 + ease * 0.04;
-        var y = (1 - ease) * 18;
-        el.style.visibility = 'visible';
-        el.style.opacity = op.toFixed(3);
-        el.style.transform = 'translate3d(0,' + y.toFixed(1) + 'px,' + z.toFixed(1) + 'px) scale(' + s.toFixed(3) + ')';
-        el.style.pointerEvents = ease > 0.75 ? 'auto' : 'none';
-        el.classList.toggle('active', ease > 0.65);
-      } else {
-        el.style.visibility = 'hidden';
-        el.style.opacity = '0';
-        el.style.pointerEvents = 'none';
-        el.classList.remove('active');
-      }
-    } else {
-      // Inactive station
-      el.style.visibility = 'hidden';
-      el.style.opacity = '0';
-      el.style.pointerEvents = 'none';
-      el.classList.remove('active');
-    }
+  // Resize handler
+  window.addEventListener('resize', () => {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
   });
 
-  /* Manifesto word reveal (Station 1): lights up smoothly from either direction */
-  if(wordEls.length){
-    var manifProg = 0;
-    if(segIdx === 0){
-      manifProg = t;
-    } else if(segIdx === 1){
-      manifProg = 1 - t;
-    } else {
-      manifProg = 0;
-    }
-    wordEls.forEach(function(w, i){
-      var threshold = (i / wordEls.length) * 0.78;
-      w.classList.toggle('lit', manifProg > threshold + 0.12);
-    });
+  // Clock
+  const utcEl = document.getElementById('live-utc');
+  function updateTime() {
+    if (!utcEl) return;
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    utcEl.textContent = `UTC ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
   }
-}
+  setInterval(updateTime, 1000);
+  updateTime();
 
-/* ═══════════════════════════════════════════════
-   CURRENT STATION LABEL
-═══════════════════════════════════════════════════ */
-function updateLabel(camZ){
-  if(!labelEl) return;
-  var closest = 0, minDist = Infinity;
-  STATIONS.forEach(function(s, i){
-    var d = Math.abs(camZ - s.z);
-    if(d < minDist){ minDist = d; closest = i; }
-  });
-  var newLabel = STATIONS[closest].label;
-  if(labelEl.textContent !== newLabel) labelEl.textContent = newLabel;
-}
+  // Animation Loop
+  const clock = new THREE.Clock();
+  function animate() {
+    requestAnimationFrame(animate);
+    const dt = clock.getDelta();
+    const t = clock.getElapsedTime();
 
-/* ═══════════════════════════════════════════════
-   BAR CHARTS + LIVE DATA
-═══════════════════════════════════════════════════ */
-function buildBars(id, n, cls){
-  var c = document.getElementById(id);
-  if(!c || c.children.length) return;
-  for(var i=0; i<n; i++){
-    var b = document.createElement('div');
-    b.className = 'bar '+cls;
-    b.style.height = Math.floor(8+Math.random()*92)+'%';
-    c.appendChild(b);
+    // Smooth camera parallax
+    camera.position.x += (targetCamX - camera.position.x) * 0.05;
+    camera.position.y += (targetCamY - camera.position.y) * 0.05;
+
+    // Camera responds smoothly to scroll
+    camera.position.z = 85 - (scrollProgress * 25);
+
+    // Rotate starfield slowly
+    starField.rotation.y = t * 0.015;
+    starField.rotation.x = t * 0.008;
+
+    // Gyroscope ring rotations
+    ring1.rotation.z += 0.004;
+    ring2.rotation.x += 0.006;
+    ring3.rotation.y += 0.003;
+    gyroGroup.rotation.y = t * 0.02;
+
+    // Satellite positions along orbits
+    sat1.position.x = Math.cos(t * 0.8) * 22;
+    sat1.position.z = Math.sin(t * 0.8) * 22;
+    sat1.position.y = Math.sin(t * 0.8) * 10;
+
+    sat2.position.x = Math.cos(-t * 0.6) * 16;
+    sat2.position.y = Math.sin(-t * 0.6) * 16;
+    sat2.position.z = Math.cos(-t * 0.6) * 8;
+
+    renderer.render(scene, camera);
   }
-}
-function rnd(a,b){return a+Math.random()*(b-a)}
-function tickData(){
-  var m={
-    fCommits:function(){return(1180+Math.floor(rnd(0,80))).toLocaleString()},
-    fC2:function(){var v=document.getElementById('fCommits');return v?v.textContent:'1,218'},
-    fK:function(){return String(10+Math.floor(rnd(0,6)))},
-    oRps:function(){return Math.floor(rnd(28000,42000)).toLocaleString()},
-    oR2:function(){var v=document.getElementById('oRps');return v?v.textContent:'34,210'},
-    oLat:function(){return rnd(2.8,5.2).toFixed(1)},
-    oL2:function(){var v=document.getElementById('oLat');return(v?v.textContent:'3.8')+'ms'},
-    oStore:function(){return rnd(4.2,5.8).toFixed(1)},
-    oS2:function(){var v=document.getElementById('oStore');return(v?v.textContent:'4.7')+'TB'},
-    orbP:function(){return':'+(4100+Math.floor(rnd(0,15)))},
-    oP2:function(){var v=document.getElementById('orbP');return v?v.textContent:':4109'},
-    orbC:function(){return String(Math.floor(rnd(5,12)))},
-    oC2:function(){var v=document.getElementById('orbC');return v?v.textContent:'7'},
-  };
-  Object.keys(m).forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=m[id]()});
-  document.querySelectorAll('.panel-bars .bar').forEach(function(b){b.style.height=Math.floor(6+Math.random()*94)+'%'});
-}
-
-/* ═══════════════════════════════════════════════
-   MAIN ANIMATION FRAME
-═══════════════════════════════════════════════════ */
-function onFrame(){
-  rafPending = false;
-
-  /* Smooth lerp to target station Z with clean settling */
-  var diff = targetZ - smoothZ;
-  if(Math.abs(diff) < 0.4){
-    smoothZ = targetZ;
-  } else {
-    smoothZ += diff * 0.092;
-  }
-
-  /* Tunnel container remains steady at origin - stations are positioned in station-relative space */
-  if(tunnel) tunnel.style.transform = 'translateZ(0px)';
-
-  /* Update station visibility & transforms */
-  updateStations(smoothZ);
-  updateLabel(smoothZ);
-
-  /* Nav scroll state */
-  if(navEl) navEl.classList.toggle('stuck', currentStationIdx > 0);
-
-  /* Progress bar */
-  if(progBar) progBar.style.transform = 'scaleX(' + (currentStationIdx / (STATIONS.length - 1)) + ')';
-
-  /* Footer at end */
-  if(footerEl) footerEl.classList.toggle('show', currentStationIdx === (STATIONS.length - 1));
-}
-
-/* Continuous RAF for silky smooth station transitions */
-function loop(){
-  requestAnimationFrame(loop);
-  onFrame();
-}
-
-window.addEventListener('scroll', function(){
-  var maxScroll = Math.max(1, SCROLL_HEIGHT - window.innerHeight);
-  var scrollFrac = window.scrollY / maxScroll;
-  var approxIdx = Math.round(scrollFrac * (STATIONS.length - 1));
-  if(approxIdx !== targetStationIdx && (Date.now() - lastNavTime) > 300){
-    goToStation(approxIdx);
-  }
-}, {passive:true});
-
-/* ═══════════════════════════════════════════════
-   THREE.JS — BACKGROUND 3D SCENE
-   Stars, planets, debris — all synced to camZ
-═══════════════════════════════════════════════════ */
-(function(){
-  if(!window.THREE) return;
-  var T = THREE;
-  var W = innerWidth, H = innerHeight;
-  var canvas = document.getElementById('cvs');
-
-  var renderer = new T.WebGLRenderer({canvas:canvas, antialias:true, alpha:false, powerPreference:'high-performance'});
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-  renderer.setSize(W, H);
-  renderer.setClearColor(0x020308, 1);
-
-  var scene = new T.Scene();
-  scene.fog = new T.FogExp2(0x020308, 0.004);
-
-  var cam3 = new T.PerspectiveCamera(60, W/H, 0.1, 600);
-  cam3.position.set(0, 0, 50);
-
-  /* Lights */
-  scene.add(new T.AmbientLight(0x080e1e, 2.5));
-  var sunL = new T.PointLight(0x8fd9ff, 5, 200); sunL.position.set(16, 24, 30); scene.add(sunL);
-  var warmL = new T.PointLight(0xff6b35, 4, 120); warmL.position.set(-18,-12,-30); scene.add(warmL);
-  var vioL = new T.PointLight(0xa855f7, 3, 100); vioL.position.set(8,-16,-40); scene.add(vioL);
-
-  /* Stars — spread across the full Z-tunnel */
-  (function(){
-    var N=4000, pos=new Float32Array(N*3), col=new Float32Array(N*3);
-    var pal=[[1,1,1],[.75,.88,1],[1,.92,.75],[.6,.75,1]];
-    for(var i=0;i<N;i++){
-      /* Stars spread from Z +80 to Z -200 */
-      pos[i*3]   = (Math.random()-0.5)*160;
-      pos[i*3+1] = (Math.random()-0.5)*120;
-      pos[i*3+2] = 80 - Math.random()*280;
-      var c=pal[Math.floor(Math.random()*pal.length)];
-      col[i*3]=c[0]; col[i*3+1]=c[1]; col[i*3+2]=c[2];
-    }
-    var g=new T.BufferGeometry();
-    g.setAttribute('position',new T.BufferAttribute(pos,3));
-    g.setAttribute('color',new T.BufferAttribute(col,3));
-    scene.add(new T.Points(g,new T.PointsMaterial({size:.24,vertexColors:true,transparent:true,opacity:.85,blending:T.AdditiveBlending,sizeAttenuation:true})));
-  })();
-
-  /* Helper: create ring */
-  function mkRing(r,tube,clr,op,rx,ry){
-    var m=new T.Mesh(new T.TorusGeometry(r,tube,8,128),new T.MeshBasicMaterial({color:clr,transparent:true,opacity:op,blending:T.AdditiveBlending}));
-    m.rotation.set(rx,ry,0); return m;
-  }
-
-  /* ── PLANETS (Hidden to keep text 100% clear and unobstructed) ── */
-  var heroGrp = new T.Group();
-  var forgeGrp = new T.Group();
-  var oortGrp = new T.Group();
-  var orbitGrp = new T.Group();
-
-  /* ── DEBRIS ── */
-  var debGrp = new T.Group();
-  for(var i=0;i<30;i++){
-    var dg=Math.random()<.5?new T.OctahedronGeometry(.1+Math.random()*.16,0):new T.TetrahedronGeometry(.08+Math.random()*.14,0);
-    var dm=new T.MeshBasicMaterial({color:0x8fd9ff,transparent:true,opacity:.12+Math.random()*.3,wireframe:Math.random()>.4});
-    var dd=new T.Mesh(dg,dm);
-    dd.position.set((Math.random()-.5)*50,(Math.random()-.5)*35,50-Math.random()*230);
-    dd.rotation.set(Math.random()*6,Math.random()*6,Math.random()*6);
-    dd.userData={vy:(Math.random()-.5)*.004,vx:(Math.random()-.5)*.003};
-    debGrp.add(dd);
-  }
-  scene.add(debGrp);
-
-  /* ── Map HTML scroll Z → Three.js camera Z ──
-     CSS tunnel goes 0 → -19000
-     Three.js scene goes 0 → -180
-     Scale factor: 180/19000 ≈ 0.00947 */
-  var Z_SCALE = 180 / TOTAL_Z;
-
-  var clock = new T.Clock();
-
-  function threeTick(){
-    var dt = clock.getDelta();
-    var t  = clock.getElapsedTime();
-
-    /* Camera Z tracks the CSS tunnel position forward */
-    var threeZ = 50 + smoothZ * Z_SCALE;
-    cam3.position.z = threeZ;
-    cam3.position.x = Math.sin(t * 0.04) * 1.5;
-    cam3.position.y = Math.cos(t * 0.03) * 0.8;
-
-    /* Debris */
-    debGrp.children.forEach(function(d){
-      d.position.x += d.userData.vx; d.position.y += d.userData.vy;
-      d.rotation.y += .003; d.rotation.x += .002;
-      if(Math.abs(d.position.x)>26) d.userData.vx *= -1;
-      if(Math.abs(d.position.y)>18) d.userData.vy *= -1;
-    });
-
-    renderer.render(scene, cam3);
-  }
-
-  /* Resize */
-  window.addEventListener('resize', function(){
-    W=innerWidth; H=innerHeight;
-    cam3.aspect=W/H; cam3.updateProjectionMatrix();
-    renderer.setSize(W,H);
-  }, {passive:true});
-
-  /* Render loop */
-  (function raf(){
-    requestAnimationFrame(raf);
-    threeTick();
-  })();
-
-})(); /* end THREE block */
-
-/* ═══════════════════════════════════════════════
-   INIT
-═══════════════════════════════════════════════════ */
-buildBars('forge-bars', 18, 'bar-forge');
-buildBars('oort-bars',  18, 'bar-oort');
-buildBars('orbit-bars', 18, 'bar-orbit');
-
-/* Initial state */
-onFrame();
-requestAnimationFrame(loop);
-setInterval(tickData, 1800);
-
+  animate();
 })();
 </script>
 </body>
