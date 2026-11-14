@@ -3,1364 +3,1122 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Oort — High-Performance NAS for Mornye & Sovereign Storage · Cosmos</title>
-<meta name="description" content="Dedicated high-performance Network Attached Storage (NAS) engineered for Mornye music streaming and sovereign S3 object cloud. Unique streaming URLs for every account, lossless FLAC byte-range streaming, zero cloud bills.">
-<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="6" fill="%23eef3f8"/><ellipse cx="16" cy="16" rx="14" ry="5.5" fill="none" stroke="%238fd9ff" stroke-width="1.5" transform="rotate(-24 16 16)"/></svg>'>
+<title>OORT — Sovereign S3 &amp; High-Performance Mornye NAS · Cosmos</title>
+<meta name="description" content="Dedicated sovereign object storage and high-throughput NAS server engineered for Mornye music streaming and universal S3 workflows. Zero cloud bills, private, unlimited speed.">
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="6" fill="%23eef3f8"/><ellipse cx="16" cy="16" rx="14" ry="5.5" fill="none" stroke="%2338bdf8" stroke-width="1.5" transform="rotate(-24 16 16)"/></svg>'>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="/three.min.js"></script>
-<script>
-if (typeof THREE === 'undefined') {
-  document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
-}
-</script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
+/* ═══════════════════════════════════════════════════════════════════
+   OORT LANDING — SOVEREIGN S3 & MORNYE NAS
+   Clean, Operable Cosmic Design System (Zero Lag, Native Cursor)
+   ═══════════════════════════════════════════════════════════════════ */
 :root {
-  --bg: #020308;
-  --ink: #eef3f8;
-  --dim: rgba(226, 234, 242, 0.62);
-  --faint: rgba(226, 234, 242, 0.32);
-  --line: rgba(226, 234, 242, 0.08);
-  --line-bright: rgba(226, 234, 242, 0.2);
-  --ok: #43e5a0;
-  --ac: 143, 216, 255;
-  --ac-hex: #8fd9ff;
-  --mono: 'JetBrains Mono', ui-monospace, monospace;
-  --disp: 'Space Grotesk', sans-serif;
-  --serif: 'Instrument Serif', serif;
-  --pad: clamp(24px, 5vw, 84px);
-  --ez: cubic-bezier(0.16, 1, 0.3, 1);
-  --rim-angle: 0deg;
+  --bg: #030712;
+  --bg-deep: #050b18;
+  --bg-card: rgba(13, 20, 36, 0.72);
+  --bg-card-hover: rgba(20, 31, 55, 0.88);
+  --bg-card-subtle: rgba(255, 255, 255, 0.03);
+  --bg-input: rgba(7, 12, 22, 0.8);
+
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-card: rgba(255, 255, 255, 0.12);
+  --border-glow: rgba(56, 189, 248, 0.35);
+
+  --text-primary: #ffffff;
+  --text-secondary: #e2e8f0;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+
+  --accent-cyan: #38bdf8;
+  --accent-blue: #6366f1;
+  --accent-indigo: #818cf8;
+  --accent-emerald: #34d399;
+  --accent-amber: #fbbf24;
+  --accent-rose: #f43f5e;
+  --accent-purple: #c084fc;
+
+  --font-sans: 'Space Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+
+  --glass-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.65), 0 0 1px 1px rgba(255, 255, 255, 0.08);
 }
 
-*, *::before, *::after {
+* {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  -webkit-font-smoothing: antialiased;
 }
 
 html {
   scroll-behavior: smooth;
   background: var(--bg);
-  color: var(--ink);
+  color: var(--text-primary);
 }
 
 body {
-  font-family: var(--disp);
+  font-family: var(--font-sans);
   background: var(--bg);
-  color: var(--ink);
+  color: var(--text-primary);
+  min-height: 100vh;
   overflow-x: hidden;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  animation: bootIn 1s var(--ez) both;
-  perspective: 1200px;
+  line-height: 1.5;
+  cursor: default; /* Enforce normal, natural system cursor */
 }
 
-@keyframes bootIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-::selection {
-  background: rgba(var(--ac), 0.35);
-  color: #fff;
-}
-
-::-webkit-scrollbar {
-  width: 9px;
-}
-::-webkit-scrollbar-track {
-  background: var(--bg);
-}
-::-webkit-scrollbar-thumb {
-  background: #141b2c;
-  border: 2px solid var(--bg);
-  border-radius: 6px;
-}
-
-a:focus-visible, button:focus-visible {
-  outline: 2px solid rgba(var(--ac), 0.7);
-  outline-offset: 4px;
-  border-radius: 4px;
-}
-
-/* Depth Layers */
-#sky {
+/* ─── Ambient Cosmic Background Canvas ─── */
+#sky-canvas {
   position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
+  top: 0;
+  left: 0;
   width: 100vw;
   height: 100vh;
-}
-.grain {
-  position: fixed;
-  inset: -10%;
-  width: 120%;
-  height: 120%;
-  z-index: 2;
   pointer-events: none;
-  opacity: 0.045;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size: 180px 180px;
-  animation: grain 1s steps(4) infinite;
-}
-@keyframes grain {
-  0%, 100% { transform: translate(0, 0); }
-  25% { transform: translate(-1.2%, 1%); }
-  50% { transform: translate(1%, -1.2%); }
-  75% { transform: translate(-0.8%, -0.8%); }
-}
-.vig {
-  position: fixed;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  background: radial-gradient(ellipse at 50% 45%, transparent 45%, rgba(1, 2, 7, 0.7) 100%);
+  z-index: 0;
+  opacity: 0.85;
 }
 
-/* Custom Cursor */
-.cur {
+.cosmic-glow {
   position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 9999;
+  border-radius: 50%;
+  filter: blur(120px);
   pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  will-change: transform;
+  z-index: 0;
+  opacity: 0.16;
 }
-body.cur-vis .cur { opacity: 1; }
-#curDot {
-  width: 5px;
-  height: 5px;
-  margin: -2.5px 0 0 -2.5px;
-  border-radius: 50%;
-  background: var(--ink);
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+.glow-1 {
+  top: -10%;
+  right: -5%;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, #38bdf8 0%, #6366f1 70%, transparent 100%);
 }
-#curRing {
-  width: 38px;
-  height: 38px;
-  margin: -19px 0 0 -19px;
-  border-radius: 50%;
-  border: 1px solid rgba(238, 243, 248, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: width 0.35s var(--ez), height 0.35s var(--ez), margin 0.35s var(--ez), border-color 0.3s, background 0.3s;
+.glow-2 {
+  bottom: 10%;
+  left: -5%;
+  width: 700px;
+  height: 700px;
+  background: radial-gradient(circle, #818cf8 0%, #34d399 70%, transparent 100%);
 }
-#curRing span {
-  font-family: var(--mono);
-  font-size: 8px;
-  font-weight: 600;
-  letter-spacing: 0.28em;
-  text-indent: 0.28em;
-  color: #fff;
-  opacity: 0;
-  transition: opacity 0.25s;
-}
-#curRing.act {
-  width: 56px;
-  height: 56px;
-  margin: -28px 0 0 -28px;
-  border-color: rgba(255, 255, 255, 0.85);
-  background: rgba(255, 255, 255, 0.04);
-}
-#curRing.drag {
-  width: 76px;
-  height: 76px;
-  margin: -38px 0 0 -38px;
-  border-color: rgba(var(--ac), 0.95);
-  background: rgba(var(--ac), 0.08);
-  box-shadow: 0 0 24px rgba(var(--ac), 0.25);
-}
-#curRing.drag span { opacity: 1; }
-body.has-cur, body.has-cur a, body.has-cur button, body.has-cur canvas { cursor: none; }
 
-/* Navigation */
-nav {
-  position: fixed;
+/* ─── App Container ─── */
+.app-container {
+  position: relative;
+  z-index: 1;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ─── Navigation Bar ─── */
+.navbar {
+  position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
   height: 72px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 var(--pad);
-  background: rgba(2, 3, 8, 0.48);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border-bottom: 1px solid rgba(226, 234, 242, 0.07);
-  transition: background 0.4s ease, border-color 0.4s ease, height 0.4s ease;
+  background: rgba(3, 7, 18, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-subtle);
+  z-index: 100;
+  padding: 0 24px;
+  margin: 0 -24px 0 -24px;
 }
-nav.scrolled {
-  height: 64px;
-  background: rgba(2, 3, 8, 0.88);
-  border-bottom-color: rgba(226, 234, 242, 0.12);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
-.logo {
+
+.brand-link {
   display: flex;
   align-items: center;
   gap: 12px;
   text-decoration: none;
-  color: var(--ink);
+  color: var(--text-primary);
+  font-weight: 700;
   font-size: 17px;
-  font-weight: 600;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.01em;
 }
-.mark-wrapper {
-  position: relative;
+
+.brand-orb {
   width: 32px;
   height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.mark {
-  width: 100%;
-  height: 100%;
-  flex: none;
-  animation: markSpin 20s linear infinite;
-}
-@keyframes markSpin { to { transform: rotate(360deg); } }
-.nav-links { display: flex; gap: 40px; }
-.nav-links a {
-  position: relative;
-  text-decoration: none;
-  color: var(--dim);
-  font-size: 13.5px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  padding: 6px 0;
-  transition: color 0.3s;
-}
-.nav-links a i {
-  font-style: normal;
-  font-family: var(--mono);
-  font-size: 8.5px;
-  color: rgba(226, 234, 242, 0.32);
-  margin-right: 7px;
-  vertical-align: 2px;
-  letter-spacing: 0.12em;
-}
-.nav-links a::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  bottom: -2px;
-  height: 1px;
-  width: 100%;
-  background: #fff;
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 0.45s var(--ez);
-}
-.nav-links a:hover { color: #fff; }
-.nav-links a:hover::after { transform: scaleX(1); }
-.nav-links a.on { color: #fff; }
-.nav-links a.on::after {
-  transform: scaleX(1);
-  background: rgb(var(--ac));
-  box-shadow: 0 0 10px rgb(var(--ac));
-}
-.nav-right { display: flex; align-items: center; gap: 22px; }
-.nav-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.24em;
-  color: rgba(110, 225, 175, 0.85);
-}
-.nav-status i {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--ok);
-  box-shadow: 0 0 10px var(--ok);
-  animation: dotPulse 2.4s ease infinite;
-}
-@keyframes dotPulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.35; transform: scale(0.85); }
-}
-.nav-btn {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink);
-  text-decoration: none;
-  padding: 10px 22px;
   border-radius: 10px;
-  border: 1px solid rgba(226, 234, 242, 0.16);
-  background: rgba(226, 234, 242, 0.04);
-  backdrop-filter: blur(12px);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  transition: all 0.3s var(--ez);
-}
-.nav-btn:hover {
-  background: rgba(226, 234, 242, 0.12);
-  border-color: rgba(226, 234, 242, 0.36);
-  box-shadow: 0 0 20px rgba(var(--ac), 0.2);
-}
-
-.burger {
-  display: none;
-  width: 44px;
-  height: 44px;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 6px;
-  background: none;
-  border: 0;
-  cursor: pointer;
-}
-.burger span {
-  display: block;
-  width: 22px;
-  height: 1.5px;
-  background: var(--ink);
-  transition: transform 0.35s var(--ez);
-}
-body.m-open .burger span:first-child { transform: translateY(3.75px) rotate(45deg); }
-body.m-open .burger span:last-child { transform: translateY(-3.75px) rotate(-45deg); }
-
-.mmenu {
-  position: fixed;
-  inset: 0;
-  z-index: 95;
-  background: rgba(2, 3, 8, 0.94);
-  backdrop-filter: blur(28px);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 8px;
-  padding: 0 clamp(28px, 8vw, 60px);
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.4s var(--ez), visibility 0.4s;
-}
-body.m-open .mmenu { opacity: 1; visibility: visible; }
-.mmenu a {
-  display: flex;
-  align-items: baseline;
-  gap: 16px;
-  text-decoration: none;
-  color: var(--ink);
-  font-size: clamp(34px, 8.5vw, 50px);
-  font-weight: 600;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--line);
-  transform: translateY(24px);
-  opacity: 0;
-  transition: transform 0.55s var(--ez), opacity 0.55s;
-}
-body.m-open .mmenu a { transform: none; opacity: 1; }
-
-/* Hero Section */
-.hero {
-  position: relative;
-  z-index: 10;
-  min-height: 100vh;
-  min-height: 100svh;
+  background: linear-gradient(135deg, #38bdf8 0%, #6366f1 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  text-align: center;
-  padding: 130px var(--pad) 110px;
-  overflow: hidden;
-}
-.hero-stage {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: all;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-#rings3d {
-  width: 100%;
-  height: 100%;
-  display: block;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.5);
 }
 
-.hud {
-  position: absolute;
-  z-index: 5;
-  font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.18em;
-  color: rgba(226, 234, 242, 0.35);
+.brand-badge {
+  font-size: 11px;
   text-transform: uppercase;
-  line-height: 2.2;
-  pointer-events: none;
-  text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
-}
-.hud-bl { left: var(--pad); bottom: 34px; display: flex; flex-direction: column; text-align: left; }
-.hud-br { right: var(--pad); bottom: 34px; display: flex; align-items: center; gap: 12px; }
-
-.hero-inner {
-  position: relative;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  pointer-events: none;
-  max-width: 960px;
-}
-.hero-inner a, .hero-inner button, .hero-inner input { pointer-events: all; }
-
-.tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 18px;
-  border-radius: 99px;
-  border: 1px solid rgba(var(--ac), 0.25);
-  background: rgba(var(--ac), 0.05);
-  backdrop-filter: blur(16px);
-  box-shadow: 0 0 24px rgba(var(--ac), 0.12);
-  font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.22em;
-  color: rgba(var(--ac), 0.95);
-  margin-bottom: 36px;
-  animation: softUp 1s 0.1s var(--ez) both;
-}
-.tag .dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: rgb(var(--ac));
-  box-shadow: 0 0 10px rgb(var(--ac));
-  animation: dotPulse 2.6s ease infinite;
-}
-
-.title {
-  font-size: clamp(56px, 11vw, 158px);
+  letter-spacing: 0.12em;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(56, 189, 248, 0.12);
+  color: var(--accent-cyan);
+  border: 1px solid rgba(56, 189, 248, 0.25);
   font-weight: 600;
-  letter-spacing: -0.045em;
-  line-height: 0.94;
-  margin-bottom: 32px;
-  text-shadow: 0 0 100px rgba(143, 216, 255, 0.12);
-}
-.title em {
-  font-family: var(--serif);
-  font-style: italic;
-  font-weight: 400;
-  font-size: 1.05em;
-  color: #fff;
-  text-shadow: 0 0 40px rgba(var(--ac), 0.4);
 }
 
-.msk { display: block; overflow: hidden; }
-.msk-in {
-  display: inline-block;
-  animation: mskUp 1.2s var(--ez) both;
-}
-@keyframes mskUp {
-  from { transform: translateY(120%); opacity: 0; filter: blur(4px); }
-  to { transform: translateY(0); opacity: 1; filter: blur(0); }
-}
-@keyframes softUp {
-  from { opacity: 0; transform: translateY(28px); filter: blur(6px); }
-  to { opacity: 1; transform: translateY(0); filter: blur(0); }
-}
-
-.sub {
-  max-width: 520px;
-  font-size: clamp(15px, 1.7vw, 17.5px);
-  line-height: 1.82;
-  color: var(--dim);
-  margin-bottom: 48px;
-  animation: softUp 1s 0.55s var(--ez) both;
-  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.8);
-}
-
-.ctas {
+.station-nav {
   display: flex;
-  gap: 15px;
-  flex-wrap: wrap;
-  justify-content: center;
-  animation: softUp 1s 0.7s var(--ez) both;
+  align-items: center;
+  gap: 4px;
+  margin-left: 12px;
+  padding: 4px;
+  border-radius: var(--radius-md);
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-subtle);
 }
+
+.station-pill {
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.station-pill:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.station-pill.active {
+  background: rgba(56, 189, 248, 0.18);
+  color: var(--accent-cyan);
+  font-weight: 600;
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ─── Buttons ─── */
 .btn {
   display: inline-flex;
   align-items: center;
-  gap: 11px;
-  padding: 15px 32px;
-  border-radius: 12px;
-  font-size: 14.5px;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
   text-decoration: none;
-  transition: all 0.35s var(--ez);
-}
-.btn-p {
-  background: #ffffff;
-  color: #030611;
-  box-shadow: 0 10px 40px rgba(255, 255, 255, 0.12);
-}
-.btn-p:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 16px 60px rgba(255, 255, 255, 0.22), 0 0 24px rgba(var(--ac), 0.3);
-}
-.btn-g {
-  border: 1px solid rgba(226, 234, 242, 0.18);
-  color: var(--dim);
-  background: rgba(226, 234, 242, 0.03);
-  backdrop-filter: blur(14px);
-}
-.btn-g:hover {
-  color: #fff;
-  border-color: rgba(var(--ac), 0.5);
-  background: rgba(var(--ac), 0.08);
-  transform: translateY(-2px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+  line-height: 1;
+  white-space: nowrap;
 }
 
-.stats-row {
-  display: flex;
-  gap: clamp(32px, 5.5vw, 76px);
-  margin-top: 68px;
-  flex-wrap: wrap;
-  justify-content: center;
-  animation: softUp 1s 0.85s var(--ez) both;
+.btn-primary {
+  background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
 }
-.stat {
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(56, 189, 248, 0.5);
+}
+
+.btn-secondary {
+  background: var(--bg-card);
+  border-color: var(--border-card);
+  color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-glow);
+  transform: translateY(-1px);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.btn-ghost:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* ─── Hero Section ─── */
+.hero {
+  padding: 80px 0 60px 0;
+  text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-}
-.sv {
-  font-family: var(--mono);
-  font-size: clamp(22px, 3vw, 32px);
-  font-weight: 600;
-  color: var(--ink);
-  letter-spacing: -0.02em;
-}
-.sv em {
-  font-style: normal;
-  color: rgb(var(--ac));
-}
-.sv .u {
-  font-size: 0.55em;
-  color: rgba(226, 234, 242, 0.5);
-  margin-left: 6px;
-  letter-spacing: 0.08em;
-}
-.sl {
-  font-family: var(--mono);
-  font-size: 9px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: rgba(226, 234, 242, 0.38);
 }
 
-/* ─────────────────────────────── BENTO 3D FEATURE GRID ─────────────────────────────── */
-.bento-section {
-  position: relative;
-  z-index: 10;
-  padding: clamp(90px, 10vw, 160px) var(--pad);
-  max-width: 1320px;
-  margin: 0 auto;
-}
-.section-head {
-  text-align: center;
-  margin-bottom: 64px;
-}
-.sec-tag {
+.hero-badge {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: rgba(var(--ac), 0.85);
-  margin-bottom: 16px;
-}
-.sec-tag::before, .sec-tag::after {
-  content: '';
-  width: 24px;
-  height: 1px;
-  background: rgba(var(--ac), 0.5);
-}
-.sec-title {
-  font-size: clamp(38px, 5.5vw, 68px);
-  font-weight: 600;
-  letter-spacing: -0.035em;
-  line-height: 1.05;
-}
-.sec-title em {
-  font-family: var(--serif);
-  font-style: italic;
-  font-weight: 400;
-}
-
-.bento-grid {
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: 24px;
-}
-.col-8 { grid-column: span 8; }
-.col-4 { grid-column: span 4; }
-.col-6 { grid-column: span 6; }
-.col-12 { grid-column: span 12; }
-
-/* 3D Glass Bento Card with Dynamic Conic Rim Highlight */
-.bento-card {
-  position: relative;
-  background: rgba(8, 14, 28, 0.72);
+  gap: 8px;
+  padding: 6px 14px;
   border-radius: 20px;
-  padding: 38px 34px;
-  backdrop-filter: blur(24px) saturate(150%);
-  -webkit-backdrop-filter: blur(24px) saturate(150%);
-  border: 1px solid rgba(226, 234, 242, 0.1);
-  box-shadow: 0 24px 60px rgba(0, 0, 4, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  transform-style: preserve-3d;
-  will-change: transform;
-  overflow: hidden;
-  transition: transform 0.4s var(--ez), border-color 0.4s ease, box-shadow 0.4s ease;
-}
-
-.bento-card::after {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  padding: 1.5px;
-  background: conic-gradient(from var(--rim-angle, 0deg) at var(--mouse-x, 50%) var(--mouse-y, 50%),
-    rgba(255, 255, 255, 0.6) 0deg,
-    rgba(255, 255, 255, 0.06) 60deg,
-    rgba(var(--ac), 0.6) 180deg,
-    rgba(255, 255, 255, 0.06) 300deg,
-    rgba(255, 255, 255, 0.6) 360deg);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-  opacity: 0.75;
-}
-
-.bento-card:hover {
-  box-shadow: 0 32px 80px rgba(0, 0, 8, 0.65), 0 0 30px rgba(var(--ac), 0.15);
-}
-
-.card-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 12px;
-  border-radius: 99px;
-  background: rgba(var(--ac), 0.08);
-  border: 1px solid rgba(var(--ac), 0.25);
-  font-family: var(--mono);
-  font-size: 8.5px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: rgb(var(--ac));
-  margin-bottom: 20px;
-}
-.card-title {
-  font-size: 24px;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: -0.02em;
-  margin-bottom: 12px;
-}
-.card-desc {
-  font-size: 14.5px;
-  line-height: 1.7;
-  color: var(--dim);
+  color: var(--accent-cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   margin-bottom: 24px;
 }
 
-/* Interactive Code Switcher for SDKs */
-.code-box {
-  background: rgba(2, 4, 10, 0.85);
-  border: 1px solid rgba(226, 234, 242, 0.08);
-  border-radius: 12px;
-  overflow: hidden;
-  font-family: var(--mono);
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-emerald);
+  box-shadow: 0 0 8px var(--accent-emerald);
 }
-.code-tabs {
+
+.hero-title {
+  font-size: clamp(38px, 6vw, 68px);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  margin-bottom: 20px;
+  max-width: 900px;
+}
+
+.hero-title span.glow {
+  background: linear-gradient(135deg, #ffffff 30%, #38bdf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-subtitle {
+  font-size: clamp(16px, 2vw, 19px);
+  color: var(--text-muted);
+  max-width: 720px;
+  line-height: 1.6;
+  margin-bottom: 36px;
+}
+
+.hero-ctas {
   display: flex;
-  background: rgba(255, 255, 255, 0.02);
-  border-bottom: 1px solid rgba(226, 234, 242, 0.08);
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 56px;
+  flex-wrap: wrap;
 }
-.code-tab {
-  padding: 10px 18px;
-  font-size: 11px;
-  color: var(--dim);
-  background: none;
-  border: none;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  transition: all 0.25s;
+
+/* ─── Live Telemetry Stats Bar ─── */
+.stats-banner {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-xl);
+  padding: 24px 32px;
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  margin-bottom: 80px;
 }
-.code-tab.active {
-  color: #fff;
-  border-bottom-color: rgb(var(--ac));
-  background: rgba(var(--ac), 0.05);
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
-.code-body {
-  padding: 18px 20px;
+
+.stat-num {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+.stat-label {
   font-size: 12px;
-  line-height: 1.8;
-  color: rgba(226, 234, 242, 0.7);
-  white-space: pre-wrap;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* ─── Interactive Protocol Terminal Card ─── */
+.terminal-card {
+  background: rgba(7, 12, 22, 0.95);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--glass-shadow);
+  overflow: hidden;
+  margin-bottom: 90px;
+  backdrop-filter: blur(20px);
+}
+
+.terminal-header {
+  padding: 14px 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.terminal-tabs {
+  display: flex;
+  gap: 6px;
   overflow-x: auto;
 }
 
-/* Version timeline visualizer */
-.timeline-track {
+.t-tab-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.t-tab-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.t-tab-btn.active {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.3);
+  color: var(--accent-cyan);
+}
+
+.terminal-body {
+  padding: 24px;
+  position: relative;
+}
+
+.terminal-code-block {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  overflow-x: auto;
+  cursor: text;
+}
+
+.terminal-code-block .cmd {
+  color: var(--accent-cyan);
+}
+.terminal-code-block .comment {
+  color: var(--text-dim);
+}
+.terminal-code-block .val {
+  color: #34d399;
+}
+
+.terminal-copy-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.terminal-copy-btn:hover {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: var(--accent-cyan);
+  color: var(--text-primary);
+}
+
+/* ─── Capabilities Grid ─── */
+.section-header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.section-tag {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  margin-bottom: 8px;
+}
+
+.section-title {
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 24px;
+  margin-bottom: 90px;
+}
+
+.feature-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-xl);
+  padding: 28px;
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: transform 0.2s ease, border-color 0.2s ease;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-top: 10px;
+  justify-content: space-between;
 }
-.timeline-item {
+
+.feature-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-glow);
+  background: var(--bg-card-hover);
+}
+
+.feature-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(226, 234, 242, 0.06);
-  border-radius: 10px;
-  font-family: var(--mono);
-  font-size: 11px;
+  justify-content: center;
+  margin-bottom: 18px;
 }
-.t-tag { color: rgb(var(--ac)); font-weight: 600; }
-.t-action { color: var(--ok); cursor: pointer; text-decoration: underline; }
 
-/* Pricing Cards */
-.pricing-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 28px;
-  margin-top: 40px;
-}
-.price-val {
-  font-size: 44px;
+.feature-title {
+  font-size: 18px;
   font-weight: 700;
-  letter-spacing: -0.03em;
-  margin: 18px 0;
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-.price-val span {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--dim);
-  font-family: var(--mono);
+  margin-bottom: 10px;
+  color: var(--text-primary);
 }
 
-/* Footer */
-footer {
-  position: relative;
-  z-index: 10;
-  border-top: 1px solid var(--line);
-  padding: 36px var(--pad);
+.feature-desc {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* ─── Sovereign Architecture Comparison Matrix ─── */
+.specs-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-xl);
+  padding: 36px;
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  margin-bottom: 90px;
+}
+
+.specs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  text-align: left;
+  margin-top: 24px;
+}
+
+.specs-table th {
+  padding: 14px 18px;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.specs-table td {
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.specs-table tr:last-child td {
+  border-bottom: none;
+}
+
+.specs-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.spec-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-win {
+  background: rgba(52, 211, 153, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+.badge-lose {
+  background: rgba(244, 63, 94, 0.12);
+  color: #fb7185;
+}
+
+/* ─── Footer ─── */
+.site-footer {
+  border-top: 1px solid var(--border-subtle);
+  padding: 40px 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
+  color: var(--text-dim);
+  font-size: 13px;
   flex-wrap: wrap;
-  background: rgba(2, 3, 8, 0.7);
-  backdrop-filter: blur(16px);
+  gap: 16px;
 }
-.ft-logo {
+
+.footer-links {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.footer-links a {
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.footer-links a:hover {
+  color: var(--text-primary);
+}
+
+/* ─── Toast Container ─── */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 200;
+}
+
+.toast {
+  background: rgba(10, 16, 29, 0.95);
+  border: 1px solid var(--accent-cyan);
+  border-radius: var(--radius-md);
+  padding: 12px 18px;
+  color: var(--text-primary);
+  font-size: 13px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
   display: flex;
   align-items: center;
   gap: 10px;
-  text-decoration: none;
-  color: var(--ink);
-  font-weight: 600;
-  font-size: 15.5px;
-}
-.ft-logo .mark { width: 22px; height: 22px; }
-.ft-m {
-  font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.18em;
-  color: rgba(226, 234, 242, 0.28);
-  text-transform: uppercase;
-}
-.ft-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.2em;
-  color: rgba(110, 225, 175, 0.8);
-  text-transform: uppercase;
+  animation: toastIn 0.2s ease-out;
 }
 
-@media (max-width: 960px) {
-  .col-8, .col-4, .col-6 { grid-column: span 12; }
-  .pricing-grid { grid-template-columns: 1fr; }
-  .nav-links, .nav-status, .hud-bl { display: none; }
-  .burger { display: flex; }
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-@media (max-width: 560px) {
-  .ctas { flex-direction: column; width: 100%; }
-  .btn { justify-content: center; }
-  footer { flex-direction: column; text-align: center; }
+
+@media (max-width: 768px) {
+  .station-nav { display: none; }
+  .hero-title { font-size: 34px; }
+  .stats-banner { grid-template-columns: 1fr 1fr; padding: 20px; }
+  .features-grid { grid-template-columns: 1fr; }
+  .specs-panel { padding: 20px; overflow-x: auto; }
 }
 </style>
 </head>
+
 <body>
+<!-- Background Canvas -->
+<canvas id="sky-canvas"></canvas>
+<div class="cosmic-glow glow-1"></div>
+<div class="cosmic-glow glow-2"></div>
 
-<canvas id="sky" aria-hidden="true"></canvas>
-<div class="grain" aria-hidden="true"></div>
-<div class="vig" aria-hidden="true"></div>
-<div class="cur" id="curDot" aria-hidden="true"></div>
-<div class="cur" id="curRing" aria-hidden="true"><span>DRAG</span></div>
+<div class="toast-container" id="toast-container"></div>
 
-<!-- Navigation -->
-<nav id="nav">
-  <a class="logo" href="/">
-    <div class="mark-wrapper">
-      <svg class="mark" viewBox="0 0 34 34" aria-hidden="true">
-        <ellipse cx="17" cy="17" rx="14.5" ry="6" fill="none" stroke="rgba(238,243,248,.6)" stroke-width="1.2" transform="rotate(-24 17 17)"/>
-        <circle cx="17" cy="17" r="4.6" fill="#eef3f8"/>
-        <circle cx="27.4" cy="12.2" r="1.9" fill="#8fd9ff"/>
-      </svg>
+<div class="app-container">
+  <!-- Navbar -->
+  <header class="navbar">
+    <div class="nav-left">
+      <a href="/" class="brand-link">
+        <div class="brand-orb">
+          <svg width="18" height="18" fill="none" stroke="#ffffff" stroke-width="2.5" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M12 3a9 9 0 019 9M3 12a9 9 0 019-9"/>
+          </svg>
+        </div>
+        <span>COSMOS</span>
+      </a>
+      <span class="brand-badge">OORT S3 &amp; NAS</span>
+
+      <nav class="station-nav">
+        <a href="/" class="station-pill">Cosmos</a>
+        <a href="/git" class="station-pill">Forge</a>
+        <a href="/orbit" class="station-pill">Orbit</a>
+        <a href="/oort" class="station-pill active">Oort</a>
+      </nav>
     </div>
-    <span>Cosmos</span>
-  </a>
-  <div class="nav-links">
-    <a href="/git"><i>01</i>Forge</a>
-    <a href="/oort" class="on"><i>02</i>Oort</a>
-    <a href="/orbit"><i>03</i>Orbit</a>
-  </div>
-  <div class="nav-right">
-    <span class="nav-status"><i></i>NOMINAL</span>
-    <a class="nav-btn mag" href="/oort/login">Sign In</a>
-    <button class="burger" id="burger" aria-label="Open menu"><span></span><span></span></button>
-  </div>
-</nav>
 
-<!-- Mobile Menu -->
-<div class="mmenu" id="mmenu">
-  <a href="/git"><i>01</i>Forge</a>
-  <a href="/oort"><i>02</i>Oort</a>
-  <a href="/orbit"><i>03</i>Orbit</a>
-  <a href="/oort/login"><i>→</i>Sign In</a>
+    <div class="nav-right">
+      <a href="/oort/login" class="btn btn-ghost">Sign In</a>
+      <a href="/oort/signup" class="btn btn-secondary">Create Account</a>
+      <a href="/oort/console" class="btn btn-primary">
+        <span>Launch Console</span>
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </a>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <main class="hero">
+    <div class="hero-badge">
+      <span class="status-dot"></span>
+      <span>Sovereign Storage Engine · Mornye NAS Active</span>
+    </div>
+
+    <h1 class="hero-title">
+      Private Cloud Storage.<br>
+      <span class="glow">Engineered for Mornye &amp; S3.</span>
+    </h1>
+
+    <p class="hero-subtitle">
+      High-performance sovereign Network Attached Storage (NAS) engineered for lossless Mornye music streaming, universal S3 object storage, and native network drives. Zero cloud bills, unlimited bandwidth, complete sovereignty.
+    </p>
+
+    <div class="hero-ctas">
+      <a href="/oort/console" class="btn btn-primary" style="padding:12px 24px; font-size:14px;">
+        <span>Open Oort Console</span>
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </a>
+      <a href="/oort/console#nas" class="btn btn-secondary" style="padding:12px 24px; font-size:14px;">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        <span>Connect Mornye NAS</span>
+      </a>
+    </div>
+
+    <!-- Telemetry Stats Banner -->
+    <div class="stats-banner">
+      <div class="stat-item">
+        <div class="stat-num">&lt; 3.5ms</div>
+        <div class="stat-label">Read Latency</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">650+ MB/s</div>
+        <div class="stat-label">NVMe Throughput</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">FLAC / ALAC</div>
+        <div class="stat-label">Lossless Audio</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">100% S3</div>
+        <div class="stat-label">API Drop-in</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">99.99%</div>
+        <div class="stat-label">Uptime SLA</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Interactive Terminal Protocol Switcher -->
+  <section class="terminal-card">
+    <div class="terminal-header">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="width:10px; height:10px; border-radius:50%; background:#f43f5e;"></span>
+        <span style="width:10px; height:10px; border-radius:50%; background:#fbbf24;"></span>
+        <span style="width:10px; height:10px; border-radius:50%; background:#34d399;"></span>
+        <span style="font-family:var(--font-mono); font-size:12px; color:var(--text-dim); margin-left:8px;">oort-protocol-engine</span>
+      </div>
+
+      <div class="terminal-tabs">
+        <button class="t-tab-btn active" onclick="switchProtocol('mornye')">🎵 Mornye NAS</button>
+        <button class="t-tab-btn" onclick="switchProtocol('aws')">📦 AWS CLI (S3)</button>
+        <button class="t-tab-btn" onclick="switchProtocol('macos')">🍏 macOS Finder</button>
+        <button class="t-tab-btn" onclick="switchProtocol('windows')">🪟 Windows Drive</button>
+        <button class="t-tab-btn" onclick="switchProtocol('python')">🐍 Python (Boto3)</button>
+        <button class="t-tab-btn" onclick="switchProtocol('rclone')">⚡ rclone</button>
+      </div>
+    </div>
+
+    <div class="terminal-body">
+      <button class="terminal-copy-btn" onclick="copyActiveCommand()">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        <span>Copy Command</span>
+      </button>
+
+      <div class="terminal-code-block" id="terminal-content">
+        <!-- Dynamic terminal content populated by JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Capabilities Section -->
+  <section>
+    <div class="section-header">
+      <div class="section-tag">Core Capabilities</div>
+      <h2 class="section-title">Built for Sovereign Scale &amp; Audiophiles</h2>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div>
+          <div class="feature-icon-wrap" style="background:rgba(56,189,248,0.15); color:#38bdf8;">
+            <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          </div>
+          <h3 class="feature-title">Lossless Mornye Music Server</h3>
+          <p class="feature-desc">
+            Direct byte-range HTTP streaming for uncompressed FLAC, ALAC, WAV, and MP3 files. Instantly auto-generates M3U master playlists for continuous playback without buffering.
+          </p>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div>
+          <div class="feature-icon-wrap" style="background:rgba(99,102,241,0.15); color:#818cf8;">
+            <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="12" y1="8" x2="12" y2="16"/></svg>
+          </div>
+          <h3 class="feature-title">Universal S3 API Drop-in</h3>
+          <p class="feature-desc">
+            100% compatible with the Amazon S3 standard. Plug in AWS CLI, Terraform, Cyberduck, rclone, or Python Boto3 with zero code rewrites.
+          </p>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div>
+          <div class="feature-icon-wrap" style="background:rgba(52,211,153,0.15); color:#34d399;">
+            <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <h3 class="feature-title">Zero Egress Tax &amp; Sovereignty</h3>
+          <p class="feature-desc">
+            No sneaky bandwidth pricing, no API request fees, and no lock-in. Your files reside on bare-metal NVMe drives with strict private access control.
+          </p>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div>
+          <div class="feature-icon-wrap" style="background:rgba(251,191,36,0.15); color:#fbbf24;">
+            <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+          </div>
+          <h3 class="feature-title">WebDAV &amp; Native OS Drives</h3>
+          <p class="feature-desc">
+            Mount your Oort storage directly as a local disk in macOS Finder (<kbd>Cmd+K</kbd>), Windows File Explorer, or Linux with standard WebDAV credentials.
+          </p>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div>
+          <div class="feature-icon-wrap" style="background:rgba(192,132,252,0.15); color:#c084fc;">
+            <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <h3 class="feature-title">Continuous Object Versioning</h3>
+          <p class="feature-desc">
+            Every file mutation is immutably versioned. Roll back accidental overwrites or deletes with one click from the version history explorer.
+          </p>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div>
+          <div class="feature-icon-wrap" style="background:rgba(244,63,94,0.15); color:#f43f5e;">
+            <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+          </div>
+          <h3 class="feature-title">Static Website &amp; CDN Hosting</h3>
+          <p class="feature-desc">
+            Publish SPAs and static websites directly from any bucket. Attach custom domains with automatic edge CDN caching.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Comparison Matrix -->
+  <section class="specs-panel">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+      <div>
+        <div class="section-tag">Comparison Matrix</div>
+        <h3 style="font-size:24px; font-weight:700;">Why Sovereign Oort?</h3>
+      </div>
+      <a href="/oort/console" class="btn btn-secondary">Test Live in Console →</a>
+    </div>
+
+    <table class="specs-table">
+      <thead>
+        <tr>
+          <th>Capability</th>
+          <th>Cosmos Oort</th>
+          <th>AWS S3</th>
+          <th>Google Drive</th>
+          <th>Cloudflare R2</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Egress Bandwidth Cost</strong></td>
+          <td><span class="spec-badge badge-win">Free ($0.00 / GB)</span></td>
+          <td><span class="spec-badge badge-lose">$0.09 / GB</span></td>
+          <td><span class="spec-badge badge-lose">Throttled</span></td>
+          <td><span class="spec-badge badge-win">Free</span></td>
+        </tr>
+        <tr>
+          <td><strong>Mornye Audio Streaming (WebDAV)</strong></td>
+          <td><span class="spec-badge badge-win">Native Built-in</span></td>
+          <td><span class="spec-badge badge-lose">Not Supported</span></td>
+          <td><span class="spec-badge badge-lose">Transcoded</span></td>
+          <td><span class="spec-badge badge-lose">Not Supported</span></td>
+        </tr>
+        <tr>
+          <td><strong>macOS / Windows Drive Mount</strong></td>
+          <td><span class="spec-badge badge-win">Native WebDAV</span></td>
+          <td><span class="spec-badge badge-lose">3rd-party Fuse</span></td>
+          <td><span class="spec-badge badge-lose">Proprietary App</span></td>
+          <td><span class="spec-badge badge-lose">Requires Fuse</span></td>
+        </tr>
+        <tr>
+          <td><strong>AWS CLI &amp; SDK Drop-in</strong></td>
+          <td><span class="spec-badge badge-win">100% Compatible</span></td>
+          <td><span class="spec-badge badge-win">Native</span></td>
+          <td><span class="spec-badge badge-lose">No</span></td>
+          <td><span class="spec-badge badge-win">Compatible</span></td>
+        </tr>
+        <tr>
+          <td><strong>Data Sovereignty &amp; Privacy</strong></td>
+          <td><span class="spec-badge badge-win">Self-Hosted / Private</span></td>
+          <td><span class="spec-badge badge-lose">Big Tech Cloud</span></td>
+          <td><span class="spec-badge badge-lose">Account Scanned</span></td>
+          <td><span class="spec-badge badge-lose">Proprietary Edge</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div>
+      © 2026 Cosmos Sovereign Infrastructure. All protocols nominal.
+    </div>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="/git">Forge</a>
+      <a href="/orbit">Orbit</a>
+      <a href="/oort/console">Oort Console</a>
+      <a href="/oort/console#nas">Mornye NAS</a>
+      <a href="/oort/console#api">S3 API</a>
+    </div>
+  </footer>
 </div>
 
-<!-- Hero Section with Fullscreen 3D Keplerian Ring System -->
-<main class="hero">
-  <div class="hero-stage" data-cursor="drag">
-    <canvas id="rings3d" aria-hidden="true"></canvas>
-  </div>
-
-  <div class="hud hud-bl">
-    <span>OORT NAS FOR MORNYE · CELESTIAL STORAGE</span>
-    <span>LOSSLESS FLAC STREAMING · S3 PROTOCOL</span>
-  </div>
-  <div class="hud hud-br">
-    <span id="utc">00:00:00 UTC</span>
-    <em>·</em>
-    <span>ALL SYSTEMS NOMINAL</span>
-  </div>
-
-  <div class="hero-inner">
-    <div class="tag">
-      <span class="dot"></span>
-      <span data-scr>MORNYE NAS · ZERO-DELAY AUDIO STREAMING</span>
-    </div>
-    <h1 class="title">
-      <span class="msk"><span class="msk-in">Storage for</span></span>
-      <span class="msk"><span class="msk-in"><em>Mornye streaming.</em></span></span>
-    </h1>
-    <p class="sub">High-performance Network Attached Storage (NAS) engineered for Mornye music streaming and sovereign object cloud. Unique streaming URLs for every account, lossless FLAC byte-range delivery, and infinite hardware capacity.</p>
-    <div class="ctas">
-      <a class="btn btn-p mag" href="/oort/login">Open Mornye NAS Console</a>
-      <a class="btn btn-g mag" href="/oort/signup">Create NAS Account</a>
-    </div>
-
-    <div class="stats-row">
-      <div class="stat">
-        <div class="sv"><span class="num" data-count="32000">0</span><em>+</em><span class="u">RPS</span></div>
-        <div class="sl">Throughput</div>
-      </div>
-      <div class="stat">
-        <div class="sv"><span class="num" data-count="625">0</span><span class="u">MB/s</span></div>
-        <div class="sl">Bandwidth</div>
-      </div>
-      <div class="stat">
-        <div class="sv"><span class="num" data-count="3.68" data-dec="2">0</span><span class="u">ms</span></div>
-        <div class="sl">Read Latency</div>
-      </div>
-      <div class="stat">
-        <div class="sv">99.99<span class="u">%</span></div>
-        <div class="sl">Uptime SLA</div>
-      </div>
-      <div class="stat">
-        <div class="sv">∞</div>
-        <div class="sl">Capacity</div>
-      </div>
-    </div>
-  </div>
-</main>
-
-<!-- Bento 3D Feature Grid (Jockey/Stuudio Inspired) -->
-<section class="bento-section">
-  <div class="section-head">
-    <p class="sec-tag">CAPABILITIES ARCHITECTURE</p>
-    <h2 class="sec-title">Engineered to replace <em>hyperscale cloud.</em></h2>
-  </div>
-
-  <div class="bento-grid">
-    <!-- Card 1: AWS SDK Drop-in -->
-    <div class="bento-card col-8 tilt-card">
-      <span class="card-badge">Universal Compatibility</span>
-      <h3 class="card-title">AWS S3 SDK &amp; CLI Drop-in</h3>
-      <p class="card-desc">Zero code refactoring required. Point any standard AWS S3 client, CLI, Terraform provider, or backup script directly to Cosmos Oort with standard Access Key and Secret Key authentication.</p>
-      
-      <div class="code-box">
-        <div class="code-tabs">
-          <button class="code-tab active" data-lang="cli">AWS CLI</button>
-          <button class="code-tab" data-lang="python">Python (Boto3)</button>
-          <button class="code-tab" data-lang="go">Go SDK</button>
-          <button class="code-tab" data-lang="node">Node.js</button>
-        </div>
-        <div class="code-body" id="codeDisplay">aws s3 cp backup.tar.gz s3://my-bucket/ \
-  --endpoint-url https://cosmos.linuxguy.space</div>
-      </div>
-    </div>
-
-    <!-- Card 2: Versioning & Rollback -->
-    <div class="bento-card col-4 tilt-card">
-      <span class="card-badge">Data Resilience</span>
-      <h3 class="card-title">Continuous Object Versioning</h3>
-      <p class="card-desc">Every mutation is immutably archived. Inspect object histories, diff timestamps, and restore previous iterations instantly without administrative overhead.</p>
-      
-      <div class="timeline-track">
-        <div class="timeline-item">
-          <span class="t-tag">v3 (Current)</span>
-          <span>12.4 MB · 2m ago</span>
-          <span style="color:var(--ok)">Active</span>
-        </div>
-        <div class="timeline-item">
-          <span class="t-tag">v2</span>
-          <span>12.1 MB · 1h ago</span>
-          <span class="t-action">Restore</span>
-        </div>
-        <div class="timeline-item">
-          <span class="t-tag">v1</span>
-          <span>9.8 MB · 2d ago</span>
-          <span class="t-action">Restore</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Card 3: Real-Time Edge Analytics -->
-    <div class="bento-card col-4 tilt-card">
-      <span class="card-badge">Observability</span>
-      <h3 class="card-title">Live 3D Globe Telemetry</h3>
-      <p class="card-desc">Inspect inbound traffic across global regions in real time using the integrated D3.js 3D rotating globe, bandwidth time-series charts, and cache hit metrics.</p>
-      <div style="margin-top:20px;display:flex;align-items:baseline;justify-content:space-between;padding:12px;background:rgba(255,255,255,0.03);border-radius:10px;">
-        <span style="font-family:var(--mono);font-size:12px;color:var(--dim)">Cache Hit Ratio</span>
-        <span style="font-family:var(--mono);font-size:20px;font-weight:600;color:rgb(var(--ac))">98.4%</span>
-      </div>
-    </div>
-
-    <!-- Card 4: Branded Custom Domains -->
-    <div class="bento-card col-8 tilt-card">
-      <span class="card-badge">Edge CDN Routing</span>
-      <h3 class="card-title">Zero-Downtime Custom Domains</h3>
-      <p class="card-desc">Map branded domains (e.g. <code>assets.company.com</code>) directly to your buckets. The Go edge proxy verifies ownership and routes traffic with in-memory caching and automatic invalidation on writes.</p>
-      
-      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:16px;background:rgba(255,255,255,0.02);border:1px solid rgba(226,234,242,0.06);border-radius:12px;font-family:var(--mono);font-size:12px;">
-        <span style="color:rgb(var(--ac))">CNAME</span>
-        <span>assets.company.com</span>
-        <span style="color:var(--dim)">→</span>
-        <span style="color:var(--ok)">cosmos.linuxguy.space</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Pricing / Quotas -->
-  <div style="margin-top:80px">
-    <div class="section-head">
-      <p class="sec-tag">SOVEREIGN QUOTA PLANS</p>
-      <h2 class="sec-title">Transparent capacity, <em>zero egress taxes.</em></h2>
-    </div>
-
-    <div class="pricing-grid">
-      <div class="bento-card tilt-card">
-        <span class="card-badge">Standard Free Tier</span>
-        <h3 class="card-title">Sovereign Default</h3>
-        <p class="card-desc">Every registered user receives isolated S3 storage backed by dedicated NVMe drives with zero bandwidth charges.</p>
-        <div class="price-val">$0 <span>/ forever</span></div>
-        <ul style="list-style:none;display:flex;flex-direction:column;gap:12px;margin:24px 0;font-size:14px;color:var(--dim)">
-          <li>✓ 10 GB High-Speed NVMe Storage</li>
-          <li>✓ Unlimited Read &amp; Write Operations</li>
-          <li>✓ Full AWS S3 API &amp; CLI Access</li>
-          <li>✓ Object Versioning &amp; Multipart Uploads</li>
-          <li>✓ Custom Domain Edge Proxying</li>
-        </ul>
-        <a href="/oort/signup" class="btn btn-g mag" style="width:100%;justify-content:center">Start with Free Tier</a>
-      </div>
-
-      <div class="bento-card tilt-card" style="border-color:rgba(var(--ac),0.35);background:rgba(12,22,44,0.78)">
-        <span class="card-badge" style="background:rgba(var(--ac),0.15)">Quota Expansion</span>
-        <h3 class="card-title">Enterprise Expansion</h3>
-        <p class="card-desc">Need more storage? Request quota increases seamlessly directly from your storage console with automatic administrator authorization.</p>
-        <div class="price-val">Custom <span>/ on demand</span></div>
-        <ul style="list-style:none;display:flex;flex-direction:column;gap:12px;margin:24px 0;font-size:14px;color:var(--dim)">
-          <li>✓ Multi-Terabyte Bucket Expansion</li>
-          <li>✓ 1-Click In-Console Request Slider</li>
-          <li>✓ Automated Secure Email Authorization</li>
-          <li>✓ Dedicated Data Pool Isolation</li>
-          <li>✓ Priority SLA &amp; Direct NVMe Mounting</li>
-        </ul>
-        <a href="/oort/login" class="btn btn-p mag" style="width:100%;justify-content:center">Request Storage Expansion</a>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Footer -->
-<footer>
-  <div class="ft-l">
-    <a class="ft-logo" href="/">
-      <svg class="mark" viewBox="0 0 34 34" aria-hidden="true">
-        <ellipse cx="17" cy="17" rx="14.5" ry="6" fill="none" stroke="rgba(238,243,248,.6)" stroke-width="1.2" transform="rotate(-24 17 17)"/>
-        <circle cx="17" cy="17" r="4.6" fill="#eef3f8"/>
-        <circle cx="27.4" cy="12.2" r="1.9" fill="#8fd9ff"/>
-      </svg>
-      Cosmos
-    </a>
-    <p style="font-family:var(--mono);font-size:9.5px;letter-spacing:0.18em;color:rgba(226,234,242,0.28);margin-top:8px">SELF-HOSTED S3 STORAGE · ZERO EGRESS FEES</p>
-  </div>
-  <div class="ft-m">
-    <span>51.4778° N · 0.0015° W</span>
-    <span id="ftUp">SESSION T+00:00:00</span>
-  </div>
-  <div class="ft-r"><span class="ft-status"><i></i>All systems nominal</span></div>
-</footer>
-
+<!-- ════════════════════ SCRIPT LOGIC ════════════════════ -->
 <script>
-(() => {
-  'use strict';
-  const $ = s => document.querySelector(s);
-  const $$ = s => [...document.querySelectorAll(s)];
-  const TAU = Math.PI * 2;
-  const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
-  const p2 = n => String(n).padStart(2, '0');
-  const RM = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const FINE = window.matchMedia('(pointer: fine)').matches;
-  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+const protocols = {
+  mornye: {
+    raw: `https://cosmos.linuxguy.space/oort/<username>/<bucket>/playlist.m3u`,
+    html: `<span class="comment"># 1. Mornye Music App &amp; Streaming URL</span>
+<span class="cmd">Stream Directory:</span>  <span class="val">https://cosmos.linuxguy.space/oort/&lt;username&gt;/&lt;bucket&gt;/</span>
+<span class="cmd">Master Playlist:</span>   <span class="val">https://cosmos.linuxguy.space/oort/&lt;username&gt;/&lt;bucket&gt;/playlist.m3u</span>
 
-  const mouse = { x: 0.5, y: 0.5, sx: 0.5, sy: 0.5, px: window.innerWidth / 2, py: window.innerHeight / 2 };
+<span class="comment"># Native WebDAV streaming endpoint (supports lossless FLAC, ALAC, WAV, MP3 with byte-range scrub)</span>`
+  },
+  aws: {
+    raw: `aws --endpoint-url=https://cosmos.linuxguy.space s3 cp album.flac s3://mybucket/`,
+    html: `<span class="comment"># Configure AWS CLI endpoint:</span>
+<span class="cmd">aws</span> configure set default.s3.endpoint_url <span class="val">https://cosmos.linuxguy.space</span>
 
-  /* 3D WebGL Icy Gas Giant & Ring System */
-  const canvas = $('#rings3d');
-  let renderer = null, scene = null, camera = null;
-  let oortPlanet = null, oortRings = null;
-  let drag = false, lx = 0, ly = 0, yaw = 0.55, pitch = 0.45;
+<span class="comment"># Upload lossless tracks or backup archives:</span>
+<span class="cmd">aws</span> s3 cp album.flac <span class="val">s3://mybucket/</span>
+<span class="cmd">aws</span> s3 ls <span class="val">s3://mybucket/</span>`
+  },
+  macos: {
+    raw: `https://cosmos.linuxguy.space/oort/<username>/<bucket>/`,
+    html: `<span class="comment"># macOS Finder &gt; Connect to Server (Cmd + K):</span>
+<span class="cmd">Server Address:</span> <span class="val">https://cosmos.linuxguy.space/oort/&lt;username&gt;/&lt;bucket&gt;/</span>
 
-  function initOortHero3D() {
-    if (typeof THREE === 'undefined') return;
-    try {
-      const w = canvas.parentElement.clientWidth;
-      const h = canvas.parentElement.clientHeight;
+<span class="comment"># Connect as Registered User with your Cosmos Username &amp; Secret Key.
+# Mounts immediately as a high-speed native network drive on your Mac.</span>`
+  },
+  windows: {
+    raw: `https://cosmos.linuxguy.space/oort/<username>/<bucket>/`,
+    html: `<span class="comment"># Windows File Explorer &gt; Map Network Drive:</span>
+<span class="cmd">Folder Address:</span> <span class="val">https://cosmos.linuxguy.space/oort/&lt;username&gt;/&lt;bucket&gt;/</span>
 
-      renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-      renderer.setPixelRatio(DPR);
-      renderer.setSize(w, h);
+<span class="comment"># Check "Connect using different credentials" and enter your Cosmos username &amp; Secret Key.</span>`
+  },
+  python: {
+    raw: `import boto3
+s3 = boto3.client('s3', endpoint_url='https://cosmos.linuxguy.space', aws_access_key_id='...', aws_secret_access_key='...')
+s3.upload_file('song.flac', 'music-nas', 'song.flac')`,
+    html: `<span class="cmd">import</span> boto3
 
-      scene = new THREE.Scene();
-      camera = new THREE.PerspectiveCamera(46, w / h, 0.1, 1000);
-      camera.position.set(0, 0, 11);
+s3 = boto3.client(
+    <span class="val">'s3'</span>,
+    endpoint_url=<span class="val">'https://cosmos.linuxguy.space'</span>,
+    aws_access_key_id=<span class="val">'YOUR_ACCESS_KEY'</span>,
+    aws_secret_access_key=<span class="val">'YOUR_SECRET_KEY'</span>
+)
 
-      scene.add(new THREE.AmbientLight(0xffffff, 0.45));
-      const sun = new THREE.DirectionalLight(0x8fd9ff, 3.2);
-      sun.position.set(8, 7, 6);
-      scene.add(sun);
-
-      const group = new THREE.Group();
-
-      /* Icy Planet Body */
-      const pGeo = new THREE.SphereGeometry(2.0, 64, 64);
-      const pMat = new THREE.MeshStandardMaterial({
-        color: 0x163d5c,
-        emissive: 0x071b2d,
-        metalness: 0.75,
-        roughness: 0.2
-      });
-      oortPlanet = new THREE.Mesh(pGeo, pMat);
-      group.add(oortPlanet);
-
-      /* Thin Atmosphere */
-      const atm = new THREE.Mesh(
-        new THREE.SphereGeometry(2.04, 64, 64),
-        new THREE.MeshBasicMaterial({ color: 0x8fd9ff, wireframe: true, transparent: true, opacity: 0.25 })
-      );
-      group.add(atm);
-
-      /* 2,400 Keplerian Particles with Cassini Division */
-      const count = 2400;
-      const pos = new Float32Array(count * 3);
-      const cols = new Float32Array(count * 3);
-      const props = [];
-
-      for (let i = 0; i < count; i++) {
-        let r;
-        do {
-          r = 2.5 + Math.pow(Math.random(), 0.85) * 2.4;
-        } while (r > 3.45 && r < 3.75); // Cassini gap
-
-        const a = Math.random() * TAU;
-        props.push({ radius: r, angle: a, speed: (0.8 / Math.pow(r, 1.5)) * (0.9 + Math.random() * 0.2) });
-
-        pos[i * 3] = Math.cos(a) * r;
-        pos[i * 3 + 1] = (Math.random() - 0.5) * 0.08;
-        pos[i * 3 + 2] = Math.sin(a) * r;
-
-        cols[i * 3] = 0.65 + Math.random() * 0.35;
-        cols[i * 3 + 1] = 0.85 + Math.random() * 0.15;
-        cols[i * 3 + 2] = 1.0;
-      }
-
-      const rGeo = new THREE.BufferGeometry();
-      rGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-      rGeo.setAttribute('color', new THREE.BufferAttribute(cols, 3));
-
-      oortRings = new THREE.Points(rGeo, new THREE.PointsMaterial({
-        size: 0.065,
-        vertexColors: true,
-        transparent: true,
-        opacity: 0.85,
-        blending: THREE.AdditiveBlending
-      }));
-      oortRings.userData.props = props;
-      group.add(oortRings);
-
-      scene.add(group);
-      scene.userData.group = group;
-
-      /* Drag Interactivity */
-      canvas.addEventListener('pointerdown', e => {
-        drag = true;
-        lx = e.clientX; ly = e.clientY;
-        document.body.classList.add('grabbing');
-      });
-      window.addEventListener('pointermove', e => {
-        if (!drag) return;
-        const dx = e.clientX - lx;
-        const dy = e.clientY - ly;
-        lx = e.clientX; ly = e.clientY;
-        yaw += dx * 0.007;
-        pitch = clamp(pitch + dy * 0.005, -0.6, 1.2);
-      });
-      window.addEventListener('pointerup', () => {
-        drag = false;
-        document.body.classList.remove('grabbing');
-      });
-
-    } catch (e) {
-      console.warn('[OORT] 3D initialization failed:', e);
-    }
+<span class="comment"># Direct high-throughput sovereign ingestion</span>
+s3.upload_file(<span class="val">'track.flac'</span>, <span class="val">'mybucket'</span>, <span class="val">'audio/track.flac'</span>)`
+  },
+  rclone: {
+    raw: `[cosmos]
+type = s3
+provider = Minio
+endpoint = https://cosmos.linuxguy.space`,
+    html: `<span class="comment"># ~/.config/rclone/rclone.conf</span>
+[cosmos]
+type = s3
+provider = Minio
+env_auth = false
+access_key_id = <span class="val">YOUR_ACCESS_KEY</span>
+secret_access_key = <span class="val">YOUR_SECRET_KEY</span>
+endpoint = <span class="val">https://cosmos.linuxguy.space</span>`
   }
+};
 
-  /* 3D Bento Card Tilt & Dynamic Rim Lighting */
-  function initBentoCards() {
-    if (RM) return;
-    const cards = $$('.tilt-card');
-    cards.forEach(card => {
-      let raf = null;
-      let curX = 0, curY = 0, tarX = 0, tarY = 0;
+let currentProto = 'mornye';
 
-      card.addEventListener('pointermove', e => {
-        const r = card.getBoundingClientRect();
-        const x = e.clientX - r.left;
-        const y = e.clientY - r.top;
-        const cx = r.width / 2;
-        const cy = r.height / 2;
+function switchProtocol(key) {
+  currentProto = key;
+  document.querySelectorAll('.t-tab-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
 
-        tarY = ((x - cx) / cx) * 10;
-        tarX = -((y - cy) / cy) * 10;
+  const block = document.getElementById('terminal-content');
+  block.innerHTML = protocols[key].html;
+}
 
-        const angle = Math.atan2(y - cy, x - cx) * (180 / Math.PI) + 90;
-        card.style.setProperty('--rim-angle', `${angle.toFixed(1)}deg`);
-        card.style.setProperty('--mouse-x', `${(x / r.width) * 100}%`);
-        card.style.setProperty('--mouse-y', `${(y / r.height) * 100}%`);
+function copyActiveCommand() {
+  const text = protocols[currentProto].raw;
+  navigator.clipboard.writeText(text);
+  showToast('Copied protocol command to clipboard!');
+}
 
-        if (!raf) {
-          const update = () => {
-            curX += (tarX - curX) * 0.12;
-            curY += (tarY - curY) * 0.12;
-            card.style.transform = `perspective(800px) rotateX(${curX.toFixed(2)}deg) rotateY(${curY.toFixed(2)}deg) translateZ(8px)`;
-            if (Math.abs(tarX - curX) > 0.05 || Math.abs(tarY - curY) > 0.05) {
-              raf = requestAnimationFrame(update);
-            } else {
-              raf = null;
-            }
-          };
-          raf = requestAnimationFrame(update);
-        }
-      });
+function showToast(msg) {
+  const container = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = `<span>✓</span><span>${msg}</span>`;
+  container.appendChild(el);
+  setTimeout(() => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(10px)';
+    el.style.transition = 'all 0.3s ease';
+    setTimeout(() => el.remove(), 300);
+  }, 3000);
+}
 
-      card.addEventListener('pointerleave', () => {
-        tarX = 0; tarY = 0;
-        const reset = () => {
-          curX += (0 - curX) * 0.12;
-          curY += (0 - curY) * 0.12;
-          card.style.transform = `perspective(800px) rotateX(${curX.toFixed(2)}deg) rotateY(${curY.toFixed(2)}deg) translateZ(0px)`;
-          if (Math.abs(curX) > 0.05 || Math.abs(curY) > 0.05) {
-            requestAnimationFrame(reset);
-          } else {
-            card.style.transform = '';
-          }
-        };
-        requestAnimationFrame(reset);
-      });
+/* ─── Lightweight Ambient Starfield (Zero Pointer Interception) ─── */
+(function initSky() {
+  const canvas = document.getElementById('sky-canvas');
+  const ctx = canvas.getContext('2d');
+  let width, height;
+  let stars = [];
+  const COUNT = 120;
+
+  function resize() {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  for (let i = 0; i < COUNT; i++) {
+    stars.push({
+      x: (Math.random() - 0.5) * width * 2,
+      y: (Math.random() - 0.5) * height * 2,
+      z: Math.random() * width,
+      size: Math.random() * 1.4 + 0.6,
+      alpha: Math.random() * 0.6 + 0.4
     });
   }
 
-  /* Code Switcher Logic */
-  const codeSnippets = {
-    cli: `aws s3 cp backup.tar.gz s3://my-bucket/ \\\n  --endpoint-url https://cosmos.linuxguy.space`,
-    python: `import boto3\ns3 = boto3.client('s3',\n  endpoint_url='https://cosmos.linuxguy.space',\n  aws_access_key_id='YOUR_KEY',\n  aws_secret_access_key='YOUR_SECRET')\ns3.upload_file('backup.tar.gz', 'my-bucket', 'backup.tar.gz')`,
-    go: `package main\nimport "github.com/minio/minio-go/v7"\nfunc main() {\n  s3Client, _ := minio.New("cosmos.linuxguy.space", &minio.Options{Secure: true})\n}`,
-    node: `import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";\nconst s3 = new S3Client({ endpoint: "https://cosmos.linuxguy.space", region: "us-east-1" });`
-  };
+  function render() {
+    ctx.clearRect(0, 0, width, height);
+    const cx = width / 2;
+    const cy = height / 2;
 
-  $$('.code-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      $$('.code-tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      const lang = tab.dataset.lang;
-      $('#codeDisplay').textContent = codeSnippets[lang] || '';
-    });
-  });
-
-  /* Count-up animation */
-  const io = new IntersectionObserver(es => {
-    es.forEach(en => {
-      if (!en.isIntersecting) return;
-      const el = en.target;
-      const target = parseFloat(el.dataset.count);
-      const dec = +(el.dataset.dec || 0);
-      if (RM) {
-        el.textContent = dec ? target.toFixed(dec) : Math.round(target).toLocaleString('en-US');
-        io.unobserve(el);
-        return;
+    for (let i = 0; i < stars.length; i++) {
+      const s = stars[i];
+      s.z -= 0.35;
+      if (s.z <= 0) {
+        s.z = width;
+        s.x = (Math.random() - 0.5) * width * 2;
+        s.y = (Math.random() - 0.5) * height * 2;
       }
-      let t0 = null;
-      function step(ts) {
-        if (!t0) t0 = ts;
-        const f = Math.min(1, (ts - t0) / 1400);
-        const ease = 1 - Math.pow(1 - f, 3);
-        const v = target * ease;
-        el.textContent = dec ? v.toFixed(dec) : Math.round(v).toLocaleString('en-US');
-        if (f < 1) requestAnimationFrame(step);
+
+      const k = 220 / s.z;
+      const px = s.x * k + cx;
+      const py = s.y * k + cy;
+
+      if (px >= 0 && px <= width && py >= 0 && py <= height) {
+        const radius = Math.max(0.6, s.size * k);
+        const alpha = Math.min(1, (1 - s.z / width) * s.alpha);
+
+        ctx.beginPath();
+        ctx.arc(px, py, radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(180, 220, 255, ${alpha})`;
+        ctx.shadowBlur = radius * 3;
+        ctx.shadowColor = 'rgba(56, 189, 248, 0.4)';
+        ctx.fill();
+        ctx.shadowBlur = 0;
       }
-      requestAnimationFrame(step);
-      io.unobserve(el);
-    });
-  }, { threshold: 0.4 });
-  $$('.num').forEach(n => io.observe(n));
-
-  /* Clock & Uptime */
-  const utc = $('#utc'), ftUp = $('#ftUp');
-  const t0 = Date.now();
-  setInterval(() => {
-    const d = new Date();
-    utc.textContent = `${p2(d.getUTCHours())}:${p2(d.getUTCMinutes())}:${p2(d.getUTCSeconds())} UTC`;
-    const s = ((Date.now() - t0) / 1000) | 0;
-    if (ftUp) ftUp.textContent = `SESSION T+${p2((s / 3600) | 0)}:${p2(((s / 60) | 0) % 60)}:${p2(s % 60)}`;
-  }, 1000);
-
-  /* Custom Cursor */
-  const curDot = $('#curDot'), curRing = $('#curRing');
-  let crx = window.innerWidth / 2, cry = window.innerHeight / 2, seen = false;
-  if (FINE && !RM && curDot && curRing) {
-    document.body.classList.add('has-cur');
-    window.addEventListener('mousemove', e => {
-      mouse.px = e.clientX; mouse.py = e.clientY;
-      if (!seen) { seen = true; crx = e.clientX; cry = e.clientY; document.body.classList.add('cur-vis'); }
-      const el = e.target instanceof Element ? e.target : null;
-      curRing.classList.toggle('act', !!(el && el.closest('a, button')));
-      curRing.classList.toggle('drag', !!(el && el.closest('[data-cursor="drag"]')));
-    }, { passive: true });
-    document.addEventListener('mouseleave', () => { document.body.classList.remove('cur-vis'); seen = false; });
+    }
+    requestAnimationFrame(render);
   }
-
-  /* Nav scroll */
-  const nav = $('#nav');
-  window.addEventListener('scroll', () => {
-    nav.classList.toggle('scrolled', window.scrollY > 40);
-  }, { passive: true });
-
-  $('#burger').addEventListener('click', () => document.body.classList.toggle('m-open'));
-  $$('#mmenu a').forEach(a => a.addEventListener('click', () => document.body.classList.remove('m-open')));
-
-  /* Init */
-  initOortHero3D();
-  initBentoCards();
-
-  let lastT = performance.now();
-  function masterLoop(t) {
-    const dt = RM ? 0 : Math.min(0.05, (t - lastT) / 1000) || 0.016;
-    lastT = t;
-
-    if (curDot && curRing && seen) {
-      curDot.style.transform = `translate(${mouse.px}px, ${mouse.py}px)`;
-      crx += (mouse.px - crx) * 0.22;
-      cry += (mouse.py - cry) * 0.22;
-      curRing.style.transform = `translate(${crx.toFixed(1)}px, ${cry.toFixed(1)}px)`;
-    }
-
-    if (renderer && scene) {
-      const g = scene.userData.group;
-      if (g) {
-        if (!drag) yaw += dt * 0.12;
-        g.rotation.y = yaw;
-        g.rotation.x = pitch;
-        if (oortRings) {
-          const p = oortRings.geometry.attributes.position.array;
-          const pr = oortRings.userData.props;
-          for (let i = 0; i < pr.length; i++) {
-            pr[i].angle += pr[i].speed * dt;
-            p[i * 3] = Math.cos(pr[i].angle) * pr[i].radius;
-            p[i * 3 + 2] = Math.sin(pr[i].angle) * pr[i].radius;
-          }
-          oortRings.geometry.attributes.position.needsUpdate = true;
-        }
-      }
-      renderer.render(scene, camera);
-    }
-
-    requestAnimationFrame(masterLoop);
-  }
-  requestAnimationFrame(masterLoop);
-
-  window.addEventListener('resize', () => {
-    if (renderer && canvas && canvas.parentElement) {
-      const w = canvas.parentElement.clientWidth;
-      const h = canvas.parentElement.clientHeight;
-      renderer.setSize(w, h);
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-    }
-  });
+  render();
 })();
+
+// Initialize default tab
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('terminal-content').innerHTML = protocols.mornye.html;
+});
 </script>
 </body>
 </html>
