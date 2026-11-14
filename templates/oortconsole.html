@@ -1380,8 +1380,24 @@ body {
   to { opacity: 1; transform: translateX(0); }
 }
 
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 35;
+}
+
 /* ─── Responsive Media Queries ─── */
 @media (max-width: 1024px) {
+  .sidebar-backdrop.open {
+    display: block;
+  }
   .app-sidebar {
     transform: translateX(-100%);
   }
@@ -1405,6 +1421,9 @@ body {
 </head>
 
 <body>
+<!-- Mobile Sidebar Backdrop -->
+<div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
 <!-- 3D Cosmic Background Canvas -->
 <canvas id="cosmic-canvas"></canvas>
 <div class="cosmic-nebula nebula-1"></div>
@@ -1790,6 +1809,7 @@ body {
           <p>Sovereign private cloud storage engine connecting directly to the Mornye music app and native network clients.</p>
         </div>
         <div class="view-actions">
+          <select id="nas-bucket-select" class="form-select" style="width:auto; max-width:200px;" onchange="changeBucket(this.value)"></select>
           <button class="btn btn-secondary" onclick="triggerNASMusicUpload()">
             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
             Upload Music to NAS
@@ -2606,11 +2626,17 @@ function switchView(viewName) {
 }
 
 function toggleSidebar() {
-  document.getElementById('app-sidebar').classList.toggle('open');
+  const sb = document.getElementById('app-sidebar');
+  const bd = document.getElementById('sidebar-backdrop');
+  sb.classList.toggle('open');
+  if (bd) bd.classList.toggle('open', sb.classList.contains('open'));
 }
 
 function closeSidebar() {
-  document.getElementById('app-sidebar').classList.remove('open');
+  const sb = document.getElementById('app-sidebar');
+  const bd = document.getElementById('sidebar-backdrop');
+  sb.classList.remove('open');
+  if (bd) bd.classList.remove('open');
 }
 
 /* ─── Buckets Management ─── */
@@ -2620,18 +2646,27 @@ async function loadBuckets() {
   state.buckets = data.buckets;
 
   const select = document.getElementById('browser-bucket-select');
-  select.innerHTML = '';
+  const nasSelect = document.getElementById('nas-bucket-select');
+  if (select) select.innerHTML = '';
+  if (nasSelect) nasSelect.innerHTML = '';
+
   data.buckets.forEach(b => {
     const opt = document.createElement('option');
     opt.value = b.Name;
     opt.textContent = b.DisplayName || b.Name;
-    select.appendChild(opt);
+    if (select) select.appendChild(opt);
+
+    const opt2 = document.createElement('option');
+    opt2.value = b.Name;
+    opt2.textContent = b.DisplayName || b.Name;
+    if (nasSelect) nasSelect.appendChild(opt2);
   });
 
   if (!state.currentBucket && data.buckets.length > 0) {
     state.currentBucket = data.buckets[0].Name;
   }
-  select.value = state.currentBucket;
+  if (select) select.value = state.currentBucket;
+  if (nasSelect) nasSelect.value = state.currentBucket;
   updateActiveBucketDisplay();
 }
 
@@ -2998,7 +3033,7 @@ async function loadNASInfo() {
   if (!data) return;
 
   const username = data.username || DEFAULT_USERNAME;
-  const bucket = data.buckets && data.buckets[0] ? data.buckets[0] : null;
+  const bucket = (data.buckets && (data.buckets.find(b => b.name === state.currentBucket) || data.buckets[0])) || null;
   const bucketName = bucket ? bucket.name : state.currentBucket;
   const disp = bucket ? bucket.display_name : bucketName;
 
@@ -3009,6 +3044,9 @@ async function loadNASInfo() {
   document.getElementById('nas-input-playlist').value = playlistUrl;
   document.getElementById('nas-input-username').value = username;
   document.getElementById('mac-code-sample').textContent = webdavUrl;
+
+  const nasSelect = document.getElementById('nas-bucket-select');
+  if (nasSelect) nasSelect.value = state.currentBucket;
 
   if (data.secret_key) {
     document.getElementById('nas-input-password').dataset.secret = data.secret_key;
